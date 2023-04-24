@@ -1,0 +1,6 @@
+{
+    "commands" : {
+        "ping" : true,
+        "create_spygame" : true
+    }
+}

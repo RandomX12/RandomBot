@@ -1,0 +1,22 @@
+{
+  "name": "randombot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc",
+    "dev": "nodemon src/index.ts"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "discord.js": "^14.9.0",
+    "dotenv": "^16.0.3",
+    "mongoose": "^7.0.4",
+    "nodemon": "^2.0.22"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.1"
+  }
+}
