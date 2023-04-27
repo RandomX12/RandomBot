@@ -16,7 +16,34 @@ const discordServer = new mongoose_1.Schema({
     },
     games: {
         required: false,
-        type: [Object],
+        type: [
+            {
+                hostId: String,
+                hostName: String,
+                index: {
+                    type: Number,
+                    required: false,
+                    default: 0
+                },
+                players: [{
+                        username: String,
+                        id: String
+                    }],
+                word: String,
+                maxPlayers: Number,
+                channelId: String,
+                announcementId: String,
+                spy: {
+                    id: String,
+                    username: String
+                },
+                started: {
+                    required: false,
+                    type: Boolean,
+                    default: false
+                }
+            }
+        ],
         default: null
     }
 });

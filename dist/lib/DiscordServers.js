@@ -17,6 +17,39 @@ class DiscordServers {
         const server = await getServerByGuildId(id);
         server.deleteOne();
     }
+    static async getGameByHostId(guildId, id) {
+        const server = await getServerByGuildId(guildId);
+        let game;
+        server.games.map(e => {
+            if (e.hostId === id) {
+                game = e;
+            }
+        });
+        if (!game)
+            throw new Error(`Game not found`);
+        return game;
+    }
+    static async getUser(guildId, userId) {
+        const server = await getServerByGuildId(guildId);
+        let user;
+        server.members.map(e => {
+            if (e.id === userId) {
+                user = e;
+            }
+        });
+        if (!user)
+            throw new Error(`User not found`);
+        return user;
+    }
+    static async deleteGame(guildId, hostId) {
+        const server = await getServerByGuildId(guildId);
+        server.games.map((e, i) => {
+            if (e.hostId === hostId) {
+                server.games.splice(i, 1);
+            }
+        });
+        await server.save();
+    }
     constructor(server) {
         this.server = server;
     }

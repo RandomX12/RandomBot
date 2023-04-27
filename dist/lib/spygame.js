@@ -1,6 +1,30 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-const DiscordServers_1 = require("./DiscordServers");
+const DiscordServers_1 = __importStar(require("./DiscordServers"));
+const cmd_1 = require("./cmd");
 class Spygame {
     static async isHost(guildId, userId) {
         const discordServer = await (0, DiscordServers_1.getServerByGuildId)(guildId);
@@ -13,6 +37,57 @@ class Spygame {
             }
         });
         return isHost;
+    }
+    static async isFull(guildId, hostId) {
+        const server = await (0, DiscordServers_1.getServerByGuildId)(guildId);
+        let isFull = false;
+        let found = false;
+        server.games.map(e => {
+            if (e.hostId === hostId) {
+                found = true;
+                if (e.players.length === e.maxPlayers) {
+                    isFull = true;
+                }
+            }
+        });
+        if (!found)
+            throw new Error(`There is no such game with hostId='${hostId}'`);
+        return isFull;
+    }
+    static async join(guildId, hostId, userId) {
+        const isHost = await Spygame.isHost(guildId, hostId);
+        if (!isHost)
+            throw new Error(`Game Not Found`);
+        const server = await (0, DiscordServers_1.getServerByGuildId)(guildId);
+        for (let i = 0; i < server.games.length; i++) {
+            if (server.games[i].hostId === hostId) {
+                try {
+                    const user = await DiscordServers_1.default.getUser(guildId, userId);
+                    server.games[i].players = [...server.games[i].players, user];
+                    break;
+                }
+                catch (err) {
+                    (0, cmd_1.error)(err.message);
+                }
+            }
+        }
+        server.name = "changed";
+        await server.save();
+    }
+    static async leave(guildId, hostId, userId) {
+        const server = await (0, DiscordServers_1.getServerByGuildId)(guildId);
+        for (let i = 0; i < server.games.length; i++) {
+            if (server.games[i].hostId === hostId) {
+                for (let j = 0; j < server.games[i].players.length; j++) {
+                    if (server.games[i].players[j].id === userId) {
+                        server.games[i].players.splice(j, 1);
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+        await server.save();
     }
     constructor(serverId, hostName, hostId, maxPlayers, channelId, announcementId) {
         this.serverId = serverId;

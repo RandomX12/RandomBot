@@ -24,3 +24,6 @@ export function log(config : Log){
 export function error(text :string){
     console.log(`\x1b[31m`,"[ERROR] ",`${text}`);
 }
+export function warning(text : string){
+    console.log(`\x1b[33m`,"[WARNING] ",`${text}`,"\x1b[37m");
+}

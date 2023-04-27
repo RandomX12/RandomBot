@@ -1,5 +1,5 @@
-import DiscordServers from "../model/discordServers"
-import { getServerByGuildId } from "./DiscordServers";
+import DiscordServers, { getServerByGuildId } from "./DiscordServers";
+import { error } from "./cmd";
 export default class Spygame{
     public inanimateThings = [
         'Chair',
@@ -113,6 +113,55 @@ export default class Spygame{
             }
         })
         return isHost
+    }
+    static async isFull(guildId: string,hostId : string){
+        const server = await getServerByGuildId(guildId)
+        let isFull = false
+        let found = false
+        server.games.map(e=>{
+            if(e.hostId === hostId){
+                found = true
+                if(e.players.length === e.maxPlayers){
+                    isFull = true
+                }
+            }
+        })
+        if(!found) throw new Error(`There is no such game with hostId='${hostId}'`)
+        return isFull
+    }
+    static async join(guildId: string,hostId : string,userId : string){
+        const isHost = await Spygame.isHost(guildId,hostId)
+        if(!isHost) throw new Error(`Game Not Found`)
+        const server = await getServerByGuildId(guildId)
+        for(let i = 0;i<server.games.length ; i++){
+            if(server.games[i].hostId === hostId){
+                try{
+                    const user = await DiscordServers.getUser(guildId,userId)
+                    server.games[i].players = [...server.games[i].players,user]
+                    break
+                }
+                catch(err : any){
+                    error(err.message)
+                }
+            }
+        }
+        server.name = "changed"
+        await server.save()
+    }
+    static async leave(guildId : string,hostId : string,userId : string){
+        const server = await getServerByGuildId(guildId)
+        for(let i = 0 ; i<server.games.length;i++){
+            if(server.games[i].hostId === hostId){
+                for(let j = 0;j<server.games[i].players.length;j++){
+                    if(server.games[i].players[j].id === userId){
+                        server.games[i].players.splice(j,1)
+                        break
+                    }
+                }
+                break
+            }
+        }
+        await server.save()
     }
     constructor(public serverId : string,public hostName : string,public hostId : string,public maxPlayers : number,public channelId :string,public announcementId : string){}
     async save(){

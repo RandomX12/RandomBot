@@ -11,7 +11,9 @@ export interface SpyGame{
     index : number,
     maxPlayers : number,
     channelId : string,
-    announcementId : string
+    announcementId : string,
+    spy? : Member,
+    started? : boolean
 }
 export interface DiscordServer{
     serverId : string,
@@ -35,7 +37,34 @@ const discordServer = new Schema<DiscordServer>({
     },
     games : {
         required : false,
-        type : [Object],
+        type : [
+            {
+                hostId : String,
+                hostName : String,
+                index : {
+                    type : Number,
+                    required : false,
+                    default : 0
+                },
+                players : [{
+                    username : String,
+                    id : String
+                }],
+                word : String,
+                maxPlayers : Number,
+                channelId : String,
+                announcementId : String,
+                spy : {
+                    id : String,
+                    username: String
+                },
+                started : {
+                    required : false,
+                    type : Boolean,
+                    default : false
+                }
+            }
+        ],
         default : null
     }
 })

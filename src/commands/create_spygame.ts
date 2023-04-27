@@ -1,6 +1,7 @@
 import { CacheType, ChatInputCommandInteraction, EmbedBuilder ,ApplicationCommandDataResolvable, ApplicationCommandOptionType, ButtonBuilder, ActionRowBuilder} from "discord.js";
 import Spygame from "../lib/spygame"
 import DiscordServers, { getServerByGuildId } from "../lib/DiscordServers";
+import { error } from "../lib/cmd";
 const cmdBody : ApplicationCommandDataResolvable = {
     name : "create_spygame",
     description : "create a Spy Game",
@@ -28,25 +29,30 @@ module.exports = {
             })
             return
         }
-        
+        const leaveButton = new ButtonBuilder()
+        .setCustomId(`leave_spygame_${interaction.user.id}`)
+        .setLabel("leave")
+        .setStyle(4)
+        const rowLeave : any = new ActionRowBuilder()
+        .addComponents(leaveButton)
         const embed = new EmbedBuilder()
         .setTitle("Spy Game")
         .setAuthor({name : `Waiting for players ${"1 /"+maxPl}`})
         await interaction.reply({
             content : "spygame created :white_check_mark:",
             ephemeral : true,
-            embeds : [embed]
+            components : [rowLeave]
         })
-
         const button = new ButtonBuilder()
-        .setCustomId("join_spygame")
+        .setCustomId(`join_spygame_${interaction.user.id}`)
         .setStyle(3)
         .setLabel("join")
         const row : any = new ActionRowBuilder()
         .addComponents(button)
         const msg = await interaction.channel.send({
             content : `@everyone new Spygame created by <@${interaction.user.id}>`,
-            components : [row]
+            components : [row],
+            embeds : [embed]
         })
         const spygame = new Spygame(interaction.guildId,interaction.user.tag,interaction.user.id,maxPl,interaction.channelId,msg.id)
         await spygame.save()
@@ -67,5 +73,6 @@ module.exports = {
                 }
             })
         },60*5*1000)
+        
     }
 }

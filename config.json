@@ -1,6 +1,7 @@
 {
     "commands" : {
         "ping" : true,
-        "create_spygame" : true
+        "create_spygame" : true,
+        "leave_spygame" : true
     }
 }

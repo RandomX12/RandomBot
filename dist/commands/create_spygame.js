@@ -33,23 +33,30 @@ module.exports = {
             });
             return;
         }
+        const leaveButton = new discord_js_1.ButtonBuilder()
+            .setCustomId(`leave_spygame_${interaction.user.id}`)
+            .setLabel("leave")
+            .setStyle(4);
+        const rowLeave = new discord_js_1.ActionRowBuilder()
+            .addComponents(leaveButton);
         const embed = new discord_js_1.EmbedBuilder()
             .setTitle("Spy Game")
             .setAuthor({ name: `Waiting for players ${"1 /" + maxPl}` });
         await interaction.reply({
             content: "spygame created :white_check_mark:",
             ephemeral: true,
-            embeds: [embed]
+            components: [rowLeave]
         });
         const button = new discord_js_1.ButtonBuilder()
-            .setCustomId("join_spygame")
+            .setCustomId(`join_spygame_${interaction.user.id}`)
             .setStyle(3)
             .setLabel("join");
         const row = new discord_js_1.ActionRowBuilder()
             .addComponents(button);
         const msg = await interaction.channel.send({
             content: `@everyone new Spygame created by <@${interaction.user.id}>`,
-            components: [row]
+            components: [row],
+            embeds: [embed]
         });
         const spygame = new spygame_1.default(interaction.guildId, interaction.user.tag, interaction.user.id, maxPl, interaction.channelId, msg.id);
         await spygame.save();
