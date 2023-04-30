@@ -6,7 +6,7 @@ export interface Member{
 export interface SpyGame{
     hostId : string,
     hostName : string,
-    players : Member[],
+    players : (Member & {askId? : string,question? : string,answer? : string,vote? : String})[],
     word : string,
     index : number,
     maxPlayers : number,
@@ -48,7 +48,11 @@ const discordServer = new Schema<DiscordServer>({
                 },
                 players : [{
                     username : String,
-                    id : String
+                    id : String,
+                    askId : String,
+                    question : String,
+                    answer : String,
+                    vote : String
                 }],
                 word : String,
                 maxPlayers : Number,

@@ -23,8 +23,23 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.numberEmojisUnicode = exports.numberEmojisStyled = exports.numberEmojis = void 0;
 const DiscordServers_1 = __importStar(require("./DiscordServers"));
 const cmd_1 = require("./cmd");
+exports.numberEmojis = [":one:", ":two:", ":three:", ":four:", ":five:", ":six:", ":seven:", ":eight:", ":nine:", ":keycap_ten:", ":one::one:", ":one::two:", ":one::three:", ":one::four:", ":one::five:", ":one::six:", ":one::seven:", ":one::eight:", ":one::nine:", ":two::zero:"];
+exports.numberEmojisStyled = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟", "1️⃣1️⃣", "1️⃣2️⃣", "1️⃣3️⃣", "1️⃣4️⃣", "1️⃣5️⃣", "1️⃣6️⃣", "1️⃣7️⃣", "1️⃣8️⃣", "1️⃣9️⃣", "2️⃣0️⃣"];
+exports.numberEmojisUnicode = [
+    "\u0031\u20E3",
+    "\u0032\u20E3",
+    "\u0033\u20E3",
+    "\u0034\u20E3",
+    "\u0035\u20E3",
+    "\u0036\u20E3",
+    "\u0037\u20E3",
+    "\u0038\u20E3",
+    "\u0039\u20E3",
+    "\uD83D\uDD1F\uFE0F",
+]; // 🔟
 class Spygame {
     static async isHost(guildId, userId) {
         const discordServer = await (0, DiscordServers_1.getServerByGuildId)(guildId);
@@ -62,6 +77,11 @@ class Spygame {
         for (let i = 0; i < server.games.length; i++) {
             if (server.games[i].hostId === hostId) {
                 try {
+                    server.games[i].players.map(e => {
+                        if (e.id === userId) {
+                            throw new Error(`This user is already in the game`);
+                        }
+                    });
                     const user = await DiscordServers_1.default.getUser(guildId, userId);
                     server.games[i].players = [...server.games[i].players, user];
                     break;
@@ -88,6 +108,19 @@ class Spygame {
             }
         }
         await server.save();
+    }
+    static async findGameByUserId(games, userId) {
+        let game;
+        games.map((e, i) => {
+            games[i].players.map(ele => {
+                if (ele.id === userId) {
+                    game = games[i];
+                }
+            });
+        });
+        if (!game)
+            throw new Error(`Game not found`);
+        return game;
     }
     constructor(serverId, hostName, hostId, maxPlayers, channelId, announcementId) {
         this.serverId = serverId;

@@ -2,6 +2,9 @@
     "commands" : {
         "ping" : true,
         "create_spygame" : true,
-        "leave_spygame" : true
+        "leave_spygame" : true,
+        "spygame_ask" : true,
+        "spygame_answer" : true,
+        "spygame_vote" : true
     }
 }

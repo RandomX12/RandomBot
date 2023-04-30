@@ -11,7 +11,7 @@ const cmdBody : ApplicationCommandDataResolvable = {
             description : "set the maximum number of players",
             type : ApplicationCommandOptionType.Number,
             required : true,
-            maxValue : 20,
+            maxValue : 10,
             minValue : 3
         },
     ]
@@ -52,7 +52,7 @@ module.exports = {
         const msg = await interaction.channel.send({
             content : `@everyone new Spygame created by <@${interaction.user.id}>`,
             components : [row],
-            embeds : [embed]
+            embeds : [embed],
         })
         const spygame = new Spygame(interaction.guildId,interaction.user.tag,interaction.user.id,maxPl,interaction.channelId,msg.id)
         await spygame.save()

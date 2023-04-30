@@ -6,6 +6,7 @@ import { error, log, warning } from "./lib/cmd"
 import { connectDB } from "./lib/connectDB"
 import DiscordServers, { getServerByGuildId } from "./lib/DiscordServers"
 import discordServers, { Member } from "./model/discordServers"
+import deepai from "deepai"
 require("dotenv").config()
 declare module "discord.js" {
     export interface Client {
@@ -20,6 +21,7 @@ const client = new Discord.Client({
 		GatewayIntentBits.GuildMessages,
 		GatewayIntentBits.MessageContent,
 		GatewayIntentBits.GuildMembers,
+        GatewayIntentBits.GuildMessageReactions
 ]
 })
 // command handling
@@ -52,12 +54,33 @@ for(let file of buttonFolder){
         console.log("\x1b[33m","[warning] : ","\x1b[37m",`The command at ${filePath} has a missing property.`)
     }
 }
-
 // execute commands
-
+let msgs = new Map()
 client.on("interactionCreate",async(interaction)=>{
     // if(!interaction.isChatInputCommand()) return
     if(!interaction.guild) return
+    const user =  msgs.get(interaction.user.id)
+    if(user) {
+        //@ts-ignore
+        interaction.user.count = user.count + 1
+        msgs.set(interaction.user.id,interaction.user)
+        if(user.count > 7) {
+            log({text : `${interaction.user.tag} is blocked cause of spam`,timeColor : "Yellow",textColor : "Yellow"})
+            return
+        }
+    }
+
+    //@ts-ignore
+    if(!interaction.user.count){
+        //@ts-ignore
+        interaction.user.count = 1
+    }
+    msgs.set(interaction.user.id,interaction.user)
+    setTimeout(()=>{
+        //@ts-ignore
+        interaction.user.count = undefined
+        msgs.delete(interaction.user.id)
+    },1000*30)
     if(interaction.isButton()){
         let command = interaction.client.buttons.get(interaction.customId)
         if(interaction.customId.startsWith("join_spygame")){
@@ -103,7 +126,7 @@ client.on("interactionCreate",async(interaction)=>{
             }
         }
         catch(err : any){
-            log({text : `There was an error while executing the command \n ${err.message}`,textColor : "Red",timeColor : "Red"})
+            log({text : `There was an error while executing the command \n ${err}`,textColor : "Red",timeColor : "Red"})
             if(interaction.replied || interaction.deferred){
                 interaction.followUp({content : "There was an error while executing the command",ephemeral : true})
             }else{

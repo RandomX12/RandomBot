@@ -27,6 +27,7 @@ module.exports = {
                             return
                         }
                         const game = await DiscordServers.getGameByHostId(interaction.guildId,interaction.customId.split("_")[2])
+                        
                         await Spygame.join(interaction.guildId,game.hostId,interaction.user.id)
                         const announcement = interaction.channel.messages.cache.get(game.announcementId)
                         if(announcement){
@@ -55,23 +56,34 @@ module.exports = {
                             .setTitle("Spy Game")
                             await announcement.edit({
                                 embeds : [embed],
-                                content : ""
+                                content : "",
+                                components : []
                             })
                             setTimeout(async()=>{
-                                await interaction.channel.send({
-                                    content : "**Spy game started !**"
+                                embed.setAuthor({name :"Spy game started !"})
+                                await announcement.edit({
+                                    embeds : [embed],
+                                    content : `@everyone check your direct message with <@${interaction.client.user.id}> to know your role>` + "\n ```Use /spygame_ask (player) (question)``` ```Use /spygame_answer to answer to the question```",
+                                    components : []
                                 })
-                            },2000)
+                                setTimeout(async()=>{
+                                    await announcement.edit({
+                                        content : announcement.content + `\n <@${gameUpdate.players[gameUpdate.index].id}> it's your turn to ask someone`,
+                                        embeds : []
+                                    })
+                                })
+                            },3000)
                             const randomNum = Math.floor(Math.random() * gameUpdate.players.length)
                             const server = await getServerByGuildId(interaction.guildId)
-                            const spy = game.players[randomNum]
+                            const spy = gameUpdate.players[randomNum]
                             server.games.map((e,i)=>{
                                 if(e.hostId === interaction.customId.split("_")[2]){
                                     server.games[i].spy = spy
+                                    server.games[i].started = true
                                 }
                             })
+                            
                             await server.save()
-                            console.log(gameUpdate.players);
                             gameUpdate.players.map(async(e)=>{
                                 try{
                                     if(e.id === spy.id){
@@ -80,8 +92,9 @@ module.exports = {
                                         })
                                     }else{
                                         const embed = new EmbedBuilder()
-                                        .setAuthor({name : "The Random word is :"})
+                                        .setAuthor({name : "The secret word is :"})
                                         .setTitle(gameUpdate.word)
+                                        .setFooter({text : "rules of the game : \n- Don't tell anyone about the secret word \n- You can ask someone about the color, shape and etc... of the secret word \n- After the game is over, vote for who you think is the spy"})
                                         await interaction.client.users.cache.get(e.id).send({
                                             content : `You are an agent in ${interaction.guild.name} \n ${interaction.channel.url}`,
                                             embeds : [embed]

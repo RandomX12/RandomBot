@@ -27,7 +27,11 @@ const discordServer = new mongoose_1.Schema({
                 },
                 players: [{
                         username: String,
-                        id: String
+                        id: String,
+                        askId: String,
+                        question: String,
+                        answer: String,
+                        vote: String
                     }],
                 word: String,
                 maxPlayers: Number,

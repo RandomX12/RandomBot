@@ -31,7 +31,21 @@ module.exports = {
         }else{
             const game = await DiscordServers.getGameByHostId(interaction.guildId,interaction.customId.split("_")[2])
             const announcement =  interaction.channel.messages.cache.get(game.announcementId)
+            
+            
             if(announcement){
+                if(game.started){
+                    const embed = new EmbedBuilder()
+                .setTitle("Spy Game deleted :x:")
+                .setAuthor({name : `${interaction.user.username} left the game`})
+                await DiscordServers.deleteGame(interaction.guildId,interaction.customId.split("_")[2])
+                    await announcement.edit({
+                        embeds : [embed],
+                        content : "",
+                        components : []
+                    })
+                    return
+                }
                 const embed = new EmbedBuilder()
                 .setTitle("Spy Game")
                 .setAuthor({name : `Waiting for players ${game.players.length} / ${game.maxPlayers}`})
