@@ -31,7 +31,12 @@ const discordServer = new mongoose_1.Schema({
                         askId: String,
                         question: String,
                         answer: String,
-                        vote: String
+                        vote: String,
+                        votedCount: {
+                            type: Number,
+                            default: 0,
+                            required: false
+                        }
                     }],
                 word: String,
                 maxPlayers: Number,
@@ -42,6 +47,11 @@ const discordServer = new mongoose_1.Schema({
                     username: String
                 },
                 started: {
+                    required: false,
+                    type: Boolean,
+                    default: false
+                },
+                end: {
                     required: false,
                     type: Boolean,
                     default: false

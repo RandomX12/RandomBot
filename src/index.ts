@@ -28,12 +28,14 @@ const client = new Discord.Client({
 client.commands = new Collection()
 const commandPath = path.join(__dirname,"commands")
 const commandFiles = fs.readdirSync(commandPath).filter(file=>file.endsWith(".ts") || file.endsWith(".js"))
+let cmds = new Map<string,Map<string,Member>>()
 setTimeout(()=>{
     for(const file of commandFiles){
         const filePath = path.join(commandPath,file)
         const command = require(filePath)
         if("data" in command && "execute" in command){
             client.commands.set(command.data.name,command)
+            cmds.set(command.data.name,new Map<string,Member>())
             client.application?.commands?.create(command.data)
         }else{
             console.log("\x1b[33m","[warning] : ","\x1b[37m",`The command at ${filePath} has a missing property.`)
@@ -60,6 +62,7 @@ client.on("interactionCreate",async(interaction)=>{
     // if(!interaction.isChatInputCommand()) return
     if(!interaction.guild) return
     const user =  msgs.get(interaction.user.id)
+    
     if(user) {
         //@ts-ignore
         interaction.user.count = user.count + 1
@@ -104,6 +107,14 @@ client.on("interactionCreate",async(interaction)=>{
             error(err.message)
         }
     }else if(interaction.isCommand() && interaction.isChatInputCommand()){
+        const userCMD = cmds.get(interaction.commandName).get(interaction.user.id)
+        if(userCMD) return
+        if(!userCMD){
+            cmds.get(interaction.commandName).set(interaction.user.id,{username : interaction.user.tag,id : interaction.user.id})
+            setTimeout(()=>{
+                cmds.get(interaction.commandName).delete(interaction.user.id)
+            },5000)
+        }
         const command = interaction.client.commands.get(interaction.commandName)
         if(!command){
             console.log(`\x1b[33m`,`[warning]`,`Command /${interaction.commandName} is not found`);

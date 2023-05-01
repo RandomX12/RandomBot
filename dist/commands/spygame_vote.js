@@ -106,7 +106,73 @@ module.exports = {
                 }
             });
             if (voteCount === game.maxPlayers) {
-                embed.setFields({ name: `The Spy is <@${game.spy.id}>`, value: `` });
+                game.players.map((e) => {
+                    if (e.vote) {
+                        game.players.map((ele, i) => {
+                            if (e.vote === ele.id) {
+                                game.players[i].votedCount++;
+                            }
+                        });
+                    }
+                });
+                let votedPlayer = game.players.reduce((pe, ce) => {
+                    return ce.votedCount > pe.votedCount ? ce : pe;
+                });
+                let draw = [];
+                if (votedPlayer.votedCount === 0) {
+                    embed.addFields({ name: `Nobody voted 🟡`, value: "--" });
+                }
+                else {
+                    game.players.map((e) => {
+                        if (votedPlayer.votedCount === e.votedCount) {
+                            draw.push(e);
+                        }
+                    });
+                    if (draw.length > 0) {
+                        embed.addFields({ name: `Draw 🟡`, value: "--" });
+                    }
+                    else {
+                        embed.addFields({ name: `${votedPlayer.username}`, value: "Is" });
+                    }
+                }
+                await announcement.edit({
+                    embeds: [embed],
+                    components: []
+                });
+                game.end = true;
+                server.games[server.games.indexOf(game)] = game;
+                await server.save();
+                const embed1 = new discord_js_1.EmbedBuilder()
+                    .setAuthor({ name: "Spy Game" })
+                    .addFields({ name: "Players", value: playersStr })
+                    .setTimestamp(Date.now());
+                if (votedPlayer.votedCount === 0) {
+                    embed1.addFields({ name: `Nobody voted 🟡`, value: "--" });
+                    embed1.addFields({ name: `${game.spy.username}`, value: `Is The Spy \n Spy wins 🔴` });
+                }
+                else if (draw.length > 0) {
+                    embed1.addFields({ name: `Draw 🟡`, value: "--" });
+                    embed1.addFields({ name: `${game.spy.username}`, value: `Is The Spy \n Spy wins 🔴` });
+                }
+                else {
+                    if (votedPlayer.id === game.spy.id) {
+                        embed1.addFields({ name: `${votedPlayer.username}`, value: `Is The Spy ✅ \n Agents win 🔵` });
+                    }
+                    else {
+                        embed1.addFields({ name: `${votedPlayer.username}`, value: `Is Not The Spy ❌ \n Spy wins 🔴` });
+                    }
+                }
+                setTimeout(async () => {
+                    await announcement.edit({
+                        embeds: [embed1],
+                        components: [],
+                        content: ""
+                    });
+                }, 5000);
+                setTimeout(async () => {
+                    await spygame_1.default.delete(interaction.guildId, game.hostId);
+                }, 1000 * 10);
+                return;
             }
             await announcement.edit({
                 embeds: [embed],

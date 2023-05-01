@@ -122,6 +122,24 @@ class Spygame {
             throw new Error(`Game not found`);
         return game;
     }
+    static getUserInSpyGame(game, userId) {
+        let user;
+        game.players.map(e => {
+            if (e.id === userId) {
+                user = e;
+            }
+        });
+        return user || "";
+    }
+    static async delete(guildId, hostId) {
+        const server = await (0, DiscordServers_1.getServerByGuildId)(guildId);
+        server.games.map((e, i) => {
+            if (e.hostId === hostId) {
+                server.games.splice(i, 1);
+            }
+        });
+        await server.save();
+    }
     constructor(serverId, hostName, hostId, maxPlayers, channelId, announcementId) {
         this.serverId = serverId;
         this.hostName = hostName;

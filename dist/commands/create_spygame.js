@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const discord_js_1 = require("discord.js");
 const spygame_1 = __importDefault(require("../lib/spygame"));
 const DiscordServers_1 = require("../lib/DiscordServers");
+const cmd_1 = require("../lib/cmd");
 const cmdBody = {
     name: "create_spygame",
     description: "create a Spy Game",
@@ -24,7 +25,6 @@ module.exports = {
     data: cmdBody,
     async execute(interaction) {
         const maxPl = interaction.options.getNumber("max_players", true);
-        const server = await (0, DiscordServers_1.getServerByGuildId)(interaction.guildId);
         const isHost = await spygame_1.default.isHost(interaction.guildId, interaction.user.id);
         if (isHost) {
             interaction.reply({
@@ -53,29 +53,50 @@ module.exports = {
             .setLabel("join");
         const row = new discord_js_1.ActionRowBuilder()
             .addComponents(button);
-        const msg = await interaction.channel.send({
-            content: `@everyone new Spygame created by <@${interaction.user.id}>`,
-            components: [row],
-            embeds: [embed],
+        let msg = await interaction.channel.send({
+            content: `creating Spy Game...`,
         });
-        const spygame = new spygame_1.default(interaction.guildId, interaction.user.tag, interaction.user.id, maxPl, interaction.channelId, msg.id);
-        await spygame.save();
-        setTimeout(async () => {
-            const dcServer = await (0, DiscordServers_1.getServerByGuildId)(interaction.guildId);
-            dcServer.games.map(async (e, i) => {
-                if (e.hostId === interaction.user.id) {
-                    if (e.maxPlayers !== e.players.length) {
-                        dcServer.games.splice(i, 1);
-                        await dcServer.save();
-                        await interaction.editReply({
-                            content: ":x: Timeout: no one has joined the game",
-                            components: [],
-                            embeds: []
-                        });
-                        await interaction.channel.messages.cache.get(msg.id).delete();
-                    }
-                }
+        try {
+            const spygame = new spygame_1.default(interaction.guildId, interaction.user.tag, interaction.user.id, maxPl, interaction.channelId, msg.id);
+            await spygame.save();
+        }
+        catch (err) {
+            console.log(err.message);
+            await msg.delete();
+            msg = null;
+        }
+        try {
+            await msg.edit({
+                content: `@everyone new Spygame created by <@${interaction.user.id}>`,
+                components: [row],
+                embeds: [embed],
             });
+        }
+        catch (err) {
+            console.log(err.message);
+            spygame_1.default.delete(interaction.guildId, interaction.user.id);
+        }
+        setTimeout(async () => {
+            try {
+                const dcServer = await (0, DiscordServers_1.getServerByGuildId)(interaction.guildId);
+                dcServer.games.map(async (e, i) => {
+                    if (e.hostId === interaction.user.id) {
+                        if (e.maxPlayers !== e.players.length) {
+                            dcServer.games.splice(i, 1);
+                            await dcServer.save();
+                            await interaction.editReply({
+                                content: ":x: Timeout: no one has joined the game",
+                                components: [],
+                                embeds: []
+                            });
+                            await interaction.channel.messages.cache.get(msg.id).delete();
+                        }
+                    }
+                });
+            }
+            catch (err) {
+                (0, cmd_1.error)(err.message);
+            }
         }, 60 * 5 * 1000);
     }
 };

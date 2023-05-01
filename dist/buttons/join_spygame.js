@@ -85,30 +85,9 @@ module.exports = {
                         content: "",
                         components: []
                     });
-                    setTimeout(async () => {
-                        embed.setAuthor({ name: "Spy game started !" });
-                        await announcement.edit({
-                            embeds: [embed],
-                            content: `@everyone check your direct message with <@${interaction.client.user.id}> to know your role>` + "\n ```Use /spygame_ask (player) (question)``` ```Use /spygame_answer to answer to the question```",
-                            components: []
-                        });
-                        setTimeout(async () => {
-                            await announcement.edit({
-                                content: announcement.content + `\n <@${gameUpdate.players[gameUpdate.index].id}> it's your turn to ask someone`,
-                                embeds: []
-                            });
-                        });
-                    }, 3000);
                     const randomNum = Math.floor(Math.random() * gameUpdate.players.length);
                     const server = await (0, DiscordServers_1.getServerByGuildId)(interaction.guildId);
                     const spy = gameUpdate.players[randomNum];
-                    server.games.map((e, i) => {
-                        if (e.hostId === interaction.customId.split("_")[2]) {
-                            server.games[i].spy = spy;
-                            server.games[i].started = true;
-                        }
-                    });
-                    await server.save();
                     gameUpdate.players.map(async (e) => {
                         try {
                             if (e.id === spy.id) {
@@ -131,6 +110,25 @@ module.exports = {
                             (0, cmd_1.error)(err.message);
                         }
                     });
+                    embed.setAuthor({ name: "Spy game started !" });
+                    await announcement.edit({
+                        embeds: [embed],
+                        content: `@everyone check your direct message with <@${interaction.client.user.id}> to know your role>` + "\n ```Use /spygame_ask (player) (question)``` ```Use /spygame_answer to answer to the question```",
+                        components: []
+                    });
+                    setTimeout(async () => {
+                        await announcement.edit({
+                            content: announcement.content + `\n <@${gameUpdate.players[gameUpdate.index].id}> it's your turn to ask someone`,
+                            embeds: []
+                        });
+                        server.games.map((e, i) => {
+                            if (e.hostId === interaction.customId.split("_")[2]) {
+                                server.games[i].spy = spy;
+                                server.games[i].started = true;
+                            }
+                        });
+                        await server.save();
+                    }, 3000);
                 }
             }
         }

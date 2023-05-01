@@ -195,6 +195,24 @@ export default class Spygame{
         if(!game) throw new Error(`Game not found`)
         return game
     }
+    static getUserInSpyGame(game : SpygameType,userId : string){
+        let user
+        game.players.map(e=>{
+            if(e.id === userId){
+                user = e
+            }
+        })
+        return user || ""
+    }
+    static async delete(guildId : string,hostId : string){
+        const server = await getServerByGuildId(guildId)
+        server.games.map((e,i)=>{
+            if(e.hostId === hostId){
+                server.games.splice(i,1)
+            }
+        })
+        await server.save()
+    }
     constructor(public serverId : string,public hostName : string,public hostId : string,public maxPlayers : number,public channelId :string,public announcementId : string){}
     async save(){
         const discordSv = await getServerByGuildId(this.serverId)

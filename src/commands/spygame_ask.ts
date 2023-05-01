@@ -58,6 +58,13 @@ module.exports = {
             })
             return
         }
+        if(game.players[playerIndex].question){
+            await interaction.reply({
+                content : `You have already asked <@${game.players[playerIndex].askId}>`,
+                ephemeral  : true
+            })
+            return
+        }
         const player = interaction.options.getUser("player")
         const question = interaction.options.getString("question")
         if(player.id === interaction.user.id){

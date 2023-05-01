@@ -48,12 +48,14 @@ const client = new discord_js_1.default.Client({
 client.commands = new discord_js_1.Collection();
 const commandPath = path_1.default.join(__dirname, "commands");
 const commandFiles = fs_1.default.readdirSync(commandPath).filter(file => file.endsWith(".ts") || file.endsWith(".js"));
+let cmds = new Map();
 setTimeout(() => {
     for (const file of commandFiles) {
         const filePath = path_1.default.join(commandPath, file);
         const command = require(filePath);
         if ("data" in command && "execute" in command) {
             client.commands.set(command.data.name, command);
+            cmds.set(command.data.name, new Map());
             client.application?.commands?.create(command.data);
         }
         else {
@@ -126,6 +128,15 @@ client.on("interactionCreate", async (interaction) => {
         }
     }
     else if (interaction.isCommand() && interaction.isChatInputCommand()) {
+        const userCMD = cmds.get(interaction.commandName).get(interaction.user.id);
+        if (userCMD)
+            return;
+        if (!userCMD) {
+            cmds.get(interaction.commandName).set(interaction.user.id, { username: interaction.user.tag, id: interaction.user.id });
+            setTimeout(() => {
+                cmds.get(interaction.commandName).delete(interaction.user.id);
+            }, 5000);
+        }
         const command = interaction.client.commands.get(interaction.commandName);
         if (!command) {
             console.log(`\x1b[33m`, `[warning]`, `Command /${interaction.commandName} is not found`);

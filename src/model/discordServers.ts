@@ -6,14 +6,15 @@ export interface Member{
 export interface SpyGame{
     hostId : string,
     hostName : string,
-    players : (Member & {askId? : string,question? : string,answer? : string,vote? : String})[],
+    players : (Member & {askId? : string,question? : string,answer? : string,vote? : string,votedCount? : number})[],
     word : string,
     index : number,
     maxPlayers : number,
     channelId : string,
     announcementId : string,
     spy? : Member,
-    started? : boolean
+    started? : boolean,
+    end? : boolean
 }
 export interface DiscordServer{
     serverId : string,
@@ -52,7 +53,12 @@ const discordServer = new Schema<DiscordServer>({
                     askId : String,
                     question : String,
                     answer : String,
-                    vote : String
+                    vote : String,
+                    votedCount : {
+                        type : Number,
+                        default : 0,
+                        required : false
+                    }
                 }],
                 word : String,
                 maxPlayers : Number,
@@ -63,6 +69,11 @@ const discordServer = new Schema<DiscordServer>({
                     username: String
                 },
                 started : {
+                    required : false,
+                    type : Boolean,
+                    default : false
+                },
+                end : {
                     required : false,
                     type : Boolean,
                     default : false

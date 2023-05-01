@@ -5,6 +5,7 @@
         "leave_spygame" : true,
         "spygame_ask" : true,
         "spygame_answer" : true,
-        "spygame_vote" : true
+        "spygame_vote" : true,
+        "spygame_remove_vote" : true
     }
 }
