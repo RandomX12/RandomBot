@@ -17,15 +17,19 @@ module.exports = {
                 const embed = new EmbedBuilder()
                 .setTitle("Spy Game deleted :x:")
                 .setAuthor({name : "The host left the game"})
-                await announcement.edit({
-                    embeds : [embed],
-                    components : [],
-                    content : ""
-                })
-                await interaction.reply({
-                    content : "You left the game",
-                    ephemeral : true
-                })
+                .setThumbnail("https://media.istockphoto.com/id/846415384/vector/spy-icon.jpg?s=612x612&w=0&k=20&c=VJI5sbn-wprj6ikxVWxIm3p4fHYAwb2IHmr7lJBXa5g=")
+                if(announcement){
+                    await announcement.edit({
+                        embeds : [embed],
+                        components : [],
+                        content : ""
+                    })
+                    await interaction.reply({
+                        content : "You left the game",
+                        ephemeral : true
+                    })
+                }
+                
                 break
             }
             for(let j = 0;j<server.games[i].players.length ; j++){
@@ -35,7 +39,8 @@ module.exports = {
                     const announcement = interaction.channel.messages.cache.get(server.games[i].announcementId)
                     const embed = new EmbedBuilder()
                     .setTitle("Spy Game")
-                    .setAuthor({name : `Waiting for players ${server.games[i].players.length} / ${server.games[i].maxPlayers}`})
+                    .setAuthor({name : `Waiting for players ${server.games[i].players.length - 1} / ${server.games[i].maxPlayers}`})
+                    .setThumbnail("https://media.istockphoto.com/id/846415384/vector/spy-icon.jpg?s=612x612&w=0&k=20&c=VJI5sbn-wprj6ikxVWxIm3p4fHYAwb2IHmr7lJBXa5g=")
                     await announcement.edit({
                         embeds : [embed]
                     })

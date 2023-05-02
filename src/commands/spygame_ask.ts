@@ -101,9 +101,12 @@ module.exports = {
         },3000)
         const announcement = interaction.channel.messages.cache.get(game.announcementId)
         if(announcement){
+            let content = announcement.content.split(/\n/)
+            content.splice(content.length-1,1)
             await announcement.edit({
-                content : announcement.content + "\nquestion :\n ```" + `${question}` + "```" +"\n" + `<@${player.id}> answer :\n`
+                content : content.join("\n") + `<@${interaction.user.id}>'s` +" question : ```" + `${question}` + "```" + `<@${player.id}>'s answer :`
             })
+            
             return
         }
     }

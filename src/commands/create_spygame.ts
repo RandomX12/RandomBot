@@ -38,6 +38,8 @@ module.exports = {
         const embed = new EmbedBuilder()
         .setTitle("Spy Game")
         .setAuthor({name : `Waiting for players ${"1 /"+maxPl}`})
+        .setThumbnail("https://media.istockphoto.com/id/846415384/vector/spy-icon.jpg?s=612x612&w=0&k=20&c=VJI5sbn-wprj6ikxVWxIm3p4fHYAwb2IHmr7lJBXa5g=")
+        .setTimestamp(Date.now())
         await interaction.reply({
             content : "spygame created :white_check_mark:",
             ephemeral : true,
@@ -63,7 +65,7 @@ module.exports = {
         }
         try{
             await msg.edit({
-                content : `@everyone new Spygame created by <@${interaction.user.id}>`,
+                content : `@everyone new Spygame created by <@${interaction.user.id}> <t:${Math.floor(Date.now() / 1000)}:R>`,
                 components : [row],
                 embeds : [embed],
             })

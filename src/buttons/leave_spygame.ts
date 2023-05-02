@@ -38,6 +38,7 @@ module.exports = {
                     const embed = new EmbedBuilder()
                 .setTitle("Spy Game deleted :x:")
                 .setAuthor({name : `${interaction.user.username} left the game`})
+
                 await DiscordServers.deleteGame(interaction.guildId,interaction.customId.split("_")[2])
                     await announcement.edit({
                         embeds : [embed],
@@ -48,6 +49,7 @@ module.exports = {
                 }
                 const embed = new EmbedBuilder()
                 .setTitle("Spy Game")
+                .setThumbnail("https://media.istockphoto.com/id/846415384/vector/spy-icon.jpg?s=612x612&w=0&k=20&c=VJI5sbn-wprj6ikxVWxIm3p4fHYAwb2IHmr7lJBXa5g=")
                 .setAuthor({name : `Waiting for players ${game.players.length} / ${game.maxPlayers}`})
                     await announcement.edit({
                         embeds : [embed]

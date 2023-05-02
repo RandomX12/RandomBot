@@ -72,7 +72,6 @@ module.exports = {
             const embed = new EmbedBuilder()
                 .setAuthor({name :  "Spy Game"})
                 .setTitle("Who you think is the imposter ? \n vote for the spy")
-                .setFields({name : "Players",value : playersStr})
                 .setTimestamp(Date.now())
             let voteCount = 0
             game.players.map(e=>{
@@ -93,12 +92,27 @@ module.exports = {
                 let votedPlayer =  game.players.reduce((pe,ce)=>{
                     return ce.votedCount > pe.votedCount ? ce : pe
                 })
+                let playersStr = ""
+                game.players.map((e,i)=>{
+                    if(e.votedCount){
+                        let playerVoted = ""
+                        game.players.map((ele,index)=>{
+                            if(e.id === ele.vote){
+                                playerVoted += numberEmojisStyled[index]
+                            }
+                        })
+                        playersStr += numberEmojisStyled[i] + `${e.username}   ${playerVoted}\n`
+                    }else{
+                        playersStr += numberEmojisStyled[i] + `${e.username}\n`
+                }
+            })
+                embed.addFields({name : "Players",value : playersStr})
                 let draw = []
                 if(votedPlayer.votedCount === 0){
                     embed.addFields({name : `Nobody voted 🟡`,value : "--"})
             }else{
                 game.players.map((e)=>{
-                    if(votedPlayer.votedCount === e.votedCount){
+                    if(votedPlayer.votedCount === e.votedCount && e.id !== votedPlayer.id){
                         draw.push(e)
                     }
                 })
@@ -122,14 +136,17 @@ module.exports = {
                 if(votedPlayer.votedCount === 0){
                     embed1.addFields({name : `Nobody voted 🟡`,value : "--"})
                     embed1.addFields({name : `${game.spy.username}`,value : `Is The Spy \n Spy wins 🔴`})
+                    embed1.setThumbnail("https://media.istockphoto.com/id/846415384/vector/spy-icon.jpg?s=612x612&w=0&k=20&c=VJI5sbn-wprj6ikxVWxIm3p4fHYAwb2IHmr7lJBXa5g=")
                 }else if(draw.length > 0){
                     embed1.addFields({name : `Draw 🟡`,value : "--"})
                     embed1.addFields({name : `${game.spy.username}`,value : `Is The Spy \n Spy wins 🔴`})
+                    embed1.setThumbnail("https://media.istockphoto.com/id/846415384/vector/spy-icon.jpg?s=612x612&w=0&k=20&c=VJI5sbn-wprj6ikxVWxIm3p4fHYAwb2IHmr7lJBXa5g=")
                 }else{
                     if(votedPlayer.id === game.spy.id){
                         embed1.addFields({name : `${votedPlayer.username}`,value : `Is The Spy ✅ \n Agents win 🔵`})
                     }else{
                         embed1.addFields({name : `${votedPlayer.username}`,value : `Is Not The Spy ❌ \n Spy wins 🔴`})
+                    embed1.setThumbnail("https://media.istockphoto.com/id/846415384/vector/spy-icon.jpg?s=612x612&w=0&k=20&c=VJI5sbn-wprj6ikxVWxIm3p4fHYAwb2IHmr7lJBXa5g=")
                     }
                 }
                 setTimeout(async()=>{
@@ -144,6 +161,7 @@ module.exports = {
             },1000*10)
         return    
         }
+        embed.addFields({name : "Players",value : playersStr})
             await announcement.edit({
                 embeds :[embed],
                 components : []

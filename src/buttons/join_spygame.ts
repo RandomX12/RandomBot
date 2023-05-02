@@ -1,7 +1,7 @@
 import { ActionRowBuilder, ButtonBuilder, CacheType, ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
 import DiscordServers, { getServerByGuildId } from "../lib/DiscordServers";
 import Spygame from "../lib/spygame";
-import { error } from "../lib/cmd";
+import { TimeTampNow, error } from "../lib/cmd";
 
 module.exports = {
     data : {
@@ -34,6 +34,7 @@ module.exports = {
                             const embed = new EmbedBuilder()
                             .setTitle("Spy Game")
                             .setAuthor({name : `Waiting for players ${game.players.length + 1} / ${game.maxPlayers}`})
+                            .setThumbnail("https://media.istockphoto.com/id/846415384/vector/spy-icon.jpg?s=612x612&w=0&k=20&c=VJI5sbn-wprj6ikxVWxIm3p4fHYAwb2IHmr7lJBXa5g=")
                             await announcement.edit({
                                 embeds : [embed]
                             })
@@ -59,9 +60,11 @@ module.exports = {
                                 content : "",
                                 components : []
                             })
+                            
                             const randomNum = Math.floor(Math.random() * gameUpdate.players.length)
                             const server = await getServerByGuildId(interaction.guildId)
                             const spy = gameUpdate.players[randomNum]
+                            gameUpdate.started = true
                             gameUpdate.players.map(async(e)=>{
                                 try{
                                     if(e.id === spy.id){
@@ -83,6 +86,14 @@ module.exports = {
                                     error(err.message)
                                 }
                             })
+                            server.games.map((e,i)=>{
+                                if(e.hostId === interaction.customId.split("_")[2]){
+                                    server.games[i].spy = spy
+                                    server.games[i].started = true
+                                }
+                            })
+                            
+                            await server.save()
                             embed.setAuthor({name :"Spy game started !"})
                             await announcement.edit({
                                 embeds : [embed],
@@ -90,18 +101,41 @@ module.exports = {
                                 components : []
                             })
                             setTimeout(async()=>{
-                                await announcement.edit({
-                                    content : announcement.content + `\n <@${gameUpdate.players[gameUpdate.index].id}> it's your turn to ask someone`,
-                                    embeds : []
-                                })
-                                server.games.map((e,i)=>{
-                                    if(e.hostId === interaction.customId.split("_")[2]){
-                                        server.games[i].spy = spy
-                                        server.games[i].started = true
-                                    }
-                                })
-                                
-                                await server.save()
+                                try{
+                                    await announcement.edit({
+                                        content : announcement.content + `\n <@${gameUpdate.players[gameUpdate.index].id}> it's your turn to ask someone ${TimeTampNow()}`,
+                                        embeds : []
+                                    })
+                                    setTimeout(async()=>{
+                                        try{
+                                            const gameCheck = await DiscordServers.getGameByHostId(interaction.guildId,game.hostId)
+                                        if(!gameCheck.players[0].question){
+                                            const embed = new EmbedBuilder()
+                                            .setAuthor({name : "Spy Game"})
+                                            .setTitle(`Timed out ${gameCheck.players[0].username} didn't ask ❌`)
+                                            await announcement.edit({
+                                                embeds : [embed],
+                                                content : "",
+                                                components : []
+                                            })
+                                            await Spygame.delete(interaction.guildId,gameCheck.hostId)
+                                            return
+                                        }
+                                        }
+                                        catch(err : any){}
+                                    },1000*90)
+                                }
+                                catch(err : any){
+                                    const embed = new EmbedBuilder()
+                                    .setAuthor({name : "Spy Game"})
+                                    .setTitle(`an error occurred while starting the game ❌`)
+                                    await Spygame.delete(interaction.guildId,game.hostId)
+                                    await announcement.edit({
+                                        embeds : [embed],
+                                        content : "",
+                                        components : []
+                                    })
+                                }
                             },3000)
                             
                         }
@@ -109,6 +143,7 @@ module.exports = {
         }
         catch(err : any){
             error(err.message)
+            await Spygame.delete(interaction.guildId,interaction.customId.split("_")[2])
         }
     }
 }

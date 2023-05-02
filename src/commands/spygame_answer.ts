@@ -1,7 +1,7 @@
 import { ApplicationCommandDataResolvable, ApplicationCommandOptionType, CacheType, ChatInputCommandInteraction, EmbedBuilder } from "discord.js"
-import { getServerByGuildId } from "../lib/DiscordServers"
+import DiscordServers, { getServerByGuildId } from "../lib/DiscordServers"
 import Spygame, { numberEmojis, numberEmojisStyled, numberEmojisUnicode } from "../lib/spygame"
-import { error } from "../lib/cmd"
+import { TimeTampNow, error } from "../lib/cmd"
 
 let cmdBody : ApplicationCommandDataResolvable = {
     name : "spygame_answer",
@@ -50,11 +50,31 @@ module.exports = {
         if(announcement){
             let nextTurn = ""
             if(game.index !== game.maxPlayers){
-                nextTurn += `<@${game.players[game.index].id}> it's your turn to ask someone`
+                nextTurn += `<@${game.players[game.index].id}> it's your turn to ask someone ${TimeTampNow()}`
             }
             await announcement.edit({
                 content : announcement.content + "``` " + answer + "```\n" + nextTurn
             })
+            setTimeout(async()=>{
+                try{
+                    const gameCheck = await DiscordServers.getGameByHostId(interaction.guildId,game.hostId)
+                    if(!gameCheck.players[game.index].question){
+                        const embed = new EmbedBuilder()
+                        .setAuthor({name : "Spy Game"})
+                        .setTitle(`Timed out ${gameCheck.players[0].username} didn't ask ❌`)
+                        await announcement.edit({
+                            content : "",
+                            embeds : [embed],
+                            components : []
+                        })
+                        await Spygame.delete(interaction.guildId,gameCheck.hostId)
+                        return
+                    }
+                    return
+                }
+                catch(err : any){
+                }
+            },1000*90)
             const reply = await interaction.reply({
                 content : "Answer sent :white_check_mark:",
                 ephemeral : true
@@ -96,13 +116,18 @@ module.exports = {
                         })
                         let playersStr = ""
                         gameUpdate.players.map((e,i)=>{
-                            if(e.vote){
-                                let playerVoted = Spygame.getUserInSpyGame(gameUpdate,e.vote)
-                                playersStr += numberEmojisStyled[i] + `${e.username}    voted   ${playerVoted?.username || ""}\n`
+                            if(e.votedCount){
+                                let playerVoted = ""
+                                gameUpdate.players.map((ele,index)=>{
+                                    if(e.id === ele.vote){
+                                        playerVoted += numberEmojisStyled[index]
+                                    }
+                                })
+                                playersStr += numberEmojisStyled[i] + `${e.username}   ${playerVoted}\n`
                             }else{
                                 playersStr += numberEmojisStyled[i] + `${e.username}\n`
                         }
-            })
+                    })
                     let draw = []
                         const embed = new EmbedBuilder()
                     .setAuthor({name :  "Spy Game"})
@@ -112,7 +137,7 @@ module.exports = {
                             embed.addFields({name : `Nobody voted 🟡`,value : "--"})
                     }else{
                         gameUpdate.players.map((e)=>{
-                            if(votedPlayer.votedCount === e.votedCount){
+                            if(votedPlayer.votedCount === e.votedCount && e.id !== votedPlayer.id){
                                 draw.push(e)
                             }
                         })
@@ -135,14 +160,17 @@ module.exports = {
                     if(votedPlayer.votedCount === 0){
                         embed1.addFields({name : `Nobody voted 🟡`,value : "--"})
                         embed1.addFields({name : `${gameUpdate.spy.username}`,value : `Is The Spy \n Spy wins 🔴`})
+                        embed1.setThumbnail("https://media.istockphoto.com/id/846415384/vector/spy-icon.jpg?s=612x612&w=0&k=20&c=VJI5sbn-wprj6ikxVWxIm3p4fHYAwb2IHmr7lJBXa5g=")
                     }else if(draw.length > 0){
                         embed1.addFields({name : `Draw 🟡`,value : "--"})
                         embed1.addFields({name : `${gameUpdate.spy.username}`,value : `Is The Spy \n Spy wins 🔴`})
+                    embed1.setThumbnail("https://media.istockphoto.com/id/846415384/vector/spy-icon.jpg?s=612x612&w=0&k=20&c=VJI5sbn-wprj6ikxVWxIm3p4fHYAwb2IHmr7lJBXa5g=")
                     }else{
                         if(votedPlayer.id === gameUpdate.spy.id){
                             embed1.addFields({name : `${votedPlayer.username}`,value : `Is The Spy ✅ \n Agents win 🔵`})
                         }else{
                             embed1.addFields({name : `${votedPlayer.username}`,value : `Is Not The Spy ❌ \n Spy wins 🔴`})
+                            embed1.setThumbnail("https://media.istockphoto.com/id/846415384/vector/spy-icon.jpg?s=612x612&w=0&k=20&c=VJI5sbn-wprj6ikxVWxIm3p4fHYAwb2IHmr7lJBXa5g=")
                         }
                     }
                     setTimeout(async()=>{

@@ -27,3 +27,6 @@ export function error(text :string){
 export function warning(text : string){
     console.log(`\x1b[33m`,"[WARNING] ",`${text}`,"\x1b[37m");
 }
+export function TimeTampNow(){
+    return `<t:${Math.floor(Date.now() / 1000)}:R>`
+}
