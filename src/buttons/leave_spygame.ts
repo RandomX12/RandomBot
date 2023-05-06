@@ -1,4 +1,4 @@
-import { CacheType, ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, CacheType, ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
 import Spygame from "../lib/spygame";
 import DiscordServers from "../lib/DiscordServers";
 
@@ -31,10 +31,8 @@ module.exports = {
         }else{
             const game = await DiscordServers.getGameByHostId(interaction.guildId,interaction.customId.split("_")[2])
             const announcement =  interaction.channel.messages.cache.get(game.announcementId)
-            
-            
             if(announcement){
-                if(game.started){
+                if(game.started || game.players.length === game.maxPlayers){
                     const embed = new EmbedBuilder()
                 .setTitle("Spy Game deleted :x:")
                 .setAuthor({name : `${interaction.user.username} left the game`})
@@ -51,15 +49,30 @@ module.exports = {
                 .setTitle("Spy Game")
                 .setThumbnail("https://media.istockphoto.com/id/846415384/vector/spy-icon.jpg?s=612x612&w=0&k=20&c=VJI5sbn-wprj6ikxVWxIm3p4fHYAwb2IHmr7lJBXa5g=")
                 .setAuthor({name : `Waiting for players ${game.players.length} / ${game.maxPlayers}`})
-                    await announcement.edit({
-                        embeds : [embed]
+                const button = new ButtonBuilder()
+                .setCustomId(`join_spygame_${interaction.user.id}`)
+                .setStyle(3)
+                .setLabel("join")
+                const row : any = new ActionRowBuilder()
+                .addComponents(button)
+                await announcement.edit({
+                        embeds : [embed],
+                        components : [row]
                     })
                     await interaction.reply({
                         content : "You left the game",
                         ephemeral : true
                     })
+            }else{
+                await DiscordServers.deleteGame(interaction.guildId,game.hostId)
+                const errorEmbed = new EmbedBuilder()
+            .setAuthor({name : "Spy Game"})
+            .setTitle("Looks like someone deleted the game announcement ❌")
+            .setFooter({text : "Game deleted"})
+            await interaction.channel.send({
+                embeds : [errorEmbed],
+            })
             }
-            
         }
     }
 }

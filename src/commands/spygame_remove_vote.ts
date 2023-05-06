@@ -57,6 +57,15 @@ module.exports = {
                 content : "Vote removed :white_check_mark:",
                 ephemeral : true,
             })
+        }else{
+            await Spygame.delete(interaction.guildId,game.hostId)
+            const errorEmbed = new EmbedBuilder()
+            .setAuthor({name : "Spy Game"})
+            .setTitle("Looks like someone deleted the game announcement ❌")
+            .setFooter({text : "Game deleted"})
+            await interaction.channel.send({
+                embeds : [errorEmbed],
+            })
         }
     }
 }

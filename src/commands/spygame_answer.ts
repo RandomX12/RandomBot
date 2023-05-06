@@ -100,8 +100,14 @@ module.exports = {
                 setTimeout(async()=>{
                     try{
                         const server = await getServerByGuildId(interaction.guildId)
-                        const gameUpdate= await Spygame.findGameByUserId(server.games,interaction.user.id)
-                        if(gameUpdate.end)return
+                        let gameUpdate
+                        try{
+                            gameUpdate= await Spygame.findGameByUserId(server.games,interaction.user.id)
+                        }
+                        catch(err : any){
+                            return
+                        }
+                        if(gameUpdate.end) return
                         gameUpdate.players.map((e)=>{
                             if(e.vote){
                                 gameUpdate.players.map((ele,i)=>{
@@ -148,10 +154,24 @@ module.exports = {
                         }
                     }
                     
-                    await announcement.edit({
-                        embeds : [embed],
-                        components : []
-                    })
+                    try{
+                        await announcement.edit({
+                            embeds : [embed],
+                            components : []
+                        })
+                    }
+                    catch(err : any){
+                        const embed = new EmbedBuilder()
+                                        .setAuthor({name : "Spy Game"})
+                                        .setTitle(`an error occurred while running the game ❌`)
+                                        await Spygame.delete(interaction.guildId,game.hostId)
+                                        await announcement.edit({
+                                            embeds : [embed],
+                                            content : "",
+                                            components : []
+                                        })
+                            throw new Error(err.message)
+                    }
                     const embed1 = new EmbedBuilder()
                     .setAuthor({name :  "Spy Game"})
                     .addFields({name : "Players",value : playersStr})
@@ -174,11 +194,23 @@ module.exports = {
                         }
                     }
                     setTimeout(async()=>{
-                        await announcement.edit({
-                            embeds : [embed1],
-                            components : [],
-                            content : ""
-                        })
+                        try{
+                            await announcement.edit({
+                                embeds : [embed1],
+                                components : [],
+                                content : ""
+                            })
+                        }
+                        catch(err : any){
+                            await DiscordServers.deleteGame(interaction.guildId,game.hostId)
+                            const errorEmbed = new EmbedBuilder()
+                            .setAuthor({name : "Spy Game"})
+                            .setTitle("an error occurred while running the game ❌")
+                            .setFooter({text : "Game deleted"})
+                            await interaction.channel.send({
+                                embeds : [errorEmbed]
+                            })
+                        }
                     },5000)
                     setTimeout(async()=>{
                         try{
@@ -191,9 +223,26 @@ module.exports = {
                     }
                     catch(err : any){
                         error(err.message)
+                        await DiscordServers.deleteGame(interaction.guildId,game.hostId)
+                            const errorEmbed = new EmbedBuilder()
+                            .setAuthor({name : "Spy Game"})
+                            .setTitle("an error occurred while running the game ❌")
+                            .setFooter({text : "Game deleted"})
+                            await interaction.channel.send({
+                                embeds : [errorEmbed]
+                            })
                     }
                 },1000*90)
             }
+        }else{
+            await DiscordServers.deleteGame(interaction.guildId,game.hostId)
+            const errorEmbed = new EmbedBuilder()
+            .setAuthor({name : "Spy Game"})
+            .setTitle("Looks like someone deleted the game announcement ❌")
+            .setFooter({text : "Game deleted"})
+            await interaction.channel.send({
+                embeds : [errorEmbed],
+            })
         }
     }
 }

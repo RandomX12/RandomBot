@@ -40,11 +40,6 @@ module.exports = {
         .setAuthor({name : `Waiting for players ${"1 /"+maxPl}`})
         .setThumbnail("https://media.istockphoto.com/id/846415384/vector/spy-icon.jpg?s=612x612&w=0&k=20&c=VJI5sbn-wprj6ikxVWxIm3p4fHYAwb2IHmr7lJBXa5g=")
         .setTimestamp(Date.now())
-        await interaction.reply({
-            content : "spygame created :white_check_mark:",
-            ephemeral : true,
-            components : [rowLeave]
-        })
         const button = new ButtonBuilder()
         .setCustomId(`join_spygame_${interaction.user.id}`)
         .setStyle(3)
@@ -59,9 +54,9 @@ module.exports = {
             await spygame.save()
         }
         catch(err : any){
-            console.log(err.message);
             await msg.delete()
             msg = null
+            throw new Error(err.message)
         }
         try{
             await msg.edit({
@@ -69,10 +64,15 @@ module.exports = {
                 components : [row],
                 embeds : [embed],
             })
+            await interaction.reply({
+                content : "spygame created :white_check_mark:",
+                ephemeral : true,
+                components : [rowLeave]
+            })
         }
         catch(err : any){
-            console.log(err.message);
             Spygame.delete(interaction.guildId,interaction.user.id)
+            throw new Error(err.message)
         }
         setTimeout(async()=>{
             try{
@@ -87,7 +87,7 @@ module.exports = {
                                 components : [],
                                 embeds : []
                             })
-                            await interaction.channel.messages.cache.get(msg.id).delete()
+                            await msg.delete()
                         }
                     }
                 })

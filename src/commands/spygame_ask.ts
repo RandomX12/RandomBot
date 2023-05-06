@@ -1,5 +1,6 @@
-import { ApplicationCommandDataResolvable, ApplicationCommandOptionType, CacheType, ChatInputCommandInteraction } from "discord.js";
-import { getServerByGuildId } from "../lib/DiscordServers";
+import { ApplicationCommandDataResolvable, ApplicationCommandOptionType, CacheType, ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
+import DiscordServers, { getServerByGuildId } from "../lib/DiscordServers";
+import { error } from "../lib/cmd";
 const cmdBody : ApplicationCommandDataResolvable = {
     name : "spygame_ask",
     description : "ask someone about the secret word",
@@ -106,8 +107,45 @@ module.exports = {
             await announcement.edit({
                 content : content.join("\n") + `<@${interaction.user.id}>'s` +" question : ```" + `${question}` + "```" + `<@${player.id}>'s answer :`
             })
-            
+            setTimeout(async()=>{
+                try{
+                    const gameCheck = await DiscordServers.getGameByHostId(interaction.guildId,game.hostId)
+                    gameCheck.players.map(async(e,i)=>{
+                        if(e.id === gameCheck.players[playerIndex].askId){
+                            if(!e.answer){
+                                try{
+                                    const embed = new EmbedBuilder()
+                                    .setAuthor({name : "Spy Game"})
+                                    .setTitle(`Timed out ${gameCheck.players[0].username} didn't ask ❌`)
+                                    await announcement.edit({
+                                        content : "",
+                                        embeds : [embed],
+                                        components : []
+                                    })
+                                    await DiscordServers.deleteGame(interaction.guildId,gameCheck.hostId)
+                                }
+                                catch(err : any){
+                                    console.log(err.message);
+                                }
+                                return
+                            }
+                        }
+                    })
+                }
+                catch(err : any){
+                    error(err.message)
+                }
+            },1000*90)
             return
+        }else{
+            await DiscordServers.deleteGame(interaction.guildId,game.hostId)
+            const errorEmbed = new EmbedBuilder()
+            .setAuthor({name : "Spy Game"})
+            .setTitle("Looks like someone deleted the game announcement ❌")
+            .setFooter({text : "Game deleted"})
+            await interaction.channel.send({
+                embeds : [errorEmbed],
+            })
         }
     }
 }

@@ -18,8 +18,18 @@ module.exports = {
                 return
             }
             if(interaction.customId.startsWith("join_spygame")){
-                const isFull = await Spygame.isFull(interaction.guildId,interaction.customId.split("_")[2])
-                        if(isFull){
+                let isFull : boolean
+                try{
+                isFull = await Spygame.isFull(interaction.guildId,interaction.customId.split("_")[2])
+                        
+                }catch(err : any){
+                    await interaction.reply({
+                        content : "Game not found :x:",
+                        ephemeral : true
+                    })
+                    throw new Error(err.message)
+                }
+                    if(isFull){
                             await interaction.reply({
                                 content : "This game is full",
                                 ephemeral : true
@@ -27,7 +37,19 @@ module.exports = {
                             return
                         }
                         const game = await DiscordServers.getGameByHostId(interaction.guildId,interaction.customId.split("_")[2])
-                        
+                        let isIn = false
+                        game.players.map(e=>{
+                            if(e.id === interaction.user.id){
+                                isIn = true
+                            }
+                        })
+                        if(isIn){
+                            await interaction.reply({
+                                content : `You are already in the game :x:`,
+                                ephemeral : true 
+                            })
+                            return
+                        }
                         await Spygame.join(interaction.guildId,game.hostId,interaction.user.id)
                         const announcement = interaction.channel.messages.cache.get(game.announcementId)
                         if(announcement){
@@ -49,10 +71,11 @@ module.exports = {
                                 ephemeral : true,
                                 components : [row]
                             })
-                        }
-                        const gameUpdate = await DiscordServers.getGameByHostId(interaction.guildId,interaction.customId.split("_")[2])
+                        
+                            const gameUpdate = await DiscordServers.getGameByHostId(interaction.guildId,interaction.customId.split("_")[2])
                         if(game.maxPlayers === gameUpdate.players.length){
-                            const embed = new EmbedBuilder()
+                            try{
+                                const embed = new EmbedBuilder()
                             .setAuthor({name : "Spy game is starting 🟢"})
                             .setTitle("Spy Game")
                             await announcement.edit({
@@ -60,15 +83,14 @@ module.exports = {
                                 content : "",
                                 components : []
                             })
-                            
-                            const randomNum = Math.floor(Math.random() * gameUpdate.players.length)
                             const server = await getServerByGuildId(interaction.guildId)
+                            const randomNum = Math.floor(Math.random() * gameUpdate.players.length)
                             const spy = gameUpdate.players[randomNum]
                             gameUpdate.started = true
-                            gameUpdate.players.map(async(e)=>{
+                            for(let i = 0;i<gameUpdate.players.length;i++){
                                 try{
-                                    if(e.id === spy.id){
-                                        await interaction.client.users.cache.get(e.id).send({
+                                    if(gameUpdate.players[i].id === spy.id){
+                                        await interaction.client.users.cache.get(gameUpdate.players[i].id).send({
                                             content : `You are the spy in ${interaction.guild.name} \n ${interaction.channel.url}`
                                         })
                                     }else{
@@ -76,7 +98,7 @@ module.exports = {
                                         .setAuthor({name : "The secret word is :"})
                                         .setTitle(gameUpdate.word)
                                         .setFooter({text : "rules of the game : \n- Don't tell anyone about the secret word \n- You can ask someone about the color, shape and etc... of the secret word \n- After the game is over, vote for who you think is the spy"})
-                                        await interaction.client.users.cache.get(e.id).send({
+                                        await interaction.client.users.cache.get(gameUpdate.players[i].id).send({
                                             content : `You are an agent in ${interaction.guild.name} \n ${interaction.channel.url}`,
                                             embeds : [embed]
                                         })
@@ -84,16 +106,25 @@ module.exports = {
                                 }
                                 catch(err: any){
                                     error(err.message)
+                                    await DiscordServers.deleteGame(interaction.guildId,interaction.customId.split("_")[2])
+                                    const errorEmbed = new EmbedBuilder()
+                                    .setAuthor({name : "Spy Game"})
+                                    .setTitle(`Unable to send role to ${game.players[i].username} ❌`)
+                                    .setFooter({text : "Game deleted"})
+                                    await announcement.edit({
+                                        embeds : [errorEmbed],
+                                        content : "",
+                                        components : []
+                                    })
+                                    throw new Error(`Unable to send role to user id="${game.players[i].id}"`)
                                 }
-                            })
+                            }
                             server.games.map((e,i)=>{
                                 if(e.hostId === interaction.customId.split("_")[2]){
                                     server.games[i].spy = spy
                                     server.games[i].started = true
                                 }
                             })
-                            
-                            await server.save()
                             embed.setAuthor({name :"Spy game started !"})
                             await announcement.edit({
                                 embeds : [embed],
@@ -102,10 +133,12 @@ module.exports = {
                             })
                             setTimeout(async()=>{
                                 try{
+                                    await DiscordServers.getGameByHostId(interaction.guildId,game.hostId)
                                     await announcement.edit({
                                         content : announcement.content + `\n <@${gameUpdate.players[gameUpdate.index].id}> it's your turn to ask someone ${TimeTampNow()}`,
                                         embeds : []
                                     })
+                                    await server.save()
                                     setTimeout(async()=>{
                                         try{
                                             const gameCheck = await DiscordServers.getGameByHostId(interaction.guildId,game.hostId)
@@ -122,7 +155,9 @@ module.exports = {
                                             return
                                         }
                                         }
-                                        catch(err : any){}
+                                        catch(err : any){
+                                            error(err.message)
+                                        }
                                     },1000*90)
                                 }
                                 catch(err : any){
@@ -137,13 +172,30 @@ module.exports = {
                                     })
                                 }
                             },3000)
-                            
+                            }catch(err : any){
+                                const embed = new EmbedBuilder()
+                                    .setAuthor({name : "Spy Game"})
+                                    .setTitle(`an error occurred while starting the game ❌`)
+                                    await Spygame.delete(interaction.guildId,game.hostId)
+                                    await announcement.edit({
+                                        embeds : [embed],
+                                        content : "",
+                                        components : []
+                                    })
+                                throw new Error(err.message)
+                            }
                         }
+                    }else{
+                        await DiscordServers.deleteGame(interaction.guildId,interaction.customId.split("_")[2])
+                        await interaction.reply({
+                            content : "Game announcement not found :x:",
+                            ephemeral : true
+                        })
+                    }
             }
         }
         catch(err : any){
             error(err.message)
-            await Spygame.delete(interaction.guildId,interaction.customId.split("_")[2])
         }
     }
 }
