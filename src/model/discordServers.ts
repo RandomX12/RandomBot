@@ -1,27 +1,28 @@
 import { model,Schema } from "mongoose";
+import { SpyGameSchema } from "./SpyGame";
+import { QuizSchema } from "./QuizGame";
 export interface Member{
     username: string, // with tag
     id : string
 }
-export interface SpyGame{
+type GameName = "Spy Game" | "Quiz Game"
+export interface Game{
+    name : GameName
     hostId : string,
     hostName : string,
-    players : (Member & {askId? : string,question? : string,answer? : string,vote? : string,votedCount? : number})[],
-    word : string,
-    index : number,
-    maxPlayers : number,
+    players? : Member[]
     channelId : string,
-    announcementId : string,
-    spy? : Member,
-    started? : boolean,
-    end? : boolean
 }
+
+
 export interface DiscordServer{
     serverId : string,
     name : string,
     members : Member[]
-    games : SpyGame[]
+    games : Game[]
 }
+
+
 
 const discordServer = new Schema<DiscordServer>({
     name : {
@@ -39,46 +40,8 @@ const discordServer = new Schema<DiscordServer>({
     games : {
         required : false,
         type : [
-            {
-                hostId : String,
-                hostName : String,
-                index : {
-                    type : Number,
-                    required : false,
-                    default : 0
-                },
-                players : [{
-                    username : String,
-                    id : String,
-                    askId : String,
-                    question : String,
-                    answer : String,
-                    vote : String,
-                    votedCount : {
-                        type : Number,
-                        default : 0,
-                        required : false
-                    }
-                }],
-                word : String,
-                maxPlayers : Number,
-                channelId : String,
-                announcementId : String,
-                spy : {
-                    id : String,
-                    username: String
-                },
-                started : {
-                    required : false,
-                    type : Boolean,
-                    default : false
-                },
-                end : {
-                    required : false,
-                    type : Boolean,
-                    default : false
-                }
-            }
+            SpyGameSchema,
+            QuizSchema
         ],
         default : null
     }

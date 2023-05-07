@@ -24,7 +24,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const discord_js_1 = require("discord.js");
-const DiscordServers_1 = require("../lib/DiscordServers");
+const DiscordServers_1 = __importStar(require("../lib/DiscordServers"));
 const spygame_1 = __importStar(require("../lib/spygame"));
 let cmdBody = {
     name: "spygame_vote",
@@ -97,7 +97,6 @@ module.exports = {
             const embed = new discord_js_1.EmbedBuilder()
                 .setAuthor({ name: "Spy Game" })
                 .setTitle("Who you think is the imposter ? \n vote for the spy")
-                .setFields({ name: "Players", value: playersStr })
                 .setTimestamp(Date.now());
             let voteCount = 0;
             game.players.map(e => {
@@ -118,13 +117,29 @@ module.exports = {
                 let votedPlayer = game.players.reduce((pe, ce) => {
                     return ce.votedCount > pe.votedCount ? ce : pe;
                 });
+                let playersStr = "";
+                game.players.map((e, i) => {
+                    if (e.votedCount) {
+                        let playerVoted = "";
+                        game.players.map((ele, index) => {
+                            if (e.id === ele.vote) {
+                                playerVoted += spygame_1.numberEmojisStyled[index];
+                            }
+                        });
+                        playersStr += spygame_1.numberEmojisStyled[i] + `${e.username}   ${playerVoted}\n`;
+                    }
+                    else {
+                        playersStr += spygame_1.numberEmojisStyled[i] + `${e.username}\n`;
+                    }
+                });
+                embed.addFields({ name: "Players", value: playersStr });
                 let draw = [];
                 if (votedPlayer.votedCount === 0) {
                     embed.addFields({ name: `Nobody voted 🟡`, value: "--" });
                 }
                 else {
                     game.players.map((e) => {
-                        if (votedPlayer.votedCount === e.votedCount) {
+                        if (votedPlayer.votedCount === e.votedCount && e.id !== votedPlayer.id) {
                             draw.push(e);
                         }
                     });
@@ -135,10 +150,24 @@ module.exports = {
                         embed.addFields({ name: `${votedPlayer.username}`, value: "Is" });
                     }
                 }
-                await announcement.edit({
-                    embeds: [embed],
-                    components: []
-                });
+                try {
+                    await announcement.edit({
+                        embeds: [embed],
+                        components: []
+                    });
+                }
+                catch (err) {
+                    const embed = new discord_js_1.EmbedBuilder()
+                        .setAuthor({ name: "Spy Game" })
+                        .setTitle(`an error occurred while running the game ❌`);
+                    await spygame_1.default.delete(interaction.guildId, game.hostId);
+                    await announcement.edit({
+                        embeds: [embed],
+                        content: "",
+                        components: []
+                    });
+                    throw new Error(err.message);
+                }
                 game.end = true;
                 server.games[server.games.indexOf(game)] = game;
                 await server.save();
@@ -149,10 +178,12 @@ module.exports = {
                 if (votedPlayer.votedCount === 0) {
                     embed1.addFields({ name: `Nobody voted 🟡`, value: "--" });
                     embed1.addFields({ name: `${game.spy.username}`, value: `Is The Spy \n Spy wins 🔴` });
+                    embed1.setThumbnail("https://media.istockphoto.com/id/846415384/vector/spy-icon.jpg?s=612x612&w=0&k=20&c=VJI5sbn-wprj6ikxVWxIm3p4fHYAwb2IHmr7lJBXa5g=");
                 }
                 else if (draw.length > 0) {
                     embed1.addFields({ name: `Draw 🟡`, value: "--" });
                     embed1.addFields({ name: `${game.spy.username}`, value: `Is The Spy \n Spy wins 🔴` });
+                    embed1.setThumbnail("https://media.istockphoto.com/id/846415384/vector/spy-icon.jpg?s=612x612&w=0&k=20&c=VJI5sbn-wprj6ikxVWxIm3p4fHYAwb2IHmr7lJBXa5g=");
                 }
                 else {
                     if (votedPlayer.id === game.spy.id) {
@@ -160,23 +191,68 @@ module.exports = {
                     }
                     else {
                         embed1.addFields({ name: `${votedPlayer.username}`, value: `Is Not The Spy ❌ \n Spy wins 🔴` });
+                        embed1.setThumbnail("https://media.istockphoto.com/id/846415384/vector/spy-icon.jpg?s=612x612&w=0&k=20&c=VJI5sbn-wprj6ikxVWxIm3p4fHYAwb2IHmr7lJBXa5g=");
                     }
                 }
                 setTimeout(async () => {
-                    await announcement.edit({
-                        embeds: [embed1],
-                        components: [],
-                        content: ""
-                    });
+                    try {
+                        await announcement.edit({
+                            embeds: [embed1],
+                            components: [],
+                            content: ""
+                        });
+                    }
+                    catch (err) {
+                        const embed = new discord_js_1.EmbedBuilder()
+                            .setAuthor({ name: "Spy Game" })
+                            .setTitle(`an error occurred while running the game ❌`);
+                        await spygame_1.default.delete(interaction.guildId, game.hostId);
+                        await announcement.edit({
+                            embeds: [embed],
+                            content: "",
+                            components: []
+                        });
+                        throw new Error(err.message);
+                    }
                 }, 5000);
                 setTimeout(async () => {
-                    await spygame_1.default.delete(interaction.guildId, game.hostId);
+                    try {
+                        await spygame_1.default.delete(interaction.guildId, game.hostId);
+                    }
+                    catch (err) {
+                        throw new Error(err.message);
+                    }
                 }, 1000 * 10);
                 return;
             }
-            await announcement.edit({
-                embeds: [embed],
-                components: []
+            embed.addFields({ name: "Players", value: playersStr });
+            try {
+                await announcement.edit({
+                    embeds: [embed],
+                    components: []
+                });
+            }
+            catch (err) {
+                const embed = new discord_js_1.EmbedBuilder()
+                    .setAuthor({ name: "Spy Game" })
+                    .setTitle(`an error occurred while running the game ❌`);
+                await spygame_1.default.delete(interaction.guildId, game.hostId);
+                await announcement.edit({
+                    embeds: [embed],
+                    content: "",
+                    components: []
+                });
+                throw new Error(err.message);
+            }
+        }
+        else {
+            await DiscordServers_1.default.deleteGame(interaction.guildId, game.hostId);
+            const errorEmbed = new discord_js_1.EmbedBuilder()
+                .setAuthor({ name: "Spy Game" })
+                .setTitle("Looks like someone deleted the game announcement ❌")
+                .setFooter({ text: "Game deleted" });
+            await interaction.channel.send({
+                embeds: [errorEmbed],
             });
         }
     }

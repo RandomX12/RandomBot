@@ -24,7 +24,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const discord_js_1 = require("discord.js");
-const DiscordServers_1 = require("../lib/DiscordServers");
+const DiscordServers_1 = __importStar(require("../lib/DiscordServers"));
 const spygame_1 = __importStar(require("../lib/spygame"));
 const cmd_1 = require("../lib/cmd");
 let cmdBody = {
@@ -53,7 +53,11 @@ module.exports = {
         }
         const announcement = interaction.channel.messages.cache.get(game.announcementId);
         const answer = interaction.options.getString("answer");
-        game.players[game.index].answer = answer;
+        game.players.map((e, i) => {
+            if (e.id === interaction.user.id) {
+                game.players[i].answer = answer;
+            }
+        });
         game.index++;
         let gameIndex;
         server.games.map((e, i) => {
@@ -73,11 +77,32 @@ module.exports = {
         if (announcement) {
             let nextTurn = "";
             if (game.index !== game.maxPlayers) {
-                nextTurn += `<@${game.players[game.index].id}> it's your turn to ask someone`;
+                nextTurn += `<@${game.players[game.index].id}> it's your turn to ask someone ${(0, cmd_1.TimeTampNow)()}`;
             }
             await announcement.edit({
                 content: announcement.content + "``` " + answer + "```\n" + nextTurn
             });
+            setTimeout(async () => {
+                try {
+                    const gameCheck = await DiscordServers_1.default.getGameByHostId(interaction.guildId, game.hostId);
+                    if (!gameCheck.players[game.index].question) {
+                        console.log(gameCheck.players[game.index].question);
+                        const embed = new discord_js_1.EmbedBuilder()
+                            .setAuthor({ name: "Spy Game" })
+                            .setTitle(`Timed out ${gameCheck.players[0].username} didn't ask ❌`);
+                        await announcement.edit({
+                            content: "",
+                            embeds: [embed],
+                            components: []
+                        });
+                        await spygame_1.default.delete(interaction.guildId, gameCheck.hostId);
+                        return;
+                    }
+                    return;
+                }
+                catch (err) {
+                }
+            }, 1000 * 90);
             const reply = await interaction.reply({
                 content: "Answer sent :white_check_mark:",
                 ephemeral: true
@@ -102,7 +127,13 @@ module.exports = {
                 setTimeout(async () => {
                     try {
                         const server = await (0, DiscordServers_1.getServerByGuildId)(interaction.guildId);
-                        const gameUpdate = await spygame_1.default.findGameByUserId(server.games, interaction.user.id);
+                        let gameUpdate;
+                        try {
+                            gameUpdate = await spygame_1.default.findGameByUserId(server.games, interaction.user.id);
+                        }
+                        catch (err) {
+                            return;
+                        }
                         if (gameUpdate.end)
                             return;
                         gameUpdate.players.map((e) => {
@@ -119,9 +150,14 @@ module.exports = {
                         });
                         let playersStr = "";
                         gameUpdate.players.map((e, i) => {
-                            if (e.vote) {
-                                let playerVoted = spygame_1.default.getUserInSpyGame(gameUpdate, e.vote);
-                                playersStr += spygame_1.numberEmojisStyled[i] + `${e.username}    voted   ${playerVoted?.username || ""}\n`;
+                            if (e.votedCount) {
+                                let playerVoted = "";
+                                gameUpdate.players.map((ele, index) => {
+                                    if (e.id === ele.vote) {
+                                        playerVoted += spygame_1.numberEmojisStyled[index];
+                                    }
+                                });
+                                playersStr += spygame_1.numberEmojisStyled[i] + `${e.username}   ${playerVoted}\n`;
                             }
                             else {
                                 playersStr += spygame_1.numberEmojisStyled[i] + `${e.username}\n`;
@@ -137,7 +173,7 @@ module.exports = {
                         }
                         else {
                             gameUpdate.players.map((e) => {
-                                if (votedPlayer.votedCount === e.votedCount) {
+                                if (votedPlayer.votedCount === e.votedCount && e.id !== votedPlayer.id) {
                                     draw.push(e);
                                 }
                             });
@@ -148,10 +184,24 @@ module.exports = {
                                 embed.addFields({ name: `${votedPlayer.username}`, value: "Is" });
                             }
                         }
-                        await announcement.edit({
-                            embeds: [embed],
-                            components: []
-                        });
+                        try {
+                            await announcement.edit({
+                                embeds: [embed],
+                                components: []
+                            });
+                        }
+                        catch (err) {
+                            const embed = new discord_js_1.EmbedBuilder()
+                                .setAuthor({ name: "Spy Game" })
+                                .setTitle(`an error occurred while running the game ❌`);
+                            await spygame_1.default.delete(interaction.guildId, game.hostId);
+                            await announcement.edit({
+                                embeds: [embed],
+                                content: "",
+                                components: []
+                            });
+                            throw new Error(err.message);
+                        }
                         const embed1 = new discord_js_1.EmbedBuilder()
                             .setAuthor({ name: "Spy Game" })
                             .addFields({ name: "Players", value: playersStr })
@@ -159,10 +209,12 @@ module.exports = {
                         if (votedPlayer.votedCount === 0) {
                             embed1.addFields({ name: `Nobody voted 🟡`, value: "--" });
                             embed1.addFields({ name: `${gameUpdate.spy.username}`, value: `Is The Spy \n Spy wins 🔴` });
+                            embed1.setThumbnail("https://media.istockphoto.com/id/846415384/vector/spy-icon.jpg?s=612x612&w=0&k=20&c=VJI5sbn-wprj6ikxVWxIm3p4fHYAwb2IHmr7lJBXa5g=");
                         }
                         else if (draw.length > 0) {
                             embed1.addFields({ name: `Draw 🟡`, value: "--" });
                             embed1.addFields({ name: `${gameUpdate.spy.username}`, value: `Is The Spy \n Spy wins 🔴` });
+                            embed1.setThumbnail("https://media.istockphoto.com/id/846415384/vector/spy-icon.jpg?s=612x612&w=0&k=20&c=VJI5sbn-wprj6ikxVWxIm3p4fHYAwb2IHmr7lJBXa5g=");
                         }
                         else {
                             if (votedPlayer.id === gameUpdate.spy.id) {
@@ -170,14 +222,27 @@ module.exports = {
                             }
                             else {
                                 embed1.addFields({ name: `${votedPlayer.username}`, value: `Is Not The Spy ❌ \n Spy wins 🔴` });
+                                embed1.setThumbnail("https://media.istockphoto.com/id/846415384/vector/spy-icon.jpg?s=612x612&w=0&k=20&c=VJI5sbn-wprj6ikxVWxIm3p4fHYAwb2IHmr7lJBXa5g=");
                             }
                         }
                         setTimeout(async () => {
-                            await announcement.edit({
-                                embeds: [embed1],
-                                components: [],
-                                content: ""
-                            });
+                            try {
+                                await announcement.edit({
+                                    embeds: [embed1],
+                                    components: [],
+                                    content: ""
+                                });
+                            }
+                            catch (err) {
+                                await DiscordServers_1.default.deleteGame(interaction.guildId, game.hostId);
+                                const errorEmbed = new discord_js_1.EmbedBuilder()
+                                    .setAuthor({ name: "Spy Game" })
+                                    .setTitle("an error occurred while running the game ❌")
+                                    .setFooter({ text: "Game deleted" });
+                                await interaction.channel.send({
+                                    embeds: [errorEmbed]
+                                });
+                            }
                         }, 5000);
                         setTimeout(async () => {
                             try {
@@ -190,9 +255,27 @@ module.exports = {
                     }
                     catch (err) {
                         (0, cmd_1.error)(err.message);
+                        await DiscordServers_1.default.deleteGame(interaction.guildId, game.hostId);
+                        const errorEmbed = new discord_js_1.EmbedBuilder()
+                            .setAuthor({ name: "Spy Game" })
+                            .setTitle("an error occurred while running the game ❌")
+                            .setFooter({ text: "Game deleted" });
+                        await interaction.channel.send({
+                            embeds: [errorEmbed]
+                        });
                     }
                 }, 1000 * 90);
             }
+        }
+        else {
+            await DiscordServers_1.default.deleteGame(interaction.guildId, game.hostId);
+            const errorEmbed = new discord_js_1.EmbedBuilder()
+                .setAuthor({ name: "Spy Game" })
+                .setTitle("Looks like someone deleted the game announcement ❌")
+                .setFooter({ text: "Game deleted" });
+            await interaction.channel.send({
+                embeds: [errorEmbed],
+            });
         }
     }
 };

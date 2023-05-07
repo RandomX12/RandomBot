@@ -6,6 +6,8 @@
         "spygame_ask" : true,
         "spygame_answer" : true,
         "spygame_vote" : true,
-        "spygame_remove_vote" : true
+        "spygame_remove_vote" : true,
+        "spygame" : true,
+        "create_quizgame" : true
     }
 }

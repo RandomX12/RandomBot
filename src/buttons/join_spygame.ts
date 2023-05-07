@@ -1,6 +1,6 @@
 import { ActionRowBuilder, ButtonBuilder, CacheType, ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
 import DiscordServers, { getServerByGuildId } from "../lib/DiscordServers";
-import Spygame from "../lib/spygame";
+import Spygame, { isSpyGame } from "../lib/spygame";
 import { TimeTampNow, error } from "../lib/cmd";
 
 module.exports = {
@@ -120,9 +120,11 @@ module.exports = {
                                 }
                             }
                             server.games.map((e,i)=>{
-                                if(e.hostId === interaction.customId.split("_")[2]){
-                                    server.games[i].spy = spy
-                                    server.games[i].started = true
+                                if(e.hostId === interaction.customId.split("_")[2] && isSpyGame(server.games[i])){
+                                        //@ts-ignore
+                                        server.games[i].spy = spy
+                                        //@ts-ignore
+                                        server.games[i].started = true
                                 }
                             })
                             embed.setAuthor({name :"Spy game started !"})
@@ -143,6 +145,7 @@ module.exports = {
                                         try{
                                             const gameCheck = await DiscordServers.getGameByHostId(interaction.guildId,game.hostId)
                                         if(!gameCheck.players[0].question){
+                                            console.log(gameCheck.players[0]);
                                             const embed = new EmbedBuilder()
                                             .setAuthor({name : "Spy Game"})
                                             .setTitle(`Timed out ${gameCheck.players[0].username} didn't ask ❌`)

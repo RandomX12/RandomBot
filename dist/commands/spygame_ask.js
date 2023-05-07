@@ -1,7 +1,32 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const discord_js_1 = require("discord.js");
-const DiscordServers_1 = require("../lib/DiscordServers");
+const DiscordServers_1 = __importStar(require("../lib/DiscordServers"));
+const cmd_1 = require("../lib/cmd");
+const spygame_1 = require("../lib/spygame");
 const cmdBody = {
     name: "spygame_ask",
     description: "ask someone about the secret word",
@@ -46,6 +71,8 @@ module.exports = {
             return;
         }
         const game = server.games[gameIndex];
+        if (!(0, spygame_1.isSpyGame)(game))
+            return;
         if (!game.started) {
             await interaction.reply({
                 content: "game not started :x:",
@@ -103,10 +130,52 @@ module.exports = {
         }, 3000);
         const announcement = interaction.channel.messages.cache.get(game.announcementId);
         if (announcement) {
+            let content = announcement.content.split(/\n/);
+            content.splice(content.length - 1, 1);
             await announcement.edit({
-                content: announcement.content + "\nquestion :\n ```" + `${question}` + "```" + "\n" + `<@${player.id}> answer :\n`
+                content: content.join("\n") + `<@${interaction.user.id}>'s` + " question : ```" + `${question}` + "```" + `<@${player.id}>'s answer :`
             });
+            setTimeout(async () => {
+                try {
+                    const gameCheck = await DiscordServers_1.default.getGameByHostId(interaction.guildId, game.hostId);
+                    gameCheck.players.map(async (e, i) => {
+                        if (e.id === gameCheck.players[playerIndex].askId) {
+                            if (!e.answer) {
+                                try {
+                                    const embed = new discord_js_1.EmbedBuilder()
+                                        .setAuthor({ name: "Spy Game" })
+                                        .setTitle(`Timed out ${e.username} didn't answer ❌`)
+                                        .setFooter({ text: "Game Delted" });
+                                    await announcement.edit({
+                                        content: "",
+                                        embeds: [embed],
+                                        components: []
+                                    });
+                                    await DiscordServers_1.default.deleteGame(interaction.guildId, gameCheck.hostId);
+                                }
+                                catch (err) {
+                                    console.log(err.message);
+                                }
+                                return;
+                            }
+                        }
+                    });
+                }
+                catch (err) {
+                    (0, cmd_1.error)(err.message);
+                }
+            }, 1000 * 90);
             return;
+        }
+        else {
+            await DiscordServers_1.default.deleteGame(interaction.guildId, game.hostId);
+            const errorEmbed = new discord_js_1.EmbedBuilder()
+                .setAuthor({ name: "Spy Game" })
+                .setTitle("Looks like someone deleted the game announcement ❌")
+                .setFooter({ text: "Game deleted" });
+            await interaction.channel.send({
+                embeds: [errorEmbed],
+            });
         }
     }
 };

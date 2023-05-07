@@ -37,7 +37,7 @@ module.exports = {
             const game = await DiscordServers_1.default.getGameByHostId(interaction.guildId, interaction.customId.split("_")[2]);
             const announcement = interaction.channel.messages.cache.get(game.announcementId);
             if (announcement) {
-                if (game.started) {
+                if (game.started || game.players.length === game.maxPlayers) {
                     const embed = new discord_js_1.EmbedBuilder()
                         .setTitle("Spy Game deleted :x:")
                         .setAuthor({ name: `${interaction.user.username} left the game` });
@@ -51,13 +51,31 @@ module.exports = {
                 }
                 const embed = new discord_js_1.EmbedBuilder()
                     .setTitle("Spy Game")
+                    .setThumbnail("https://media.istockphoto.com/id/846415384/vector/spy-icon.jpg?s=612x612&w=0&k=20&c=VJI5sbn-wprj6ikxVWxIm3p4fHYAwb2IHmr7lJBXa5g=")
                     .setAuthor({ name: `Waiting for players ${game.players.length} / ${game.maxPlayers}` });
+                const button = new discord_js_1.ButtonBuilder()
+                    .setCustomId(`join_spygame_${interaction.user.id}`)
+                    .setStyle(3)
+                    .setLabel("join");
+                const row = new discord_js_1.ActionRowBuilder()
+                    .addComponents(button);
                 await announcement.edit({
-                    embeds: [embed]
+                    embeds: [embed],
+                    components: [row]
                 });
                 await interaction.reply({
                     content: "You left the game",
                     ephemeral: true
+                });
+            }
+            else {
+                await DiscordServers_1.default.deleteGame(interaction.guildId, game.hostId);
+                const errorEmbed = new discord_js_1.EmbedBuilder()
+                    .setAuthor({ name: "Spy Game" })
+                    .setTitle("Looks like someone deleted the game announcement ❌")
+                    .setFooter({ text: "Game deleted" });
+                await interaction.channel.send({
+                    embeds: [errorEmbed],
                 });
             }
         }

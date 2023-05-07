@@ -28,9 +28,12 @@ module.exports = {
             return
         }
         const announcement = interaction.channel.messages.cache.get(game.announcementId)
-
         const answer = interaction.options.getString("answer")
-        game.players[game.index].answer = answer
+        game.players.map((e,i)=>{
+            if(e.id === interaction.user.id){
+                game.players[i].answer = answer
+            }
+        })
         game.index++
         let gameIndex
         server.games.map((e,i)=>{
@@ -59,6 +62,7 @@ module.exports = {
                 try{
                     const gameCheck = await DiscordServers.getGameByHostId(interaction.guildId,game.hostId)
                     if(!gameCheck.players[game.index].question){
+                        console.log(gameCheck.players[game.index].question);
                         const embed = new EmbedBuilder()
                         .setAuthor({name : "Spy Game"})
                         .setTitle(`Timed out ${gameCheck.players[0].username} didn't ask ❌`)

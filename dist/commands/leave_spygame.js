@@ -36,45 +36,64 @@ module.exports = {
     },
     async execute(interaction) {
         const server = await (0, DiscordServers_1.getServerByGuildId)(interaction.guildId);
-        let stop = false;
-        for (let i = 0; i < server.games.length; i++) {
-            if (interaction.user.id === server.games[i].hostId) {
-                await DiscordServers_1.default.deleteGame(interaction.guildId, interaction.user.id);
-                const announcement = interaction.channel.messages.cache.get(server.games[i].announcementId);
+        const game = await spygame_1.default.findGameByUserId(server.games, interaction.user.id);
+        await spygame_1.default.leave(interaction.guildId, game.hostId, interaction.user.id);
+        const isHost = await spygame_1.default.isHost(interaction.guildId, interaction.user.id);
+        if (isHost) {
+            const announcement = interaction.channel.messages.cache.get(game.announcementId);
+            if (announcement) {
+                await DiscordServers_1.default.deleteGame(interaction.guildId, game.hostId);
                 const embed = new discord_js_1.EmbedBuilder()
                     .setTitle("Spy Game deleted :x:")
                     .setAuthor({ name: "The host left the game" });
                 await announcement.edit({
-                    embeds: [embed],
+                    content: '',
                     components: [],
-                    content: ""
+                    embeds: [embed]
                 });
                 await interaction.reply({
                     content: "You left the game",
                     ephemeral: true
                 });
-                break;
             }
-            for (let j = 0; j < server.games[i].players.length; j++) {
-                if (server.games[i].players[j].id === interaction.user.id) {
-                    await spygame_1.default.leave(interaction.guildId, server.games[i].hostId, interaction.user.id);
-                    stop = true;
-                    const announcement = interaction.channel.messages.cache.get(server.games[i].announcementId);
+        }
+        else {
+            const announcement = interaction.channel.messages.cache.get(game.announcementId);
+            if (announcement) {
+                if (game.started || game.players.length === game.maxPlayers) {
                     const embed = new discord_js_1.EmbedBuilder()
-                        .setTitle("Spy Game")
-                        .setAuthor({ name: `Waiting for players ${server.games[i].players.length} / ${server.games[i].maxPlayers}` });
+                        .setTitle("Spy Game deleted :x:")
+                        .setAuthor({ name: `${interaction.user.username} left the game` });
+                    await DiscordServers_1.default.deleteGame(interaction.guildId, game.hostId);
                     await announcement.edit({
-                        embeds: [embed]
+                        embeds: [embed],
+                        content: "",
+                        components: []
                     });
-                    await interaction.reply({
-                        content: "You left the game",
-                        ephemeral: true
-                    });
-                    break;
+                    return;
                 }
+                const embed = new discord_js_1.EmbedBuilder()
+                    .setTitle("Spy Game")
+                    .setThumbnail("https://media.istockphoto.com/id/846415384/vector/spy-icon.jpg?s=612x612&w=0&k=20&c=VJI5sbn-wprj6ikxVWxIm3p4fHYAwb2IHmr7lJBXa5g=")
+                    .setAuthor({ name: `Waiting for players ${game.players.length - 1} / ${game.maxPlayers}` });
+                await announcement.edit({
+                    embeds: [embed]
+                });
+                await interaction.reply({
+                    content: "You left the game",
+                    ephemeral: true
+                });
             }
-            if (stop)
-                break;
+            else {
+                await DiscordServers_1.default.deleteGame(interaction.guildId, game.hostId);
+                const errorEmbed = new discord_js_1.EmbedBuilder()
+                    .setAuthor({ name: "Spy Game" })
+                    .setTitle("Looks like someone deleted the game announcement ❌")
+                    .setFooter({ text: "Game deleted" });
+                await interaction.channel.send({
+                    embeds: [errorEmbed],
+                });
+            }
         }
     }
 };

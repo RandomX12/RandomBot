@@ -1,7 +1,7 @@
 import DiscordServers, { getServerByGuildId } from "./DiscordServers";
 import { error } from "./cmd";
-import { SpyGame as SpygameType } from "../model/discordServers";
-
+import { Game } from "../model/discordServers";
+import {SpyGame as SpygameType} from "../model/SpyGame"
 export const numberEmojis = [":one:", ":two:", ":three:", ":four:", ":five:", ":six:", ":seven:", ":eight:", ":nine:", ":keycap_ten:", ":one::one:", ":one::two:", ":one::three:", ":one::four:", ":one::five:", ":one::six:", ":one::seven:", ":one::eight:", ":one::nine:", ":two::zero:"];
 export const numberEmojisStyled = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟", "1️⃣1️⃣", "1️⃣2️⃣", "1️⃣3️⃣", "1️⃣4️⃣", "1️⃣5️⃣", "1️⃣6️⃣", "1️⃣7️⃣", "1️⃣8️⃣", "1️⃣9️⃣", "2️⃣0️⃣"];
 export const numberEmojisUnicode = [
@@ -15,7 +15,13 @@ export const numberEmojisUnicode = [
     "\u0038\u20E3", // 8️⃣
     "\u0039\u20E3", // 9️⃣
     "\uD83D\uDD1F\uFE0F",] // 🔟
-export default class Spygame{
+
+export function isSpyGame(game : Game) : game is SpygameType  {
+        if(game.name === "Spy Game"){
+            return true
+        }
+}
+    export default class Spygame{
     public inanimateThings = [
         'Chair',
         'Table',
@@ -134,7 +140,7 @@ export default class Spygame{
         let isFull = false
         let found = false
         server.games.map(e=>{
-            if(e.hostId === hostId){
+            if(e.hostId === hostId && isSpyGame(e)){
                 found = true
                 if(e.players.length === e.maxPlayers){
                     isFull = true
@@ -183,11 +189,12 @@ export default class Spygame{
         }
         await server.save()
     }
-    static async findGameByUserId(games : SpygameType[],userId : string){
+    static async findGameByUserId(games : Game[],userId : string){
         let game : SpygameType
         games.map((e,i)=>{
             games[i].players.map(ele=>{
                 if(ele.id === userId){
+                    //@ts-ignore
                     game = games[i]
                 }
             })
@@ -224,6 +231,7 @@ export default class Spygame{
         })
             let randomNum = Math.floor(Math.random() * this.inanimateThings.length)
         discordSv.games.push({
+            name : "Spy Game",
             word : this.inanimateThings[randomNum],
             hostName : this.hostName,
             hostId : this.hostId,
@@ -232,7 +240,7 @@ export default class Spygame{
             players : [{username : this.hostName,id : this.hostId}],
             channelId : this.channelId,
             announcementId : this.announcementId
-        })
+        } as SpygameType)
         await discordSv.save()
     }
 }   

@@ -1,0 +1,119 @@
+import { ActionRowBuilder, ApplicationCommandDataResolvable, ApplicationCommandOptionType, ButtonBuilder, CacheType, ChatInputCommandInteraction, EmbedBuilder } from "discord.js"
+import { categories, getCategoryByNum,CategoriesNum, QuizGame } from "../lib/QuizGame"
+import DiscordServers, { getServerByGuildId } from "../lib/DiscordServers"
+
+let choices = Object.keys(categories).map(e=>{
+    return {
+        name : e,
+        value : `${categories[e]}`
+    }
+})
+
+let cmdBody : ApplicationCommandDataResolvable = {
+    name : "create_quizgame",
+    description : "create a quiz game",
+    options : [
+        {
+            name : "category",
+            description : "choose a category",
+            type : ApplicationCommandOptionType.String,
+            required : true,
+            choices  : choices
+        },
+        {
+            name : "amount",
+            description : "amount of questions",
+            type : ApplicationCommandOptionType.Number,
+            minValue : 3,
+            maxValue : 10,
+            required : true
+        },
+        {
+            name : "max_players",
+            description : "max players",
+            type : ApplicationCommandOptionType.Number,
+            maxValue : 20,
+            minValue : 2,
+            required : true
+        }
+    ]
+}
+module.exports = {
+    data : cmdBody,
+    async execute(interaction : ChatInputCommandInteraction<CacheType>){
+        const server = await getServerByGuildId(interaction.guildId)
+        const isIn = await DiscordServers.isInGame(interaction.guildId,interaction.user.id)
+        if(isIn) {
+            await interaction.reply({
+                content : `You are already in game :x:`,
+                ephemeral : true
+            })
+            return
+        }
+        
+        
+        const category = interaction.options.getString("category")
+        const amount = interaction.options.getNumber("amount")
+        const maxPlayers = interaction.options.getNumber("max_players")
+        let msg = await interaction.channel.send({
+            content : "creating Quiz Game..."
+        })
+        try{
+            const game = new QuizGame(interaction.guildId,{
+                hostName : interaction.user.username,
+                hostId : interaction.user.id,
+                maxPlayers : maxPlayers,
+                channelId : interaction.channelId,
+                announcementId : msg.id,
+                category : getCategoryByNum(+category as CategoriesNum || category as "any"),
+                amount : amount
+            })
+            await game.save()
+        }
+        catch(err : any){
+            await msg.delete()
+            await interaction.reply({
+                content : "cannot create the game :x:",
+                ephemeral : true
+            })
+            msg = null
+            await DiscordServers.deleteGame(interaction.guildId,interaction.user.id)
+            throw new Error(err?.message)
+        }
+        const embed = new EmbedBuilder()
+        .setTitle(`Quiz Game`)
+        .setThumbnail("https://hips.hearstapps.com/hmg-prod/images/quiz-questions-answers-1669651278.jpg")
+        .addFields({name : `Info`,value : `Category : **${getCategoryByNum(+category as CategoriesNum || category as "any")}** \nAmount : **${amount}** \nMax players : **${maxPlayers}**`})
+        .setAuthor({name : `Waiting for the players... 1 / ${maxPlayers}`})
+        .setTimestamp(Date.now())
+        const button = new ButtonBuilder()
+        .setLabel("join")
+        .setStyle(3)
+        .setCustomId(`join_quizgame_${interaction.user.id}`)
+        const row : any = new ActionRowBuilder()
+        .addComponents(button)
+        try{
+            if(!msg) throw new Error(`Cannot create the game`)
+            await msg.edit({
+                embeds : [embed],
+                components : [row],
+                content : `@everyone new Quiz Game created by <@${interaction.user.id}>`
+            })
+        }
+        catch(err : any){
+            await DiscordServers.deleteGame(interaction.guildId,interaction.user.id)
+            if(interaction.replied || interaction.deferred){
+                await interaction.editReply({
+                    content : "Cannot create the game :x:"
+                })
+            }else{
+                await interaction.reply({
+                    content : "cannot create the game :x:",
+                    ephemeral : true
+                })
+            }
+            throw new Error(err?.message)
+        }
+
+    }
+}

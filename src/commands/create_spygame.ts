@@ -1,5 +1,5 @@
 import { CacheType, ChatInputCommandInteraction, EmbedBuilder ,ApplicationCommandDataResolvable, ApplicationCommandOptionType, ButtonBuilder, ActionRowBuilder} from "discord.js";
-import Spygame from "../lib/spygame"
+import Spygame, { isSpyGame } from "../lib/spygame"
 import DiscordServers, { getServerByGuildId } from "../lib/DiscordServers";
 import { error } from "../lib/cmd";
 const cmdBody : ApplicationCommandDataResolvable = {
@@ -78,7 +78,7 @@ module.exports = {
             try{
                 const dcServer = await getServerByGuildId(interaction.guildId)
                 dcServer.games.map(async(e,i)=>{
-                    if(e.hostId === interaction.user.id){
+                    if(e.hostId === interaction.user.id && isSpyGame(e)){
                         if(e.maxPlayers !== e.players.length){
                             dcServer.games.splice(i,1)
                             await dcServer.save()

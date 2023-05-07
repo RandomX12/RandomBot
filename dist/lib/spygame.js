@@ -23,7 +23,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.numberEmojisUnicode = exports.numberEmojisStyled = exports.numberEmojis = void 0;
+exports.isSpyGame = exports.numberEmojisUnicode = exports.numberEmojisStyled = exports.numberEmojis = void 0;
 const DiscordServers_1 = __importStar(require("./DiscordServers"));
 const cmd_1 = require("./cmd");
 exports.numberEmojis = [":one:", ":two:", ":three:", ":four:", ":five:", ":six:", ":seven:", ":eight:", ":nine:", ":keycap_ten:", ":one::one:", ":one::two:", ":one::three:", ":one::four:", ":one::five:", ":one::six:", ":one::seven:", ":one::eight:", ":one::nine:", ":two::zero:"];
@@ -40,6 +40,12 @@ exports.numberEmojisUnicode = [
     "\u0039\u20E3",
     "\uD83D\uDD1F\uFE0F",
 ]; // 🔟
+function isSpyGame(game) {
+    if (game.name === "Spy Game") {
+        return true;
+    }
+}
+exports.isSpyGame = isSpyGame;
 class Spygame {
     static async isHost(guildId, userId) {
         const discordServer = await (0, DiscordServers_1.getServerByGuildId)(guildId);
@@ -58,7 +64,7 @@ class Spygame {
         let isFull = false;
         let found = false;
         server.games.map(e => {
-            if (e.hostId === hostId) {
+            if (e.hostId === hostId && isSpyGame(e)) {
                 found = true;
                 if (e.players.length === e.maxPlayers) {
                     isFull = true;
@@ -114,6 +120,7 @@ class Spygame {
         games.map((e, i) => {
             games[i].players.map(ele => {
                 if (ele.id === userId) {
+                    //@ts-ignore
                     game = games[i];
                 }
             });
@@ -261,6 +268,7 @@ class Spygame {
         });
         let randomNum = Math.floor(Math.random() * this.inanimateThings.length);
         discordSv.games.push({
+            name: "Spy Game",
             word: this.inanimateThings[randomNum],
             hostName: this.hostName,
             hostId: this.hostId,

@@ -1,6 +1,7 @@
 import { ApplicationCommandDataResolvable, ApplicationCommandOptionType, CacheType, ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
 import DiscordServers, { getServerByGuildId } from "../lib/DiscordServers";
 import { error } from "../lib/cmd";
+import { isSpyGame } from "../lib/spygame";
 const cmdBody : ApplicationCommandDataResolvable = {
     name : "spygame_ask",
     description : "ask someone about the secret word",
@@ -45,6 +46,7 @@ module.exports = {
             return
         }
         const game = server.games[gameIndex]
+        if(!isSpyGame(game)) return
         if(!game.started){
             await interaction.reply({
                 content : "game not started :x:",
@@ -116,7 +118,8 @@ module.exports = {
                                 try{
                                     const embed = new EmbedBuilder()
                                     .setAuthor({name : "Spy Game"})
-                                    .setTitle(`Timed out ${gameCheck.players[0].username} didn't ask ❌`)
+                                    .setTitle(`Timed out ${e.username} didn't answer ❌`)
+                                    .setFooter({text  :"Game Delted"})
                                     await announcement.edit({
                                         content : "",
                                         embeds : [embed],

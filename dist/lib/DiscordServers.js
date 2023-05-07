@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getServerByGuildId = void 0;
 const discordServers_1 = __importDefault(require("../model/discordServers"));
+const spygame_1 = require("./spygame");
 async function getServerByGuildId(id) {
     const server = await discordServers_1.default.findOne({ serverId: id });
     if (!server)
@@ -17,11 +18,30 @@ class DiscordServers {
         const server = await getServerByGuildId(id);
         server.deleteOne();
     }
+    static async isInGame(guildId, userId) {
+        const server = await getServerByGuildId(guildId);
+        let isIn = false;
+        for (let i = 0; i < server.games.length; i++) {
+            if (server.games[i].hostId === userId) {
+                isIn = true;
+                break;
+            }
+            for (let j = 0; j < server.games[i].players.length; i++) {
+                if (server.games[i].players[j].id === userId) {
+                    isIn = true;
+                    break;
+                }
+            }
+            if (isIn)
+                break;
+        }
+        return isIn;
+    }
     static async getGameByHostId(guildId, id) {
         const server = await getServerByGuildId(guildId);
         let game;
         server.games.map(e => {
-            if (e.hostId === id) {
+            if (e.hostId === id && (0, spygame_1.isSpyGame)(e)) {
                 game = e;
             }
         });

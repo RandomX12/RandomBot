@@ -1,20 +1,41 @@
-import ServersModel ,{DiscordServer, Member, SpyGame} from "../model/discordServers"
-
+import ServersModel ,{DiscordServer, Member} from "../model/discordServers"
+import { isSpyGame } from "./spygame"
+import { SpyGame } from "../model/SpyGame"
 export async function getServerByGuildId(id : string){
     const server =  await ServersModel.findOne({serverId : id})
     if(!server) throw new Error(`Server not found. id=${id}`)
     return server
 }
+
 export default class DiscordServers{
     static async deleteGuild(id : string){
         const server = await getServerByGuildId(id)
         server.deleteOne()
     }
+    static async isInGame(guildId : string,userId : string) : Promise<boolean>{
+        const server = await getServerByGuildId(guildId)
+        let isIn = false
+        for(let i = 0;i<server.games.length;i++){
+            if(server.games[i].hostId === userId){
+                isIn = true
+                break
+            }
+            for(let j = 0;j<server.games[i].players.length;i++){
+                if(server.games[i].players[j].id === userId){
+                    isIn = true
+                    break
+                }
+            }
+            if(isIn) break
+        }
+        return isIn
+    }
     static async getGameByHostId(guildId : string,id:string){
         const server = await getServerByGuildId(guildId)
         let game : SpyGame 
         server.games.map(e=>{
-            if(e.hostId === id){
+            if(e.hostId === id && isSpyGame(e)){
+                
                 game = e
             }
         })

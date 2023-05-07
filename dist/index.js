@@ -33,6 +33,7 @@ const fs_1 = __importDefault(require("fs"));
 const cmd_1 = require("./lib/cmd");
 const connectDB_1 = require("./lib/connectDB");
 const DiscordServers_1 = __importStar(require("./lib/DiscordServers"));
+const discordServers_1 = __importDefault(require("./model/discordServers"));
 require("dotenv").config();
 // init the discord bot
 const client = new discord_js_1.default.Client({
@@ -176,7 +177,8 @@ client.on("guildCreate", async (guild) => {
         return;
     try {
         const members = [];
-        guild.members.cache.map(e => {
+        let res = await guild.members.fetch();
+        res.map(e => {
             members.push({
                 username: e.user.tag,
                 id: e.user.id
@@ -252,9 +254,34 @@ client.on("ready", async (c) => {
         (0, cmd_1.log)({ text: `successfully connected to the database`, textColor: "Green", timeColor: "Green" });
         let membersCount = c.users.cache.size;
         let channelsCount = c.channels.cache.size;
+        let guilds = await c.guilds.fetch();
+        guilds.map(async (e) => {
+            try {
+                const server = await discordServers_1.default.findOne({ serverId: e.id });
+                if (server)
+                    return;
+                let members = (await (await e.fetch()).members.fetch()).map(e => {
+                    return {
+                        username: e.user.tag,
+                        id: e.user.id
+                    };
+                });
+                await new DiscordServers_1.default({
+                    name: e.name,
+                    members: members,
+                    serverId: e.id,
+                    games: []
+                }).save();
+            }
+            catch (err) {
+                (0, cmd_1.error)(err.message);
+            }
+        });
         c.guilds.cache.map(async (e) => {
             try {
                 const server = await (0, DiscordServers_1.getServerByGuildId)(e.id);
+                if (server.games.length === 0)
+                    return;
                 server.games = [];
                 await server.save();
             }

@@ -6,7 +6,7 @@ import { error, log, warning } from "./lib/cmd"
 import { connectDB } from "./lib/connectDB"
 import DiscordServers, { getServerByGuildId } from "./lib/DiscordServers"
 import discordServers, { Member } from "./model/discordServers"
-import deepai from "deepai"
+import discordSv from "./model/discordServers"
 require("dotenv").config()
 declare module "discord.js" {
     export interface Client {
@@ -152,7 +152,8 @@ client.on("guildCreate",async(guild)=>{
     if(!guild && guild.id) return
     try{
         const members : Member[] = []
-        guild.members.cache.map(e=>{
+        let res = await guild.members.fetch()
+        res.map(e=>{
             members.push({
                 username : e.user.tag,
                 id : e.user.id
@@ -228,10 +229,32 @@ client.on("ready",async(c)=>{
         log({text : `successfully connected to the database`,textColor : "Green",timeColor : "Green"})
         let membersCount = c.users.cache.size
         let channelsCount = c.channels.cache.size
-    
+        let guilds = await c.guilds.fetch()
+        guilds.map(async e=>{
+            try{
+                const server = await discordSv.findOne({serverId : e.id})
+                if(server) return
+                let members : Member[] = (await (await e.fetch()).members.fetch()).map(e=>{
+                    return {
+                        username : e.user.tag,
+                        id : e.user.id
+                    }
+                })
+                await new DiscordServers({
+                    name : e.name,
+                    members : members,
+                    serverId : e.id,
+                    games : []
+                }).save()
+            }
+            catch(err:any){
+                error(err.message)
+            }
+        })
         c.guilds.cache.map(async e=>{
             try{
                 const server = await getServerByGuildId(e.id)
+                if(server.games.length === 0) return
                 server.games = []
                 await server.save()
             }
@@ -239,6 +262,7 @@ client.on("ready",async(c)=>{
                 error("an error occurred while cleaning the servers. \n "+err.message)
             }
         })
+        
         log({text : `${c.guilds.cache.size} servers                  |                  ${membersCount} members                  |                  ${channelsCount} channels`})
 
     }
