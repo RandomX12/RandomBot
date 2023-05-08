@@ -1,6 +1,4 @@
 import { model,Schema } from "mongoose";
-import { SpyGameSchema } from "./SpyGame";
-import { QuizSchema } from "./QuizGame";
 export interface Member{
     username: string, // with tag
     id : string
@@ -37,11 +35,85 @@ const discordServer = new Schema<DiscordServer>({
         required : true,
         type : [Object]
     },
+    // @ts-ignore
     games : {
         required : false,
         type : [
-            SpyGameSchema,
-            QuizSchema
+            {
+                //@ts-ignore
+                name :String,
+                hostId : String,
+                hostName : String,
+                index : {
+                    type : Number,
+                    required : false,
+                    default : 0
+                },
+                players : [{
+                    username : String,
+                    id : String,
+                    askId : {
+                        type : String,
+                        required : false
+                    },
+                    question : {
+                        required : false,
+                        type : String
+                    },
+                    answer : {
+                        required : false,
+                        type : String
+                    },
+                    vote : {
+                        required : false,
+                        type : String
+                    },
+                    votedCount : {
+                        type : Number,
+                        default : 0,
+                        required : false
+                    },
+                    answers : {
+                        required : false,
+                        type : [String],
+                    },
+                    score : {
+                        required : false,
+                        type : Number
+                    }
+                }],
+                word : String,
+                maxPlayers : Number,
+                channelId : String,
+                announcementId : String,
+                spy : {
+                    id : String,
+                    username: String,
+                    
+                },
+                started : {
+                    required : false,
+                    type : Boolean,
+                    default : false
+                },
+                end : {
+                    required : false,
+                    type : Boolean,
+                    default : false
+                },
+                quiz :{
+                    required : false,
+                    type : []
+                },
+                amount : {
+                    type : Number,
+                    required : false,
+                },
+                category : {
+                    type : String,
+                    required : false
+                }
+            }
         ],
         default : null
     }

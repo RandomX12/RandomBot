@@ -1,5 +1,5 @@
 import { ActionRowBuilder, ButtonBuilder, CacheType, ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
-import Spygame from "../lib/spygame";
+import Spygame, { isSpyGame } from "../lib/spygame";
 import DiscordServers from "../lib/DiscordServers";
 
 module.exports = {
@@ -12,6 +12,7 @@ module.exports = {
         const isHost = await Spygame.isHost(interaction.guildId,interaction.user.id)
         if(isHost){
             const game = await DiscordServers.getGameByHostId(interaction.guildId,interaction.customId.split("_")[2])
+            if(!isSpyGame(game)) return
             const announcement =  interaction.channel.messages.cache.get(game.announcementId)
             if(announcement){
                 await DiscordServers.deleteGame(interaction.guildId,interaction.customId.split("_")[2])
@@ -30,6 +31,7 @@ module.exports = {
             }
         }else{
             const game = await DiscordServers.getGameByHostId(interaction.guildId,interaction.customId.split("_")[2])
+            if(!isSpyGame(game)) return
             const announcement =  interaction.channel.messages.cache.get(game.announcementId)
             if(announcement){
                 if(game.started || game.players.length === game.maxPlayers){

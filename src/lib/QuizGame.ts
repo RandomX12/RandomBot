@@ -1,6 +1,6 @@
 import { Game } from "../model/discordServers"
 import Qz , { Qs, QuizGame as QuizGameType } from "../model/QuizGame"
-import { getServerByGuildId } from "./DiscordServers";
+import DiscordServers, { getServerByGuildId } from "./DiscordServers";
 export function isQuizGame(game : Game) : game is QuizGameType{
     if(game.name === "Quiz Game"){
         return true
@@ -22,7 +22,7 @@ interface APIresponse{
 }
 
 export type CategoriesNum = 9 | 15 | 21 | 23 | 22 | 19 | 18 | 27 | 28
-type QuizCategory = "Random" | "GeneralKnowledge" | "VideoGames" | "Sports" | "History" | "Geography" | "Mathematics" | "Computers" | "Animals" | "Vehicles";
+export type QuizCategory = "Random" | "GeneralKnowledge" | "VideoGames" | "Sports" | "History" | "Geography" | "Mathematics" | "Computers" | "Animals" | "Vehicles";
 type Categories = Record<QuizCategory,CategoriesNum | "any">
 export type answerType = "multiple" | "boolean"
 export const regex = /&quot;|&amp;|&#039;|&eacute;|&#039;|&amp;|&quot;|&shy;|&ldquo;|&rdquo;|&#039;/g 
@@ -50,6 +50,42 @@ interface QuizGameInfo{
 }
 
 export class QuizGame{
+    
+    static async join(guildId : string,hostId : string,userId : string){
+        const server = await getServerByGuildId(guildId)
+        let gameFound = false
+        for(let i = 0;i<server.games.length;i++){
+            if(server.games[i].hostId === hostId){
+                gameFound = true
+                const isIn = await DiscordServers.isInGame(guildId,userId)
+                if(isIn) throw new Error(`User id="${userId} is already in the game"`)
+                const user = await DiscordServers.getUser(guildId,userId)
+                server.games[i].players.push(user)
+                await server.save()
+                break
+            }
+        }
+        if(!gameFound) throw new Error(`Cannot join the game : Game not found`)
+    }
+    static async leave(guildId : string,hostId : string,userId : string){
+        const server = await getServerByGuildId(guildId)
+        let isGame = false
+        let isIn = false
+        server.games.map((e,i)=>{
+            if(e.hostId === hostId){
+                isGame = true
+                e.players.map((ele,j)=>{
+                    if(ele.id === userId){
+                        isIn = true
+                        server.games[i].players.splice(j,1)
+                    }
+                })
+            }
+        })
+        if(!isGame) throw new Error(`Game not found`)
+        if(!isIn) throw new Error(`This user is not in game`)
+        await server.save()
+    }
     constructor(public serverId : string,public info : QuizGameInfo){
         if(info.amount < 3 || info.amount > 10) throw new Error(`Amount must be between 3 and 10`)
     }
@@ -77,28 +113,26 @@ export class QuizGame{
             let ans = e.incorrect_answers.map(ele=>{
                 return ele.replace(regex,' ')
             })
-            ans.push(c)
+            let num = Math.floor(Math.random() * ans.length)
+            let an = ans[num]
+            ans[num] = c
+            ans.push(an)
             let t = e.type
             return {
                 question : q,
                 answers : ans,
-                correctIndex : 0,
+                correctIndex : num,
                 type : t
             }
         })
-        console.log(new Qz({
-            ...this.info,
-            name : "Quiz Game",
-            index : 0,
-            players : [{username : this.info.hostName,id : this.info.hostId}],
-            quiz : quiz
-        }));
         server.games.push({
             ...this.info,
             name : "Quiz Game",
             index : 0,
             players : [{username : this.info.hostName,id : this.info.hostId}],
-            quiz : quiz
+            quiz : quiz,
+            category : this.info.category,
+            amount : this.info.amount
         } as QuizGameType)
         await server.save()
     }

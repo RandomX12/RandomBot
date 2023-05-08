@@ -37,6 +37,7 @@ module.exports = {
                             return
                         }
                         const game = await DiscordServers.getGameByHostId(interaction.guildId,interaction.customId.split("_")[2])
+                        if(!isSpyGame(game)) return
                         let isIn = false
                         game.players.map(e=>{
                             if(e.id === interaction.user.id){
@@ -73,8 +74,9 @@ module.exports = {
                             })
                         
                             const gameUpdate = await DiscordServers.getGameByHostId(interaction.guildId,interaction.customId.split("_")[2])
-                        if(game.maxPlayers === gameUpdate.players.length){
-                            try{
+                            if(!isSpyGame(gameUpdate)) return
+                            if(game.maxPlayers === gameUpdate.players.length){
+                                try{
                                 const embed = new EmbedBuilder()
                             .setAuthor({name : "Spy game is starting 🟢"})
                             .setTitle("Spy Game")
@@ -144,7 +146,8 @@ module.exports = {
                                     setTimeout(async()=>{
                                         try{
                                             const gameCheck = await DiscordServers.getGameByHostId(interaction.guildId,game.hostId)
-                                        if(!gameCheck.players[0].question){
+                                            if(!isSpyGame(gameCheck)) return
+                                            if(!gameCheck.players[0].question){
                                             console.log(gameCheck.players[0]);
                                             const embed = new EmbedBuilder()
                                             .setAuthor({name : "Spy Game"})

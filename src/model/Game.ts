@@ -1,33 +1,12 @@
-import { Schema, model } from "mongoose";
-import { Game, Member } from "./discordServers";
-import { QuizCategory, answerType } from "../lib/QuizGame";
+import { Schema } from "mongoose";
+import { Game } from "./discordServers";
 
-export interface Qs{
-    question : string,
-    answers : string[],
-    correctIndex : number,
-    type : answerType
-}
-type answers = "A" | "B" | "C"
-export interface QuizGamePlayer extends Member{
-    answers? : answers[],
-    score? : number
-}
-export interface QuizGame extends Game{
-    players : QuizGamePlayer[],
-    index : number,
-    maxPlayers : number,
-    announcementId : string,
-    started? : boolean,
-    end? : boolean,
-    quiz : Qs[],
-    category : QuizCategory,
-    amount  : number
-}
-export const QuizSchema = new Schema<QuizGame>({
+
+const Game = new Schema<Game>({
     name :String,
                 hostId : String,
                 hostName : String,
+                //@ts-ignore
                 index : {
                     type : Number,
                     required : false,
@@ -36,18 +15,24 @@ export const QuizSchema = new Schema<QuizGame>({
                 players : [{
                     username : String,
                     id : String,
-                    answers : {
-                        required : false,
-                        type : [String],
-                    },
-                    score : {
-                        required : false,
-                        type : Number
+                    askId : String,
+                    question : String,
+                    answer : Schema.Types.Mixed,
+                    vote : String,
+                    votedCount : {
+                        type : Number,
+                        default : 0,
+                        required : false
                     }
                 }],
+                word : String,
                 maxPlayers : Number,
                 channelId : String,
                 announcementId : String,
+                spy : {
+                    id : String,
+                    username: String
+                },
                 started : {
                     required : false,
                     type : Boolean,
@@ -76,5 +61,3 @@ export const QuizSchema = new Schema<QuizGame>({
                     required : true
                 }
 })
-
-export default model<QuizGame>('Quiz Game',QuizSchema)

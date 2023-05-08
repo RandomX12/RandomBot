@@ -41,12 +41,13 @@ let cmdBody : ApplicationCommandDataResolvable = {
 module.exports = {
     data : cmdBody,
     async execute(interaction : ChatInputCommandInteraction<CacheType>){
-        const server = await getServerByGuildId(interaction.guildId)
+        await interaction.deferReply({
+            ephemeral : true
+        })
         const isIn = await DiscordServers.isInGame(interaction.guildId,interaction.user.id)
         if(isIn) {
-            await interaction.reply({
+            await interaction.editReply({
                 content : `You are already in game :x:`,
-                ephemeral : true
             })
             return
         }
@@ -72,9 +73,9 @@ module.exports = {
         }
         catch(err : any){
             await msg.delete()
-            await interaction.reply({
+            await interaction.editReply({
                 content : "cannot create the game :x:",
-                ephemeral : true
+                
             })
             msg = null
             await DiscordServers.deleteGame(interaction.guildId,interaction.user.id)
@@ -99,6 +100,10 @@ module.exports = {
                 components : [row],
                 content : `@everyone new Quiz Game created by <@${interaction.user.id}>`
             })
+            await interaction.editReply({
+                content : "Game created :white_check_mark:",
+                
+            })
         }
         catch(err : any){
             await DiscordServers.deleteGame(interaction.guildId,interaction.user.id)
@@ -107,9 +112,9 @@ module.exports = {
                     content : "Cannot create the game :x:"
                 })
             }else{
-                await interaction.reply({
+                await interaction.editReply({
                     content : "cannot create the game :x:",
-                    ephemeral : true
+                    
                 })
             }
             throw new Error(err?.message)

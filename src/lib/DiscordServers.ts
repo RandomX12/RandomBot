@@ -1,4 +1,4 @@
-import ServersModel ,{DiscordServer, Member} from "../model/discordServers"
+import ServersModel ,{DiscordServer, Game, Member} from "../model/discordServers"
 import { isSpyGame } from "./spygame"
 import { SpyGame } from "../model/SpyGame"
 export async function getServerByGuildId(id : string){
@@ -16,26 +16,27 @@ export default class DiscordServers{
         const server = await getServerByGuildId(guildId)
         let isIn = false
         for(let i = 0;i<server.games.length;i++){
-            if(server.games[i].hostId === userId){
+            if(server.games[i].hostId === userId){                
                 isIn = true
                 break
             }
-            for(let j = 0;j<server.games[i].players.length;i++){
+
+            for(let j = 0;j<server.games[i].players.length;j++){
                 if(server.games[i].players[j].id === userId){
                     isIn = true
                     break
                 }
             }
+
             if(isIn) break
         }
         return isIn
     }
     static async getGameByHostId(guildId : string,id:string){
         const server = await getServerByGuildId(guildId)
-        let game : SpyGame 
+        let game : Game 
         server.games.map(e=>{
-            if(e.hostId === id && isSpyGame(e)){
-                
+            if(e.hostId === id){
                 game = e
             }
         })
@@ -61,6 +62,12 @@ export default class DiscordServers{
             }
         })
         await server.save()
+    }
+    static async isGameFull(guildId : string,hostId : string){
+        const game = await DiscordServers.getGameByHostId(guildId,hostId)
+        if(!("maxPlayers" in game)) return
+        if(game.players.length === game.maxPlayers) return true
+        return false
     }
     constructor(public server : DiscordServer){}
     async save(){

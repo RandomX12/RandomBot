@@ -1,6 +1,13 @@
-import { Schema } from "mongoose"
-import { Game, Member } from "./discordServers"
+import { Schema } from "mongoose";
+import { Game, Member } from "./discordServers";
 
+export interface SpyGamePlayer extends Member{
+    askId? : string,
+    question? : string,
+    answer? : string,
+    vote? : string,
+    votedCount? : number
+}
 
 export interface SpyGame extends Game{
     players : (Member & {askId? : string,question? : string,answer? : string,vote? : string,votedCount? : number})[],

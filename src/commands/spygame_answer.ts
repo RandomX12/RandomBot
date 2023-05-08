@@ -1,6 +1,6 @@
 import { ApplicationCommandDataResolvable, ApplicationCommandOptionType, CacheType, ChatInputCommandInteraction, EmbedBuilder } from "discord.js"
 import DiscordServers, { getServerByGuildId } from "../lib/DiscordServers"
-import Spygame, { numberEmojis, numberEmojisStyled, numberEmojisUnicode } from "../lib/spygame"
+import Spygame, { isSpyGame, numberEmojis, numberEmojisStyled, numberEmojisUnicode } from "../lib/spygame"
 import { TimeTampNow, error } from "../lib/cmd"
 
 let cmdBody : ApplicationCommandDataResolvable = {
@@ -20,6 +20,7 @@ module.exports = {
     async execute(interaction : ChatInputCommandInteraction<CacheType>){
         const server = await getServerByGuildId(interaction.guildId)
         const game  = await Spygame.findGameByUserId(server.games,interaction.user.id)
+        if(!isSpyGame(game)) return
         if(game.players[game.index].askId !== interaction.user.id){
             await interaction.reply({
                 content : "You are not asked",
@@ -61,6 +62,7 @@ module.exports = {
             setTimeout(async()=>{
                 try{
                     const gameCheck = await DiscordServers.getGameByHostId(interaction.guildId,game.hostId)
+                    if(!isSpyGame(gameCheck)) return
                     if(!gameCheck.players[game.index].question){
                         console.log(gameCheck.players[game.index].question);
                         const embed = new EmbedBuilder()
