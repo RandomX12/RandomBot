@@ -1,6 +1,7 @@
 import { ActionRowBuilder, ApplicationCommandDataResolvable, ApplicationCommandOptionType, ButtonBuilder, CacheType, ChatInputCommandInteraction, EmbedBuilder } from "discord.js"
 import { categories, getCategoryByNum,CategoriesNum, QuizGame } from "../lib/QuizGame"
 import DiscordServers, { getServerByGuildId } from "../lib/DiscordServers"
+import { error } from "../lib/cmd"
 
 let choices = Object.keys(categories).map(e=>{
     return {
@@ -119,6 +120,26 @@ module.exports = {
             }
             throw new Error(err?.message)
         }
-
+        setTimeout(async()=>{
+            try{
+                const game = await QuizGame.getGameWithHostId(interaction.guildId,interaction.user.id)
+                if(game.started) return
+                await DiscordServers.deleteGame(interaction.guildId,interaction.user.id)
+                const announcement = interaction.channel.messages.cache.get(game.announcementId)
+                if(announcement){
+                    const embed = new EmbedBuilder()
+                    .setAuthor({name : "Quiz Game"})
+                    .setTitle(`Time out : game deleted`)
+                    await announcement.edit({
+                        embeds : [embed],
+                        components : [],
+                        content : ""
+                    })
+                }
+            }
+            catch(err : any){
+                error(err.message)
+            }
+        },1000*60*5)
     }
 }

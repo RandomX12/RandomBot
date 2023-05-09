@@ -159,7 +159,7 @@ module.exports = {
                     if(votedPlayer.id === game.spy.id){
                         embed1.addFields({name : `${votedPlayer.username}`,value : `Is The Spy ✅ \n Agents win 🔵`})
                     }else{
-                        embed1.addFields({name : `${votedPlayer.username}`,value : `Is Not The Spy ❌ \n Spy wins 🔴`})
+                        embed1.addFields({name : `${votedPlayer.username}`,value : `Is Not The Spy ❌ \n Spy wins 🔴 \n ${votedPlayer.username}`})
                     embed1.setThumbnail("https://media.istockphoto.com/id/846415384/vector/spy-icon.jpg?s=612x612&w=0&k=20&c=VJI5sbn-wprj6ikxVWxIm3p4fHYAwb2IHmr7lJBXa5g=")
                     }
                 }

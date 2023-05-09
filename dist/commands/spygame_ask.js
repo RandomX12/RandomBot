@@ -138,6 +138,8 @@ module.exports = {
             setTimeout(async () => {
                 try {
                     const gameCheck = await DiscordServers_1.default.getGameByHostId(interaction.guildId, game.hostId);
+                    if (!(0, spygame_1.isSpyGame)(gameCheck))
+                        return;
                     gameCheck.players.map(async (e, i) => {
                         if (e.id === gameCheck.players[playerIndex].askId) {
                             if (!e.answer) {

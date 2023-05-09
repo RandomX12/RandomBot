@@ -1,5 +1,5 @@
 import { CacheType, ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
-import Spygame from "../lib/spygame";
+import Spygame, { isSpyGame } from "../lib/spygame";
 import DiscordServers, { getServerByGuildId } from "../lib/DiscordServers";
 
 module.exports = {
@@ -10,6 +10,13 @@ module.exports = {
     async execute(interaction : ChatInputCommandInteraction<CacheType>){
         const server = await getServerByGuildId(interaction.guildId)
         const game = await Spygame.findGameByUserId(server.games,interaction.user.id)
+        if(!isSpyGame(game)){
+            await interaction.reply({
+                content : "You are not in Spy Game",
+                ephemeral : true
+            })
+            return
+        }
         await Spygame.leave(interaction.guildId,game.hostId,interaction.user.id)
         const isHost = await Spygame.isHost(interaction.guildId,interaction.user.id)
         if(isHost){

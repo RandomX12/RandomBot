@@ -61,6 +61,8 @@ module.exports = {
                     return;
                 }
                 const game = await DiscordServers_1.default.getGameByHostId(interaction.guildId, interaction.customId.split("_")[2]);
+                if (!(0, spygame_1.isSpyGame)(game))
+                    return;
                 let isIn = false;
                 game.players.map(e => {
                     if (e.id === interaction.user.id) {
@@ -96,6 +98,8 @@ module.exports = {
                         components: [row]
                     });
                     const gameUpdate = await DiscordServers_1.default.getGameByHostId(interaction.guildId, interaction.customId.split("_")[2]);
+                    if (!(0, spygame_1.isSpyGame)(gameUpdate))
+                        return;
                     if (game.maxPlayers === gameUpdate.players.length) {
                         try {
                             const embed = new discord_js_1.EmbedBuilder()
@@ -168,6 +172,8 @@ module.exports = {
                                     setTimeout(async () => {
                                         try {
                                             const gameCheck = await DiscordServers_1.default.getGameByHostId(interaction.guildId, game.hostId);
+                                            if (!(0, spygame_1.isSpyGame)(gameCheck))
+                                                return;
                                             if (!gameCheck.players[0].question) {
                                                 console.log(gameCheck.players[0]);
                                                 const embed = new discord_js_1.EmbedBuilder()

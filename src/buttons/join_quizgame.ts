@@ -63,8 +63,15 @@ module.exports = {
             await announcement.edit({
                 embeds : [embed]
             })
+            const button = new ButtonBuilder()
+            .setLabel("Leave")
+            .setCustomId("leave_quizgame_"+game.hostId)
+            .setStyle(4)
+            const row : any = new ActionRowBuilder()
+            .setComponents(button)
             await interaction.reply({
                 content : "You joined the game :white_check_mark:",
+                components : [row],
                 ephemeral : true
             })
         }else{

@@ -56,6 +56,7 @@ export class QuizGame{
         let gameFound = false
         for(let i = 0;i<server.games.length;i++){
             if(server.games[i].hostId === hostId){
+                if(!isQuizGame(server.games[i])) throw new Error(`This game is not Quiz Game`)
                 gameFound = true
                 const isIn = await DiscordServers.isInGame(guildId,userId)
                 if(isIn) throw new Error(`User id="${userId} is already in the game"`)
@@ -85,6 +86,11 @@ export class QuizGame{
         if(!isGame) throw new Error(`Game not found`)
         if(!isIn) throw new Error(`This user is not in game`)
         await server.save()
+    }
+    static async getGameWithHostId(guildId : string,hostId : string){
+        const game = await DiscordServers.getGameByHostId(guildId,hostId)
+        if(!isQuizGame(game)) throw new Error(`Game With hostId="${hostId}" is not a Quiz Game`)
+        return game
     }
     constructor(public serverId : string,public info : QuizGameInfo){
         if(info.amount < 3 || info.amount > 10) throw new Error(`Amount must be between 3 and 10`)

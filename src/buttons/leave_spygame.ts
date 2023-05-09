@@ -52,7 +52,7 @@ module.exports = {
                 .setThumbnail("https://media.istockphoto.com/id/846415384/vector/spy-icon.jpg?s=612x612&w=0&k=20&c=VJI5sbn-wprj6ikxVWxIm3p4fHYAwb2IHmr7lJBXa5g=")
                 .setAuthor({name : `Waiting for players ${game.players.length} / ${game.maxPlayers}`})
                 const button = new ButtonBuilder()
-                .setCustomId(`join_spygame_${interaction.user.id}`)
+                .setCustomId(`join_spygame_${interaction.customId.split("_")[2]}`)
                 .setStyle(3)
                 .setLabel("join")
                 const row : any = new ActionRowBuilder()

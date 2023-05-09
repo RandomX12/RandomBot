@@ -112,6 +112,9 @@ client.on("interactionCreate", async (interaction) => {
         else if (interaction.customId.startsWith("leave_spygame")) {
             command = interaction.client.buttons.get("leave_spygame_[:id]");
         }
+        else if (interaction.customId.startsWith("join_quizgame")) {
+            command = interaction.client.buttons.get("join_quizgame_[:id]");
+        }
         if (!command) {
             console.log(`\x1b[33m`, `[warning]`, `Command Button ${interaction.customId} is not found`);
             return;
@@ -255,10 +258,17 @@ client.on("ready", async (c) => {
         let membersCount = c.users.cache.size;
         let channelsCount = c.channels.cache.size;
         let guilds = await c.guilds.fetch();
+        const server = await discordServers_1.default.find();
         guilds.map(async (e) => {
             try {
-                const server = await discordServers_1.default.findOne({ serverId: e.id });
-                if (server)
+                let isIn = false;
+                server.map(ele => {
+                    if (ele.serverId === e.id) {
+                        isIn = true;
+                        return;
+                    }
+                });
+                if (isIn)
                     return;
                 let members = (await (await e.fetch()).members.fetch()).map(e => {
                     return {

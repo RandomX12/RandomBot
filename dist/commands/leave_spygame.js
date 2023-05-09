@@ -22,12 +22,9 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 const discord_js_1 = require("discord.js");
-const spygame_1 = __importDefault(require("../lib/spygame"));
+const spygame_1 = __importStar(require("../lib/spygame"));
 const DiscordServers_1 = __importStar(require("../lib/DiscordServers"));
 module.exports = {
     data: {
@@ -37,6 +34,13 @@ module.exports = {
     async execute(interaction) {
         const server = await (0, DiscordServers_1.getServerByGuildId)(interaction.guildId);
         const game = await spygame_1.default.findGameByUserId(server.games, interaction.user.id);
+        if (!(0, spygame_1.isSpyGame)(game)) {
+            await interaction.reply({
+                content: "You are not in Spy Game",
+                ephemeral: true
+            });
+            return;
+        }
         await spygame_1.default.leave(interaction.guildId, game.hostId, interaction.user.id);
         const isHost = await spygame_1.default.isHost(interaction.guildId, interaction.user.id);
         if (isHost) {

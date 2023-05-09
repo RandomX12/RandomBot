@@ -1,31 +1,12 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const discord_js_1 = require("discord.js");
 const QuizGame_1 = require("../lib/QuizGame");
-const DiscordServers_1 = __importStar(require("../lib/DiscordServers"));
+const DiscordServers_1 = __importDefault(require("../lib/DiscordServers"));
+const cmd_1 = require("../lib/cmd");
 let choices = Object.keys(QuizGame_1.categories).map(e => {
     return {
         name: e,
@@ -64,12 +45,13 @@ let cmdBody = {
 module.exports = {
     data: cmdBody,
     async execute(interaction) {
-        const server = await (0, DiscordServers_1.getServerByGuildId)(interaction.guildId);
+        await interaction.deferReply({
+            ephemeral: true
+        });
         const isIn = await DiscordServers_1.default.isInGame(interaction.guildId, interaction.user.id);
         if (isIn) {
-            await interaction.reply({
+            await interaction.editReply({
                 content: `You are already in game :x:`,
-                ephemeral: true
             });
             return;
         }
@@ -93,9 +75,8 @@ module.exports = {
         }
         catch (err) {
             await msg.delete();
-            await interaction.reply({
+            await interaction.editReply({
                 content: "cannot create the game :x:",
-                ephemeral: true
             });
             msg = null;
             await DiscordServers_1.default.deleteGame(interaction.guildId, interaction.user.id);
@@ -121,6 +102,9 @@ module.exports = {
                 components: [row],
                 content: `@everyone new Quiz Game created by <@${interaction.user.id}>`
             });
+            await interaction.editReply({
+                content: "Game created :white_check_mark:",
+            });
         }
         catch (err) {
             await DiscordServers_1.default.deleteGame(interaction.guildId, interaction.user.id);
@@ -130,12 +114,33 @@ module.exports = {
                 });
             }
             else {
-                await interaction.reply({
+                await interaction.editReply({
                     content: "cannot create the game :x:",
-                    ephemeral: true
                 });
             }
             throw new Error(err?.message);
         }
+        setTimeout(async () => {
+            try {
+                const game = await QuizGame_1.QuizGame.getGameWithHostId(interaction.guildId, interaction.user.id);
+                if (game.started)
+                    return;
+                await DiscordServers_1.default.deleteGame(interaction.guildId, interaction.user.id);
+                const announcement = interaction.channel.messages.cache.get(game.announcementId);
+                if (announcement) {
+                    const embed = new discord_js_1.EmbedBuilder()
+                        .setAuthor({ name: "Quiz Game" })
+                        .setTitle(`Time out : game deleted`);
+                    await announcement.edit({
+                        embeds: [embed],
+                        components: [],
+                        content: ""
+                    });
+                }
+            }
+            catch (err) {
+                (0, cmd_1.error)(err.message);
+            }
+        }, 1000 * 60 * 5);
     }
 };

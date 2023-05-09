@@ -44,6 +44,8 @@ module.exports = {
     async execute(interaction) {
         const server = await (0, DiscordServers_1.getServerByGuildId)(interaction.guildId);
         const game = await spygame_1.default.findGameByUserId(server.games, interaction.user.id);
+        if (!(0, spygame_1.isSpyGame)(game))
+            return;
         if (game.players[game.index].askId !== interaction.user.id) {
             await interaction.reply({
                 content: "You are not asked",
@@ -85,6 +87,8 @@ module.exports = {
             setTimeout(async () => {
                 try {
                     const gameCheck = await DiscordServers_1.default.getGameByHostId(interaction.guildId, game.hostId);
+                    if (!(0, spygame_1.isSpyGame)(gameCheck))
+                        return;
                     if (!gameCheck.players[game.index].question) {
                         console.log(gameCheck.players[game.index].question);
                         const embed = new discord_js_1.EmbedBuilder()
@@ -221,7 +225,7 @@ module.exports = {
                                 embed1.addFields({ name: `${votedPlayer.username}`, value: `Is The Spy ✅ \n Agents win 🔵` });
                             }
                             else {
-                                embed1.addFields({ name: `${votedPlayer.username}`, value: `Is Not The Spy ❌ \n Spy wins 🔴` });
+                                embed1.addFields({ name: `${votedPlayer.username}`, value: `Is Not The Spy ❌ \n Spy wins 🔴 \n ${votedPlayer.username}` });
                                 embed1.setThumbnail("https://media.istockphoto.com/id/846415384/vector/spy-icon.jpg?s=612x612&w=0&k=20&c=VJI5sbn-wprj6ikxVWxIm3p4fHYAwb2IHmr7lJBXa5g=");
                             }
                         }

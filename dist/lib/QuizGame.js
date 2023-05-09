@@ -1,11 +1,30 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.QuizGame = exports.categories = exports.regex = exports.getCategoryByNum = exports.isQuizGame = void 0;
-const QuizGame_1 = __importDefault(require("../model/QuizGame"));
-const DiscordServers_1 = require("./DiscordServers");
+const DiscordServers_1 = __importStar(require("./DiscordServers"));
 function isQuizGame(game) {
     if (game.name === "Quiz Game") {
         return true;
@@ -39,6 +58,53 @@ exports.categories = {
     Vehicles: 28,
 };
 class QuizGame {
+    static async join(guildId, hostId, userId) {
+        const server = await (0, DiscordServers_1.getServerByGuildId)(guildId);
+        let gameFound = false;
+        for (let i = 0; i < server.games.length; i++) {
+            if (server.games[i].hostId === hostId) {
+                if (!isQuizGame(server.games[i]))
+                    throw new Error(`This game is not Quiz Game`);
+                gameFound = true;
+                const isIn = await DiscordServers_1.default.isInGame(guildId, userId);
+                if (isIn)
+                    throw new Error(`User id="${userId} is already in the game"`);
+                const user = await DiscordServers_1.default.getUser(guildId, userId);
+                server.games[i].players.push(user);
+                await server.save();
+                break;
+            }
+        }
+        if (!gameFound)
+            throw new Error(`Cannot join the game : Game not found`);
+    }
+    static async leave(guildId, hostId, userId) {
+        const server = await (0, DiscordServers_1.getServerByGuildId)(guildId);
+        let isGame = false;
+        let isIn = false;
+        server.games.map((e, i) => {
+            if (e.hostId === hostId) {
+                isGame = true;
+                e.players.map((ele, j) => {
+                    if (ele.id === userId) {
+                        isIn = true;
+                        server.games[i].players.splice(j, 1);
+                    }
+                });
+            }
+        });
+        if (!isGame)
+            throw new Error(`Game not found`);
+        if (!isIn)
+            throw new Error(`This user is not in game`);
+        await server.save();
+    }
+    static async getGameWithHostId(guildId, hostId) {
+        const game = await DiscordServers_1.default.getGameByHostId(guildId, hostId);
+        if (!isQuizGame(game))
+            throw new Error(`Game With hostId="${hostId}" is not a Quiz Game`);
+        return game;
+    }
     constructor(serverId, info) {
         this.serverId = serverId;
         this.info = info;
@@ -69,28 +135,26 @@ class QuizGame {
             let ans = e.incorrect_answers.map(ele => {
                 return ele.replace(exports.regex, ' ');
             });
-            ans.push(c);
+            let num = Math.floor(Math.random() * ans.length);
+            let an = ans[num];
+            ans[num] = c;
+            ans.push(an);
             let t = e.type;
             return {
                 question: q,
                 answers: ans,
-                correctIndex: 0,
+                correctIndex: num,
                 type: t
             };
         });
-        console.log(new QuizGame_1.default({
-            ...this.info,
-            name: "Quiz Game",
-            index: 0,
-            players: [{ username: this.info.hostName, id: this.info.hostId }],
-            quiz: quiz
-        }));
         server.games.push({
             ...this.info,
             name: "Quiz Game",
             index: 0,
             players: [{ username: this.info.hostName, id: this.info.hostId }],
-            quiz: quiz
+            quiz: quiz,
+            category: this.info.category,
+            amount: this.info.amount
         });
         await server.save();
     }

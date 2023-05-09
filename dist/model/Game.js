@@ -1,11 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.QuizSchema = void 0;
 const mongoose_1 = require("mongoose");
-exports.QuizSchema = new mongoose_1.Schema({
+const Game = new mongoose_1.Schema({
     name: String,
     hostId: String,
     hostName: String,
+    //@ts-ignore
     index: {
         type: Number,
         required: false,
@@ -14,18 +14,24 @@ exports.QuizSchema = new mongoose_1.Schema({
     players: [{
             username: String,
             id: String,
-            answers: {
-                required: false,
-                type: [String],
-            },
-            score: {
-                required: false,
-                type: Number
+            askId: String,
+            question: String,
+            answer: mongoose_1.Schema.Types.Mixed,
+            vote: String,
+            votedCount: {
+                type: Number,
+                default: 0,
+                required: false
             }
         }],
+    word: String,
     maxPlayers: Number,
     channelId: String,
     announcementId: String,
+    spy: {
+        id: String,
+        username: String
+    },
     started: {
         required: false,
         type: Boolean,
@@ -54,4 +60,3 @@ exports.QuizSchema = new mongoose_1.Schema({
         required: true
     }
 });
-exports.default = (0, mongoose_1.model)('Quiz Game', exports.QuizSchema);
