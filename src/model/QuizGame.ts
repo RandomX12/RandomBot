@@ -6,9 +6,10 @@ export interface Qs{
     question : string,
     answers : string[],
     correctIndex : number,
-    type : answerType
+    type : answerType,
+    category : QuizCategory
 }
-type answers = "A" | "B" | "C"
+export type answers = "A" | "B" | "C" | "D"
 export interface QuizGamePlayer extends Member{
     answers? : answers[],
     score? : number

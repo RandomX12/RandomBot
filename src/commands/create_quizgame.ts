@@ -1,5 +1,5 @@
 import { ActionRowBuilder, ApplicationCommandDataResolvable, ApplicationCommandOptionType, ButtonBuilder, CacheType, ChatInputCommandInteraction, EmbedBuilder } from "discord.js"
-import { categories, getCategoryByNum,CategoriesNum, QuizGame } from "../lib/QuizGame"
+import QuizGame , { categories, getCategoryByNum,CategoriesNum } from "../lib/QuizGame"
 import DiscordServers, { getServerByGuildId } from "../lib/DiscordServers"
 import { error } from "../lib/cmd"
 

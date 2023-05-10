@@ -1,6 +1,7 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, CacheType, ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
 import DiscordServers, { getServerByGuildId } from "../lib/DiscordServers";
-import { CategoriesNum, QuizGame, getCategoryByNum, isQuizGame } from "../lib/QuizGame";
+import QuizGame, { CategoriesNum, answerType, getCategoryByNum, isQuizGame } from "../lib/QuizGame";
+import { answers } from "../model/QuizGame";
 
 module.exports = {
     data : {
@@ -88,9 +89,33 @@ module.exports = {
         // Game start
 
         if(game.players.length === game.maxPlayers){
-            await announcement.edit({
-                content : "Starting the game..."
-            })
+            try{
+                embed.setAuthor({name : "Starting the game... 🟢"})
+                await announcement.edit({
+                    content : "",
+                    embeds : [embed],
+                    components : []
+                })
+                await QuizGame.start(interaction.guildId,hostId)
+                const startingEmbed = new EmbedBuilder()
+                .setAuthor({name : game.quiz[0].category})
+                .setTitle(game.quiz[0].question)
+                let ans = ""
+                let al : answers[] = ["A" , "B" ,"C","D"]
+                game.quiz[0].answers.map((e,i)=>{
+                    ans += al[i] + " : " + e + "\n"
+                })
+                startingEmbed.addFields({name : "answers :",value : ans})
+                await announcement.edit({
+                    embeds : [startingEmbed]
+                })
+            }
+            catch(err : any){
+                await announcement?.edit({
+                    content : "an error occurred while starting the game",
+                })
+            }
+
         }
     }
 }
