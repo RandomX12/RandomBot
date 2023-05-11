@@ -1,7 +1,7 @@
 import { ActionRowBuilder, ApplicationCommandDataResolvable, ApplicationCommandOptionType, ButtonBuilder, CacheType, ChatInputCommandInteraction, EmbedBuilder } from "discord.js"
 import QuizGame , { categories, getCategoryByNum,CategoriesNum } from "../lib/QuizGame"
 import DiscordServers, { getServerByGuildId } from "../lib/DiscordServers"
-import { error } from "../lib/cmd"
+import { TimeTampNow, error } from "../lib/cmd"
 
 let choices = Object.keys(categories).map(e=>{
     return {
@@ -99,7 +99,7 @@ module.exports = {
             await msg.edit({
                 embeds : [embed],
                 components : [row],
-                content : `@everyone new Quiz Game created by <@${interaction.user.id}>`
+                content : `@everyone new Quiz Game created by <@${interaction.user.id}> ${TimeTampNow()}`
             })
             await interaction.editReply({
                 content : "Game created :white_check_mark:",

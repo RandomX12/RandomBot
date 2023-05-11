@@ -1,5 +1,5 @@
 import { Game, Member } from "../model/discordServers"
-import Qz , { Qs, QuizGame as QuizGameType } from "../model/QuizGame"
+import Qz , { answers, Qs, QuizGame as QuizGameType } from "../model/QuizGame"
 import DiscordServers, { getServerByGuildId } from "./DiscordServers";
 export function isQuizGame(game : Game) : game is QuizGameType{
     if(game.name === "Quiz Game"){
@@ -137,6 +137,59 @@ export default class QuizGame{
             
         })
         if(!isGame)throw new Error(`Quiz Game not found`)
+        await server.save()
+    }
+    static async setAns(guildId : string,hostId : string,userId : string,ans : answers){
+        const server = await getServerByGuildId(guildId)
+        let isGame : boolean = false
+        let isUser : boolean = false
+        server.games.map((e,i)=>{
+            if(e.hostId === hostId){
+                if(!isQuizGame(e)) return
+                isGame = true
+                e.players.map((ele,index)=>{
+                    if(ele.id === userId){
+                        if(!(server.games[i] as QuizGameType).players[index].answers){
+                            (server.games[i] as QuizGameType).players[index].answers = [ans]
+                        }else{
+                            (server.games[i] as QuizGameType).players[index].answers[e.index] = ans
+                        }
+                        isUser = true
+                    }
+                })
+            }
+        }) 
+        if(!isGame) throw new Error(`Game not found !!`)
+        if(!isUser) throw new Error(`User not found !!`);
+        await server.save()
+    }
+    static async scanAns(guildId : string,hostId : string){
+        const server = await getServerByGuildId(guildId)
+        let isGame : boolean = false
+        let ans : answers[] = ["A","B","C","D"]
+        let gameIndex : number
+        server.games.map((e,i)=>{
+            if(e.hostId === hostId){
+                if(!isQuizGame(e)) return
+                isGame = true;
+                gameIndex = i
+                e.players.map((ele,index)=>{
+                    if(!ele.answers[e.index]){
+                        (server.games[i] as QuizGameType).players[index].answers.push("N")
+                        return
+                    }
+                    if(ele.answers[e.index] === ans[e.quiz[e.index].correctIndex]){
+                        if((server.games[i] as QuizGameType).players[index].score){
+                            (server.games[i] as QuizGameType).players[index].score++
+                        }else{
+                            (server.games[i] as QuizGameType).players[index].score = 1
+                        }
+                    }
+                })
+            }
+        })
+        if(!isGame) throw new Error(`game not found`);
+        (server.games[gameIndex] as QuizGameType).index++
         await server.save()
     }
     constructor(public serverId : string,public info : QuizGameInfo){

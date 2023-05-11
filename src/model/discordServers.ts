@@ -79,7 +79,8 @@ const discordServer = new Schema<DiscordServer>({
                     },
                     score : {
                         required : false,
-                        type : Number
+                        type : Number,
+                        default : 0
                     }
                 }],
                 word : String,

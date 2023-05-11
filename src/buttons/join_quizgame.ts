@@ -2,6 +2,7 @@ import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, CacheType, ChatInpu
 import DiscordServers, { getServerByGuildId } from "../lib/DiscordServers";
 import QuizGame, { CategoriesNum, answerType, getCategoryByNum, isQuizGame } from "../lib/QuizGame";
 import { answers } from "../model/QuizGame";
+import { TimeTampNow, error } from "../lib/cmd";
 
 module.exports = {
     data : {
@@ -97,23 +98,59 @@ module.exports = {
                     components : []
                 })
                 await QuizGame.start(interaction.guildId,hostId)
-                const startingEmbed = new EmbedBuilder()
-                .setAuthor({name : game.quiz[0].category})
-                .setTitle(game.quiz[0].question)
+                for(let i = 0;i<game.amount;i++){
+                    const startingEmbed = new EmbedBuilder()
+                .setAuthor({name : game.quiz[i].category})
+                .setTitle(game.quiz[i].question)
+                const row : any = new ActionRowBuilder()
                 let ans = ""
                 let al : answers[] = ["A" , "B" ,"C","D"]
-                game.quiz[0].answers.map((e,i)=>{
-                    ans += al[i] + " : " + e + "\n"
+                game.quiz[i].answers.map((e,j)=>{
+                    ans += al[j] + " : " + e + "\n"
+                    row.addComponents(
+                        new ButtonBuilder()
+                        .setCustomId(`answer_${al[j]}_${hostId}`)
+                        .setLabel(al[j])
+                        .setStyle(1)
+                    )
                 })
                 startingEmbed.addFields({name : "answers :",value : ans})
                 await announcement.edit({
-                    embeds : [startingEmbed]
+                    embeds : [startingEmbed],
+                    components : [row],
+                    content : TimeTampNow()
                 })
+                await new Promise((res,rej)=>{
+                    setTimeout(res,1000*30)
+                })
+                let endAns = ""
+                game.quiz[i].answers.map((e,j)=>{
+                    let check = ""
+                    if(j === game.quiz[i].correctIndex){
+                        check = "✅"
+                    }
+                    endAns += al[j] + " : " + e + check +"\n"
+                })
+                startingEmbed.setFields({name : "answers :",value : endAns})
+                await announcement.edit({
+                    embeds : [startingEmbed],
+                    components : [],
+                    content : ""
+                })
+                await QuizGame.scanAns(interaction.guildId,hostId)
+                await new Promise((res,rej)=>{
+                    setTimeout(res,1000*5)
+                })
+            }
+            await announcement.reply({
+                content : "game end still under dev"
+            })
             }
             catch(err : any){
                 await announcement?.edit({
                     content : "an error occurred while starting the game",
                 })
+                error(err?.message)
             }
 
         }

@@ -9,7 +9,7 @@ export interface Qs{
     type : answerType,
     category : QuizCategory
 }
-export type answers = "A" | "B" | "C" | "D"
+export type answers = "A" | "B" | "C" | "D" | "N"
 export interface QuizGamePlayer extends Member{
     answers? : answers[],
     score? : number
