@@ -1,11 +1,35 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const discord_js_1 = require("discord.js");
 const DiscordServers_1 = __importDefault(require("../lib/DiscordServers"));
-const QuizGame_1 = require("../lib/QuizGame");
+const QuizGame_1 = __importStar(require("../lib/QuizGame"));
+const cmd_1 = require("../lib/cmd");
 module.exports = {
     data: {
         name: "join_quizgame_[:id]",
@@ -37,7 +61,7 @@ module.exports = {
             return;
         }
         try {
-            await QuizGame_1.QuizGame.join(interaction.guildId, hostId, interaction.user.id);
+            await QuizGame_1.default.join(interaction.guildId, hostId, interaction.user.id);
         }
         catch (err) {
             if (interaction.replied || interaction.deferred) {
@@ -92,9 +116,98 @@ module.exports = {
         }
         // Game start
         if (game.players.length === game.maxPlayers) {
-            await announcement.edit({
-                content: "Starting the game..."
-            });
+            try {
+                embed.setAuthor({ name: "Starting the game... 🟢" });
+                await announcement.edit({
+                    content: "",
+                    embeds: [embed],
+                    components: []
+                });
+                await QuizGame_1.default.start(interaction.guildId, hostId);
+                for (let i = 0; i < game.amount; i++) {
+                    const startingEmbed = new discord_js_1.EmbedBuilder()
+                        .setAuthor({ name: game.quiz[i].category })
+                        .setTitle(game.quiz[i].question)
+                        .setThumbnail(QuizGame_1.QuizCategoryImg[game.category]);
+                    const row = new discord_js_1.ActionRowBuilder();
+                    let ans = "";
+                    let al = ["A", "B", "C", "D"];
+                    game.quiz[i].answers.map((e, j) => {
+                        ans += al[j] + " : " + e + "\n";
+                        row.addComponents(new discord_js_1.ButtonBuilder()
+                            .setCustomId(`answer_${al[j]}_${hostId}`)
+                            .setLabel(al[j])
+                            .setStyle(1));
+                    });
+                    startingEmbed.addFields({ name: "answers :", value: ans });
+                    await announcement.edit({
+                        embeds: [startingEmbed],
+                        components: [row],
+                        content: (0, cmd_1.TimeTampNow)()
+                    });
+                    await new Promise((res, rej) => {
+                        setTimeout(res, 1000 * 30);
+                    });
+                    let endAns = "";
+                    game.quiz[i].answers.map((e, j) => {
+                        let check = "";
+                        if (j === game.quiz[i].correctIndex) {
+                            check = "✅";
+                        }
+                        endAns += "**" + al[j] + " : " + e + check + "**\n";
+                    });
+                    startingEmbed.setFields({ name: "answers :", value: endAns });
+                    await announcement.edit({
+                        embeds: [startingEmbed],
+                        components: [],
+                        content: ""
+                    });
+                    await QuizGame_1.default.scanAns(interaction.guildId, hostId);
+                    await new Promise((res, rej) => {
+                        setTimeout(res, 1000 * 5);
+                    });
+                }
+                const gameUpdate = await QuizGame_1.default.getGameWithHostId(interaction.guildId, hostId);
+                const endEmbed = new discord_js_1.EmbedBuilder()
+                    .setTitle(`Quiz Game`)
+                    .setAuthor({ name: "Game end" });
+                let playersScore = "";
+                let players = gameUpdate.players;
+                let rankedPlayers = [];
+                const length = gameUpdate.players.length;
+                for (let i = 0; i < length; i++) {
+                    let b = players.reduce((pe, ce) => {
+                        if (players.length === 1) {
+                            return ce;
+                        }
+                        return ce.score <= pe.score ? pe : ce;
+                    });
+                    players.map((e, j) => {
+                        if (b.id === e.id) {
+                            players.splice(j, 1);
+                        }
+                    });
+                    rankedPlayers.push(b);
+                }
+                rankedPlayers.map((e, i) => {
+                    playersScore += QuizGame_1.rank[i] + " - " + e.username + "\ \ \ \ **" + e.score + "**\n";
+                });
+                endEmbed.addFields({ name: "players score ", value: playersScore });
+                endEmbed.setTimestamp(Date.now());
+                await announcement.reply({
+                    content: "",
+                    components: [],
+                    embeds: [endEmbed]
+                });
+                await DiscordServers_1.default.deleteGame(interaction.guildId, hostId);
+            }
+            catch (err) {
+                await DiscordServers_1.default.deleteGame(interaction.guildId, hostId);
+                await announcement?.edit({
+                    content: "an error occurred while starting the game",
+                });
+                (0, cmd_1.error)(err?.message);
+            }
         }
     }
 };

@@ -65,7 +65,7 @@ export const QuizSchema = new Schema<QuizGame>({
                         question : String,
                         answers : [String],
                         correctIndex : Number,
-                        type : String
+                        type : String,
                     }]
                 },
                 amount : {

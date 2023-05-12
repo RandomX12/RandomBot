@@ -20,12 +20,13 @@ export function getCategoryByNum(num : CategoriesNum | "any"){
 interface APIresponse{
     results : {category : string,type : answerType,difficulty :"easy",question : string,correct_answer : string,incorrect_answers : string[]}[]
 }
-
+    
+export const rank = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟", "1️⃣1️⃣", "1️⃣2️⃣", "1️⃣3️⃣", "1️⃣4️⃣", "1️⃣5️⃣", "1️⃣6️⃣", "1️⃣7️⃣", "1️⃣8️⃣", "1️⃣9️⃣", "2️⃣0️⃣"];
 export type CategoriesNum = 9 | 15 | 21 | 23 | 22 | 19 | 18 | 27 | 28
 export type QuizCategory = "Random" | "GeneralKnowledge" | "VideoGames" | "Sports" | "History" | "Geography" | "Mathematics" | "Computers" | "Animals" | "Vehicles";
 type Categories = Record<QuizCategory,CategoriesNum | "any">
 export type answerType = "multiple" | "boolean"
-export const regex = /&quot;|&amp;|&#039;|&eacute;|&#039;|&amp;|&quot;|&shy;|&ldquo;|&rdquo;|&#039;/g 
+export const regex = /&quot;|&amp;|&#039;|&eacute;|&#039;|&amp;|&quot;|&shy;|&ldquo;|&rdquo;|&#039;|;|&/g 
 export const categories : Categories = {
     Random : "any",
     GeneralKnowledge : 9,
@@ -38,7 +39,18 @@ export const categories : Categories = {
     Animals : 27,
     Vehicles : 28,
 }
-
+export const QuizCategoryImg : Record<QuizCategory,string> = {
+    Random : "https://hips.hearstapps.com/hmg-prod/images/quiz-questions-answers-1669651278.jpg",
+    GeneralKnowledge : "https://cdn-icons-png.flaticon.com/512/5248/5248763.png",
+    VideoGames : "https://cdn-icons-png.flaticon.com/512/3408/3408506.png",
+    Sports : "https://cdn-icons-png.flaticon.com/512/857/857455.png",
+    History : "https://cdn.imgbin.com/0/14/17/ancient-scroll-icon-history-icon-scroll-icon-gHvzqatT.jpg",
+    Geography : "https://upload.wikimedia.org/wikipedia/commons/1/1f/Geography_icon.png",
+    Mathematics : "https://cdn-icons-png.flaticon.com/512/43/43102.png",
+    Computers : "https://cdn-icons-png.flaticon.com/512/4703/4703650.png",
+    Animals : "https://static.thenounproject.com/png/13643-200.png",
+    Vehicles : "https://cdn2.iconfinder.com/data/icons/cars-tractors-and-trucks/117/cars-01-512.png",
+}
 interface QuizGameInfo{
     hostId : string,
     hostName : string,

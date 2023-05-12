@@ -1,10 +1,33 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const discord_js_1 = require("discord.js");
-const QuizGame_1 = require("../lib/QuizGame");
+const QuizGame_1 = __importStar(require("../lib/QuizGame"));
 const DiscordServers_1 = __importDefault(require("../lib/DiscordServers"));
 const cmd_1 = require("../lib/cmd");
 let choices = Object.keys(QuizGame_1.categories).map(e => {
@@ -62,8 +85,8 @@ module.exports = {
             content: "creating Quiz Game..."
         });
         try {
-            const game = new QuizGame_1.QuizGame(interaction.guildId, {
-                hostName: interaction.user.username,
+            const game = new QuizGame_1.default(interaction.guildId, {
+                hostName: interaction.user.tag,
                 hostId: interaction.user.id,
                 maxPlayers: maxPlayers,
                 channelId: interaction.channelId,
@@ -100,7 +123,7 @@ module.exports = {
             await msg.edit({
                 embeds: [embed],
                 components: [row],
-                content: `@everyone new Quiz Game created by <@${interaction.user.id}>`
+                content: `@everyone new Quiz Game created by <@${interaction.user.id}> ${(0, cmd_1.TimeTampNow)()}`
             });
             await interaction.editReply({
                 content: "Game created :white_check_mark:",
@@ -122,7 +145,7 @@ module.exports = {
         }
         setTimeout(async () => {
             try {
-                const game = await QuizGame_1.QuizGame.getGameWithHostId(interaction.guildId, interaction.user.id);
+                const game = await QuizGame_1.default.getGameWithHostId(interaction.guildId, interaction.user.id);
                 if (game.started)
                     return;
                 await DiscordServers_1.default.deleteGame(interaction.guildId, interaction.user.id);

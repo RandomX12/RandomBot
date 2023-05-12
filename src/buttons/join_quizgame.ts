@@ -1,8 +1,9 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, CacheType, ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
 import DiscordServers, { getServerByGuildId } from "../lib/DiscordServers";
-import QuizGame, { CategoriesNum, answerType, getCategoryByNum, isQuizGame } from "../lib/QuizGame";
-import { answers } from "../model/QuizGame";
+import QuizGame, { CategoriesNum, QuizCategoryImg, answerType, getCategoryByNum, isQuizGame, rank } from "../lib/QuizGame";
+import { QuizGamePlayer, answers } from "../model/QuizGame";
 import { TimeTampNow, error } from "../lib/cmd";
+import { numberEmojisStyled } from "../lib/spygame";
 
 module.exports = {
     data : {
@@ -102,6 +103,7 @@ module.exports = {
                     const startingEmbed = new EmbedBuilder()
                 .setAuthor({name : game.quiz[i].category})
                 .setTitle(game.quiz[i].question)
+                .setThumbnail(QuizCategoryImg[game.category])
                 const row : any = new ActionRowBuilder()
                 let ans = ""
                 let al : answers[] = ["A" , "B" ,"C","D"]
@@ -129,7 +131,7 @@ module.exports = {
                     if(j === game.quiz[i].correctIndex){
                         check = "✅"
                     }
-                    endAns += al[j] + " : " + e + check +"\n"
+                    endAns += "**" + al[j] + " : " + e + check +"**\n"
                 })
                 startingEmbed.setFields({name : "answers :",value : endAns})
                 await announcement.edit({
@@ -142,17 +144,47 @@ module.exports = {
                     setTimeout(res,1000*5)
                 })
             }
-            await announcement.reply({
-                content : "game end still under dev"
+            const gameUpdate = await QuizGame.getGameWithHostId(interaction.guildId,hostId)
+            const endEmbed = new EmbedBuilder()
+            .setTitle(`Quiz Game`)
+            .setAuthor({name : "Game end"})
+            let playersScore = ""
+            let players = gameUpdate.players
+            let rankedPlayers = []
+            const length = gameUpdate.players.length
+            for(let i = 0;i<length;i++){
+                let b = players.reduce((pe,ce)=>{
+                    if(players.length === 1){
+                        return ce
+                    }
+                    return ce.score <= pe.score ? pe : ce
+                })
+                players.map((e,j)=>{
+                    if(b.id === e.id){
+                        players.splice(j,1)
+                    }
+                })
+                rankedPlayers.push(b)
+            }
+            rankedPlayers.map((e,i)=>{
+                playersScore += rank[i] + " - " + e.username + "\ \ \ \ **" + e.score + "**\n"
             })
+            endEmbed.addFields({name : "players score ",value : playersScore})
+            endEmbed.setTimestamp(Date.now())
+            await announcement.reply({
+                content : "",
+                components : [],
+                embeds : [endEmbed]
+            })
+            await DiscordServers.deleteGame(interaction.guildId,hostId)
             }
             catch(err : any){
+                await DiscordServers.deleteGame(interaction.guildId,hostId)
                 await announcement?.edit({
                     content : "an error occurred while starting the game",
                 })
                 error(err?.message)
             }
-
         }
     }
 }

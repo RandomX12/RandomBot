@@ -62,7 +62,7 @@ module.exports = {
         })
         try{
             const game = new QuizGame(interaction.guildId,{
-                hostName : interaction.user.username,
+                hostName : interaction.user.tag,
                 hostId : interaction.user.id,
                 maxPlayers : maxPlayers,
                 channelId : interaction.channelId,

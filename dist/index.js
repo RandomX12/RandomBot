@@ -115,6 +115,12 @@ client.on("interactionCreate", async (interaction) => {
         else if (interaction.customId.startsWith("join_quizgame")) {
             command = interaction.client.buttons.get("join_quizgame_[:id]");
         }
+        else if (interaction.customId.startsWith("leave_quizgame")) {
+            command = interaction.client.buttons.get("leave_quizgame_[:id]");
+        }
+        else if (interaction.customId.startsWith("answer")) {
+            command = interaction.client.buttons.get("answer_[:ans]_[:id]");
+        }
         if (!command) {
             console.log(`\x1b[33m`, `[warning]`, `Command Button ${interaction.customId} is not found`);
             return;
@@ -253,6 +259,7 @@ client.on("ready", async (c) => {
     console.log(`[${new Date().toLocaleTimeString()}] Discord bot connected as : ${c.user.username}`);
     (0, cmd_1.log)({ text: `connecting to the database`, textColor: "Magenta", timeColor: "Magenta" });
     try {
+        const bDate = Date.now();
         await (0, connectDB_1.connectDB)();
         (0, cmd_1.log)({ text: `successfully connected to the database`, textColor: "Green", timeColor: "Green" });
         let membersCount = c.users.cache.size;
@@ -299,6 +306,9 @@ client.on("ready", async (c) => {
                 (0, cmd_1.error)("an error occurred while cleaning the servers. \n " + err.message);
             }
         });
+        const aDate = Date.now();
+        const ping = aDate - bDate;
+        (0, cmd_1.log)({ text: "Bot started " + ping + "ms", textColor: "Cyan" });
         (0, cmd_1.log)({ text: `${c.guilds.cache.size} servers                  |                  ${membersCount} members                  |                  ${channelsCount} channels` });
     }
     catch (err) {

@@ -58,7 +58,8 @@ const discordServer = new mongoose_1.Schema({
                         },
                         score: {
                             required: false,
-                            type: Number
+                            type: Number,
+                            default: 0
                         }
                     }],
                 word: String,

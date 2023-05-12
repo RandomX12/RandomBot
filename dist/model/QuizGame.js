@@ -42,7 +42,7 @@ exports.QuizSchema = new mongoose_1.Schema({
                 question: String,
                 answers: [String],
                 correctIndex: Number,
-                type: String
+                type: String,
             }]
     },
     amount: {
