@@ -23,7 +23,8 @@ export interface QuizGame extends Game{
     end? : boolean,
     quiz : Qs[],
     category : QuizCategory,
-    amount  : number
+    amount  : number,
+    time? : number
 }
 export const QuizSchema = new Schema<QuizGame>({
     name :String,

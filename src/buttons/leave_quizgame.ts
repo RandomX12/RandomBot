@@ -43,10 +43,18 @@ module.exports = {
             content : "You left the game",
             ephemeral : true
         })
-        if(game.started) return
         const gameUpdate = await QuizGame.getGameWithHostId(interaction.guildId,game.hostId)
-        
         const announcement = interaction.channel.messages.cache.get(gameUpdate.announcementId)
+        if(game.started) {
+            if(gameUpdate.players.length === 0){
+                if(announcement){
+                    await DiscordServers.deleteGame(interaction.guildId,gameUpdate.hostId)
+                    await announcement.delete()
+                }else{
+                    await DiscordServers.deleteGame(interaction.guildId,gameUpdate.hostId)
+                }
+            }
+        }
         if(announcement){
             const embed = new EmbedBuilder()
             .setTitle(`Quiz Game`)

@@ -19,7 +19,8 @@ export function log(config : Log){
     if(!config.textColor){
         config.textColor = "White"
     }
-    console.log(`${colorsCode[colorsArr.indexOf(config.timeColor)]}`,`[${new Date().toLocaleTimeString()}] `,`${colorsCode[colorsArr.indexOf(config.textColor)]}`,`${config.text}`);
+    console.clear()
+    console.log(`${colorsCode[colorsArr.indexOf(config.timeColor)]}`,`[${new Date().toLocaleTimeString()}] `,`${colorsCode[colorsArr.indexOf(config.textColor)]}`,`${config.text}`,"\x1b[37m");
 }
 export function error(text :string){
     console.log(`\x1b[31m`,"[ERROR] ",`${text}`);

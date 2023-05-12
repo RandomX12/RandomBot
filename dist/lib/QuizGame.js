@@ -280,7 +280,8 @@ class QuizGame {
             players: [{ username: this.info.hostName, id: this.info.hostId }],
             quiz: quiz,
             category: this.info.category,
-            amount: this.info.amount
+            amount: this.info.amount,
+            time: this.info.time || 15 * 1000
         });
         await server.save();
     }

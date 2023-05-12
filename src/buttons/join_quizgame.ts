@@ -123,7 +123,7 @@ module.exports = {
                     content : TimeTampNow()
                 })
                 await new Promise((res,rej)=>{
-                    setTimeout(res,1000*30)
+                    setTimeout(res,game.time || 30*1000)
                 })
                 let endAns = ""
                 game.quiz[i].answers.map((e,j)=>{

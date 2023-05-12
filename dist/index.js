@@ -34,6 +34,7 @@ const cmd_1 = require("./lib/cmd");
 const connectDB_1 = require("./lib/connectDB");
 const DiscordServers_1 = __importStar(require("./lib/DiscordServers"));
 const discordServers_1 = __importDefault(require("./model/discordServers"));
+const discordServers_2 = __importDefault(require("./model/discordServers"));
 require("dotenv").config();
 // init the discord bot
 const client = new discord_js_1.default.Client({
@@ -256,6 +257,7 @@ client.on("guildMemberRemove", async (m) => {
     }
 });
 client.on("ready", async (c) => {
+    console.clear();
     console.log(`[${new Date().toLocaleTimeString()}] Discord bot connected as : ${c.user.username}`);
     (0, cmd_1.log)({ text: `connecting to the database`, textColor: "Magenta", timeColor: "Magenta" });
     try {
@@ -265,7 +267,7 @@ client.on("ready", async (c) => {
         let membersCount = c.users.cache.size;
         let channelsCount = c.channels.cache.size;
         let guilds = await c.guilds.fetch();
-        const server = await discordServers_1.default.find();
+        const server = await discordServers_2.default.find();
         guilds.map(async (e) => {
             try {
                 let isIn = false;
@@ -309,7 +311,18 @@ client.on("ready", async (c) => {
         const aDate = Date.now();
         const ping = aDate - bDate;
         (0, cmd_1.log)({ text: "Bot started " + ping + "ms", textColor: "Cyan" });
-        (0, cmd_1.log)({ text: `${c.guilds.cache.size} servers                  |                  ${membersCount} members                  |                  ${channelsCount} channels` });
+        // log({text : `${c.guilds.cache.size} servers                  |                  ${membersCount} members                  |                  ${channelsCount} channels`})
+        const DcServers = await discordServers_1.default.find();
+        let svs = DcServers.map(e => {
+            return {
+                name: e.name,
+                membersLength: e.members.length,
+                "guild id": e.serverId,
+                id: e.id,
+                __v: e.__v
+            };
+        });
+        console.table(svs);
     }
     catch (err) {
         (0, cmd_1.log)({ text: `There was an error while connecting to the database. \n ${err.message}`, textColor: "Red", timeColor: "Red" });

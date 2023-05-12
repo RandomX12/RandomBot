@@ -16,10 +16,10 @@ export default class DiscordServers{
         const server = await getServerByGuildId(guildId)
         let isIn = false
         for(let i = 0;i<server.games.length;i++){
-            if(server.games[i].hostId === userId){                
-                isIn = true
-                break
-            }
+            // if(server.games[i].hostId === userId){                
+            //     isIn = true
+            //     break
+            // }
 
             for(let j = 0;j<server.games[i].players.length;j++){
                 if(server.games[i].players[j].id === userId){

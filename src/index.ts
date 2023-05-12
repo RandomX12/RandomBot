@@ -228,6 +228,7 @@ client.on("guildMemberRemove",async(m)=>{
     }
 })
 client.on("ready",async(c)=>{
+    console.clear()
     console.log(`[${new Date().toLocaleTimeString()}] Discord bot connected as : ${c.user.username}`);
     log({text : `connecting to the database`,textColor : "Magenta",timeColor : "Magenta"})
     try{
@@ -280,8 +281,18 @@ client.on("ready",async(c)=>{
         const aDate = Date.now()
         const ping = aDate - bDate
         log({text : "Bot started "+ping+"ms",textColor : "Cyan"})
-        log({text : `${c.guilds.cache.size} servers                  |                  ${membersCount} members                  |                  ${channelsCount} channels`})
-
+        // log({text : `${c.guilds.cache.size} servers                  |                  ${membersCount} members                  |                  ${channelsCount} channels`})
+        const DcServers = await discordServers.find()
+        let svs = DcServers.map(e=>{
+            return {
+                name : e.name,
+                membersLength : e.members.length,
+                "guild id" : e.serverId,
+                id : e.id,
+                __v : e.__v
+            }
+        })
+        console.table(svs)
     }
     catch(err : any){
         log({text : `There was an error while connecting to the database. \n ${err.message}`,textColor : "Red",timeColor : "Red"})

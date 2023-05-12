@@ -36,6 +36,33 @@ let cmdBody : ApplicationCommandDataResolvable = {
             maxValue : 20,
             minValue : 2,
             required : true
+        },
+        {
+            name : "time",
+            description : "Time for each question",
+            type : ApplicationCommandOptionType.Number,
+            required : false,
+            choices : [{
+                name : "5 seconds",
+                value : 5*1000
+            },
+            {
+                name : "10 seconds",
+                value : 10*1000
+            },
+            {
+                name : "15 seconds",
+                value : 15*1000
+            },
+            {
+                name : "30 seconds",
+                value : 30*1000
+            },
+            {
+                name : "45 seconds",
+                value : 45*1000
+            }
+        ]
         }
     ]
 }
@@ -57,6 +84,7 @@ module.exports = {
         const category = interaction.options.getString("category")
         const amount = interaction.options.getNumber("amount")
         const maxPlayers = interaction.options.getNumber("max_players")
+        const time = interaction.options.getNumber("time")
         let msg = await interaction.channel.send({
             content : "creating Quiz Game..."
         })
@@ -68,7 +96,8 @@ module.exports = {
                 channelId : interaction.channelId,
                 announcementId : msg.id,
                 category : getCategoryByNum(+category as CategoriesNum || category as "any"),
-                amount : amount
+                amount : amount,
+                time : time || 30*1000
             })
             await game.save()
         }

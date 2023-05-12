@@ -113,6 +113,10 @@ const discordServer = new Schema<DiscordServer>({
                 category : {
                     type : String,
                     required : false
+                },
+                time : {
+                    require : false,
+                    type : Number
                 }
             }
         ],

@@ -58,7 +58,8 @@ interface QuizGameInfo{
     channelId : string,
     announcementId : string,
     category : QuizCategory,
-    amount : number
+    amount : number,
+    time? : number
 }
 
 export default class QuizGame{
@@ -251,7 +252,8 @@ export default class QuizGame{
             players : [{username : this.info.hostName,id : this.info.hostId}],
             quiz : quiz,
             category : this.info.category,
-            amount : this.info.amount
+            amount : this.info.amount,
+            time : this.info.time || 15*1000
         } as QuizGameType)
         await server.save()
     }

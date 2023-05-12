@@ -91,6 +91,10 @@ const discordServer = new mongoose_1.Schema({
                 category: {
                     type: String,
                     required: false
+                },
+                time: {
+                    require: false,
+                    type: Number
                 }
             }
         ],
