@@ -44,6 +44,7 @@ const discordServer = new Schema<DiscordServer>({
                 name :String,
                 hostId : String,
                 hostName : String,
+                hostUserId : String,
                 index : {
                     type : Number,
                     required : false,

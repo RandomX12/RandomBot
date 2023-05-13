@@ -220,6 +220,17 @@ export default class QuizGame{
         })
         await server.save()
     }
+    static async getQuizGamewithHostUserId(guildId : string,hostUserId : string){
+        const server = await getServerByGuildId(guildId)
+        for(let i = 0;i<server.games.length;i++){
+            if(isQuizGame(server.games[i])) {
+                if((server.games[i]as QuizGameType ).hostUserId === hostUserId){
+                    return server.games[i] as QuizGameType
+                }
+            }
+        }
+        throw new Error(`Game not found`)
+    }
     constructor(public serverId : string,public info : QuizGameInfo){
         if(info.amount < 3 || info.amount > 10) throw new Error(`Amount must be between 3 and 10`)
     }
@@ -260,6 +271,7 @@ export default class QuizGame{
                 category : e.category as QuizCategory
             }
         })
+        console.log(this.info.hostUserId);
         server.games.push({
             ...this.info,
             name : "Quiz Game",
@@ -269,7 +281,8 @@ export default class QuizGame{
             category : this.info.category,
             amount : this.info.amount,
             time : this.info.time || 15*1000,
-            hostId : this.info.hostId
+            hostId : this.info.hostId,
+            hostUserId : this.info.hostUserId
         } as QuizGameType)
         await server.save()
     }

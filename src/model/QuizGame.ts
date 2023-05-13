@@ -24,7 +24,8 @@ export interface QuizGame extends Game{
     quiz : Qs[],
     category : QuizCategory,
     amount  : number,
-    time? : number
+    time? : number,
+    hostUserId : string
 }
 export const QuizSchema = new Schema<QuizGame>({
     name :String,

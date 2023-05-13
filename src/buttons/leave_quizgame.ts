@@ -1,7 +1,6 @@
 import { ButtonInteraction, CacheType, EmbedBuilder } from "discord.js";
 import DiscordServers, { getServerByGuildId } from "../lib/DiscordServers";
 import QuizGame, { isQuizGame } from "../lib/QuizGame";
-import Spygame, { isSpyGame } from "../lib/spygame";
 
 
 module.exports = {
@@ -29,9 +28,6 @@ module.exports = {
         const game = await QuizGame.getGameWithHostId(interaction.guildId,hostId)
         if(!isQuizGame(game)){
             let tryTxt = ""
-            if(isSpyGame(game)){
-                tryTxt = "Try /leave_spygame"
-            }
             await interaction.reply({
                 content : "You are not in Quiz Game, "+tryTxt,
                 ephemeral : true
@@ -68,9 +64,10 @@ module.exports = {
             const embed = new EmbedBuilder()
             .setTitle(`Quiz Game`)
             .setThumbnail("https://hips.hearstapps.com/hmg-prod/images/quiz-questions-answers-1669651278.jpg")
-            .addFields({name : `Info`,value : `Category : **${gameUpdate.category}** \nAmount : **${gameUpdate.amount}** \nMax players : **${gameUpdate.maxPlayers}**`})
+            .addFields({name : `Info`,value : `Category : **${gameUpdate.category}** \nAmount : **${gameUpdate.amount}** \ntime : **${game.time / 1000 + " seconds" || "30 seconds"} ** \nMax players : **${gameUpdate.maxPlayers}**`})
             .setAuthor({name : `Waiting for the players... ${gameUpdate.players.length} / ${gameUpdate.maxPlayers}`})
             .setTimestamp(Date.now())
+            .setFooter({text : `id : ${game.hostId}`})
             await announcement.edit({
                 embeds: [embed]
             })

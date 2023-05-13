@@ -62,9 +62,10 @@ module.exports = {
             const embed = new EmbedBuilder()
             .setTitle(`Quiz Game`)
             .setThumbnail("https://hips.hearstapps.com/hmg-prod/images/quiz-questions-answers-1669651278.jpg")
-            .addFields({name : `Info`,value : `Category : **${gameUpdate.category}** \nAmount : **${gameUpdate.amount}** \nMax players : **${gameUpdate.maxPlayers}**`})
+            .addFields({name : `Info`,value : `Category : **${gameUpdate.category}** \nAmount : **${gameUpdate.amount}**\ntime : **${game.time / 1000 + " seconds" || "30 seconds"} **  \nMax players : **${gameUpdate.maxPlayers}**`})
             .setAuthor({name : `Waiting for the players... ${gameUpdate.players.length} / ${gameUpdate.maxPlayers}`})
             .setTimestamp(Date.now())
+            .setFooter({text : `id : ${game.hostId}`})
             await announcement.edit({
                 embeds: [embed]
             })

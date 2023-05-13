@@ -58,9 +58,10 @@ module.exports = {
         const embed = new EmbedBuilder()
         .setTitle(`Quiz Game`)
         .setThumbnail("https://hips.hearstapps.com/hmg-prod/images/quiz-questions-answers-1669651278.jpg")
-        .addFields({name : `Info`,value : `Category : **${game?.category}** \nAmount : **${game.amount}** \nMax players : **${game.maxPlayers}**`})
+        .addFields({name : `Info`,value : `Category : **${game?.category}** \nAmount : **${game.amount}** \ntime : **${game.time / 1000 + " seconds" || "30 seconds"} ** \n Max players : **${game.maxPlayers}**`})
         .setAuthor({name : `Waiting for the players... ${game.players.length} / ${game.maxPlayers}`})
         .setTimestamp(Date.now())
+        .setFooter({text : `id : ${game.hostId}`})
         const announcement = interaction.channel.messages.cache.get(game.announcementId)
         if(announcement){
             await announcement.edit({
@@ -104,6 +105,7 @@ module.exports = {
                 .setAuthor({name : game.quiz[i].category})
                 .setTitle(game.quiz[i].question)
                 .setThumbnail(QuizCategoryImg[game.category])
+                .setFooter({text : `id : ${hostId}`})
                 const row :any  = new ActionRowBuilder()
                 let al : answers[] = ["A" , "B" ,"C","D"]
                 if(game.quiz[i].answers.length === 2){
@@ -204,9 +206,7 @@ module.exports = {
             }
             catch(err : any){
                 await DiscordServers.deleteGame(interaction.guildId,hostId)
-                await announcement?.edit({
-                    content : "an error occurred while starting the game",
-                })
+                await announcement?.delete()
                 error(err?.message)
             }
         }

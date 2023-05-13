@@ -84,7 +84,10 @@ module.exports = {
         const category = interaction.options.getString("category")
         const amount = interaction.options.getNumber("amount")
         const maxPlayers = interaction.options.getNumber("max_players")
-        const time = interaction.options.getNumber("time")
+        let time = interaction.options.getNumber("time")
+        if(!time){
+            time = 30*1000
+        }
         let msg = await interaction.channel.send({
             content : "creating Quiz Game..."
         })
@@ -117,9 +120,10 @@ module.exports = {
         const embed = new EmbedBuilder()
         .setTitle(`Quiz Game`)
         .setThumbnail("https://hips.hearstapps.com/hmg-prod/images/quiz-questions-answers-1669651278.jpg")
-        .addFields({name : `Info`,value : `Category : **${getCategoryByNum(+category as CategoriesNum || category as "any")}** \nAmount : **${amount}** \nMax players : **${maxPlayers}**`})
+        .addFields({name : `Info`,value : `Category : **${getCategoryByNum(+category as CategoriesNum || category as "any")}** \nAmount : **${amount}** \ntime : **${time / 1000 + " seconds" || "30 seconds"}** \nMax players : **${maxPlayers}**`})
         .setAuthor({name : `Waiting for the players... 1 / ${maxPlayers}`})
         .setTimestamp(Date.now())
+        .setFooter({text : `id : ${hostId}`})
         const button = new ButtonBuilder()
         .setLabel("join")
         .setStyle(3)
@@ -133,9 +137,16 @@ module.exports = {
                 components : [row],
                 content : `@everyone new Quiz Game created by <@${interaction.user.id}> ${TimeTampNow()}`
             })
+            const rowInte : any = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                .setCustomId(`delete_quiz_${interaction.user.id}`)
+                .setLabel("Delete")
+                .setStyle(4)
+            )
             await interaction.editReply({
                 content : "Game created :white_check_mark:",
-                
+                components : [rowInte]
             })
         }
         catch(err : any){

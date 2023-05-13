@@ -96,6 +96,8 @@ client.on("interactionCreate",async(interaction)=>{
             command = interaction.client.buttons.get("leave_quizgame_[:id]")
         }else if(interaction.customId.startsWith("answer")){
             command = interaction.client.buttons.get("answer_[:ans]_[:id]")
+        }else if(interaction.customId.startsWith("delete_quiz")){
+            command = interaction.client.buttons.get("delete_quiz_[:id]")
         }
         if(!command){
             console.log(`\x1b[33m`,`[warning]`,`Command Button ${interaction.customId} is not found`);
