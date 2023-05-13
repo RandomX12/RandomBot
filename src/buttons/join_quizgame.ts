@@ -104,9 +104,25 @@ module.exports = {
                 .setAuthor({name : game.quiz[i].category})
                 .setTitle(game.quiz[i].question)
                 .setThumbnail(QuizCategoryImg[game.category])
-                const row : any = new ActionRowBuilder()
-                let ans = ""
+                const row :any  = new ActionRowBuilder()
                 let al : answers[] = ["A" , "B" ,"C","D"]
+                if(game.quiz[i].answers.length === 2){
+                    let ans : answers[] = ["A","B"]
+                    let trIndex = game.quiz[i].answers.indexOf("True") 
+                    let flIndex = game.quiz[i].answers.indexOf("False")
+                    row.addComponents(
+                        new ButtonBuilder()
+                        .setCustomId(`answer_${ans[trIndex]}_${hostId}`)
+                        .setLabel("True")
+                        .setStyle(1)
+                        ,
+                        new ButtonBuilder()
+                        .setCustomId(`answer_${ans[flIndex]}_${hostId}`)
+                        .setLabel("False")
+                        .setStyle(1)
+                    )
+                }else{
+                    let ans = ""
                 game.quiz[i].answers.map((e,j)=>{
                     ans += al[j] + " : " + e + "\n"
                     row.addComponents(
@@ -117,6 +133,13 @@ module.exports = {
                     )
                 })
                 startingEmbed.addFields({name : "answers :",value : ans})
+                }
+                row.addComponents(
+                    new ButtonBuilder()
+                    .setCustomId(`remove_ans`)
+                    .setLabel("remove answer")
+                    .setStyle(2)
+                )
                 await announcement.edit({
                     embeds : [startingEmbed],
                     components : [row],
@@ -127,11 +150,12 @@ module.exports = {
                 })
                 let endAns = ""
                 game.quiz[i].answers.map((e,j)=>{
-                    let check = ""
                     if(j === game.quiz[i].correctIndex){
-                        check = "✅"
+                        endAns += "**" + al[j] + " : " + e + " ✅" +"**\n"
+
+                    }else{
+                    endAns += al[j] + " : " + e +"\n"
                     }
-                    endAns += "**" + al[j] + " : " + e + check +"**\n"
                 })
                 startingEmbed.setFields({name : "answers :",value : endAns})
                 await announcement.edit({
@@ -171,7 +195,7 @@ module.exports = {
             })
             endEmbed.addFields({name : "players score ",value : playersScore})
             endEmbed.setTimestamp(Date.now())
-            await announcement.reply({
+            await announcement.edit({
                 content : "",
                 components : [],
                 embeds : [endEmbed]

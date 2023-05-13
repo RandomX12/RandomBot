@@ -1,6 +1,7 @@
 import { Game, Member } from "../model/discordServers"
 import Qz , { answers, Qs, QuizGame as QuizGameType } from "../model/QuizGame"
 import DiscordServers, { getServerByGuildId } from "./DiscordServers";
+import { isSpyGame } from "./spygame";
 export function isQuizGame(game : Game) : game is QuizGameType{
     if(game.name === "Quiz Game"){
         return true
@@ -41,19 +42,20 @@ export const categories : Categories = {
 }
 export const QuizCategoryImg : Record<QuizCategory,string> = {
     Random : "https://hips.hearstapps.com/hmg-prod/images/quiz-questions-answers-1669651278.jpg",
-    GeneralKnowledge : "https://cdn-icons-png.flaticon.com/512/5248/5248763.png",
+    GeneralKnowledge : "https://cdn-icons-png.flaticon.com/512/2762/2762294.png",
     VideoGames : "https://cdn-icons-png.flaticon.com/512/3408/3408506.png",
     Sports : "https://cdn-icons-png.flaticon.com/512/857/857455.png",
     History : "https://cdn.imgbin.com/0/14/17/ancient-scroll-icon-history-icon-scroll-icon-gHvzqatT.jpg",
-    Geography : "https://upload.wikimedia.org/wikipedia/commons/1/1f/Geography_icon.png",
-    Mathematics : "https://cdn-icons-png.flaticon.com/512/43/43102.png",
+    Geography : "https://cdn-icons-png.flaticon.com/256/1651/1651598.png",
+    Mathematics : "https://cdn-icons-png.flaticon.com/512/4954/4954397.png",
     Computers : "https://cdn-icons-png.flaticon.com/512/4703/4703650.png",
-    Animals : "https://static.thenounproject.com/png/13643-200.png",
-    Vehicles : "https://cdn2.iconfinder.com/data/icons/cars-tractors-and-trucks/117/cars-01-512.png",
+    Animals : "https://cdn-icons-png.flaticon.com/512/616/616408.png",
+    Vehicles : "https://cdni.iconscout.com/illustration/premium/thumb/car-2953450-2451640.png",
 }
 interface QuizGameInfo{
     hostId : string,
     hostName : string,
+    hostUserId : string,
     maxPlayers : number,
     channelId : string,
     announcementId : string,
@@ -87,6 +89,7 @@ export default class QuizGame{
         let isIn = false
         server.games.map((e,i)=>{
             if(e.hostId === hostId){
+                if(!isQuizGame(e)) return
                 isGame = true
                 e.players.map((ele,j)=>{
                     if(ele.id === userId){
@@ -205,6 +208,18 @@ export default class QuizGame{
         (server.games[gameIndex] as QuizGameType).index++
         await server.save()
     }
+    static async removeAns(guildId : string,userId : string){
+        const server = await getServerByGuildId(guildId)
+        server.games.map((e,i)=>{
+            if(!isQuizGame(e)) return
+            e.players.map((ele,j)=>{
+                if(ele.id === userId){
+                    (server.games[i] as QuizGameType).players[j].answers[e.index] = "N"
+                }
+            })
+        })
+        await server.save()
+    }
     constructor(public serverId : string,public info : QuizGameInfo){
         if(info.amount < 3 || info.amount > 10) throw new Error(`Amount must be between 3 and 10`)
     }
@@ -249,11 +264,12 @@ export default class QuizGame{
             ...this.info,
             name : "Quiz Game",
             index : 0,
-            players : [{username : this.info.hostName,id : this.info.hostId}],
+            players : [{username : this.info.hostName,id : this.info.hostUserId}],
             quiz : quiz,
             category : this.info.category,
             amount : this.info.amount,
-            time : this.info.time || 15*1000
+            time : this.info.time || 15*1000,
+            hostId : this.info.hostId
         } as QuizGameType)
         await server.save()
     }

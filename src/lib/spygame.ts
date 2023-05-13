@@ -129,6 +129,7 @@ export function isSpyGame(game : Game) : game is SpygameType  {
         let isHost = false
         if(discordServer.games.length === 0) return false
         discordServer.games.map(e=>{
+            if(!isSpyGame(e)) return
             if(e.hostId === userId){
                 isHost =true
             }
@@ -154,8 +155,9 @@ export function isSpyGame(game : Game) : game is SpygameType  {
         const isHost = await Spygame.isHost(guildId,hostId)
         if(!isHost) throw new Error(`Game Not Found`)
         const server = await getServerByGuildId(guildId)
+        let isGame = false
         for(let i = 0;i<server.games.length ; i++){
-            if(server.games[i].hostId === hostId){
+            if(server.games[i].hostId === hostId && isSpyGame(server.games[i])){
                 try{
                     server.games[i].players.map(e=>{
                         if(e.id === userId){
@@ -164,6 +166,7 @@ export function isSpyGame(game : Game) : game is SpygameType  {
                     })
                     const user = await DiscordServers.getUser(guildId,userId)
                     server.games[i].players = [...server.games[i].players,user]
+                    isGame = true
                     break
                 }
                 catch(err : any){
@@ -171,13 +174,15 @@ export function isSpyGame(game : Game) : game is SpygameType  {
                 }
             }
         }
-        server.name = "changed"
+        if(!isGame) throw new Error(`Game not found`)
         await server.save()
     }
     static async leave(guildId : string,hostId : string,userId : string){
         const server = await getServerByGuildId(guildId)
+        let isGame = false
         for(let i = 0 ; i<server.games.length;i++){
-            if(server.games[i].hostId === hostId){
+            if(server.games[i].hostId === hostId && isSpyGame(server.games[i])){
+                isGame = true
                 for(let j = 0;j<server.games[i].players.length;j++){
                     if(server.games[i].players[j].id === userId){
                         server.games[i].players.splice(j,1)
@@ -187,6 +192,7 @@ export function isSpyGame(game : Game) : game is SpygameType  {
                 break
             }
         }
+        if(!isGame) throw new Error(`Game not found`)
         await server.save()
     }
     static async findGameByUserId(games : Game[],userId : string){
@@ -225,6 +231,7 @@ export function isSpyGame(game : Game) : game is SpygameType  {
         const discordSv = await getServerByGuildId(this.serverId)
         if(!discordSv) throw new Error(`discord server not found.`)
         discordSv.games.map(e=>{
+            if(!isSpyGame(e)) return
             if(e.hostId === this.hostId){
                 throw new Error(`You have already created a Spygame`)
             }

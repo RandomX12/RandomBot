@@ -42,12 +42,21 @@ module.exports = {
         if(game.started) {
             if(gameUpdate.players.length === 0){
                 if(announcement){
+                    const deleteEmbed = new EmbedBuilder()
+                    .setTitle("No one else in the game ❌")
+                    .setFooter({text : "Game Deleted"})
+                    .setAuthor({name : "Quiz Game"})
                     await DiscordServers.deleteGame(interaction.guildId,gameUpdate.hostId)
-                    await announcement.delete()
+                    await announcement.edit({
+                        embeds : [deleteEmbed],
+                        components : [],
+                        content : ""
+                    })
                 }else{
                     await DiscordServers.deleteGame(interaction.guildId,gameUpdate.hostId)
                 }
             }
+            return
         }
         if(announcement){
             const embed = new EmbedBuilder()

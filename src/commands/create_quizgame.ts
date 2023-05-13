@@ -88,10 +88,13 @@ module.exports = {
         let msg = await interaction.channel.send({
             content : "creating Quiz Game..."
         })
+        const hostId = `${Date.now()}`
+        
         try{
             const game = new QuizGame(interaction.guildId,{
                 hostName : interaction.user.tag,
-                hostId : interaction.user.id,
+                hostId : hostId,
+                hostUserId : interaction.user.id,
                 maxPlayers : maxPlayers,
                 channelId : interaction.channelId,
                 announcementId : msg.id,
@@ -108,7 +111,7 @@ module.exports = {
                 
             })
             msg = null
-            await DiscordServers.deleteGame(interaction.guildId,interaction.user.id)
+            await DiscordServers.deleteGame(interaction.guildId,hostId)
             throw new Error(err?.message)
         }
         const embed = new EmbedBuilder()
@@ -120,7 +123,7 @@ module.exports = {
         const button = new ButtonBuilder()
         .setLabel("join")
         .setStyle(3)
-        .setCustomId(`join_quizgame_${interaction.user.id}`)
+        .setCustomId(`join_quizgame_${hostId}`)
         const row : any = new ActionRowBuilder()
         .addComponents(button)
         try{
@@ -136,7 +139,7 @@ module.exports = {
             })
         }
         catch(err : any){
-            await DiscordServers.deleteGame(interaction.guildId,interaction.user.id)
+            await DiscordServers.deleteGame(interaction.guildId,hostId)
             if(interaction.replied || interaction.deferred){
                 await interaction.editReply({
                     content : "Cannot create the game :x:"
@@ -151,9 +154,9 @@ module.exports = {
         }
         setTimeout(async()=>{
             try{
-                const game = await QuizGame.getGameWithHostId(interaction.guildId,interaction.user.id)
+                const game = await QuizGame.getGameWithHostId(interaction.guildId,hostId)
                 if(game.started) return
-                await DiscordServers.deleteGame(interaction.guildId,interaction.user.id)
+                await DiscordServers.deleteGame(interaction.guildId,hostId)
                 const announcement = interaction.channel.messages.cache.get(game.announcementId)
                 if(announcement){
                     const embed = new EmbedBuilder()
