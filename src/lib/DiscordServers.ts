@@ -1,6 +1,11 @@
+import { OAuth2Guild } from "discord.js"
 import ServersModel ,{DiscordServer, Game, Member} from "../model/discordServers"
-import { isSpyGame } from "./spygame"
-import { SpyGame } from "../model/SpyGame"
+import Config from "./DiscordServersConfig"
+import { Collection } from "discord.js"
+import discordServers from "../model/discordServers"
+import { error, warning } from "./cmd"
+import  DiscordSv  from "../model/discordServers"
+
 export async function getServerByGuildId(id : string){
     const server =  await ServersModel.findOne({serverId : id})
     if(!server) throw new Error(`Server not found. id=${id}`)
@@ -69,10 +74,73 @@ export default class DiscordServers{
         if(game.players.length === game.maxPlayers) return true
         return false
     }
+    static async scanGuilds(guilds : Collection<string, OAuth2Guild>) : Promise<void>{
+        const server = await discordServers.find()
+        guilds.map(async e=>{
+            try{
+                let isIn = false
+                server.map(ele=>{
+                    if(ele.serverId === e.id){
+                        isIn = true
+                        return
+                    }
+
+                })
+                if(isIn) return
+                let members : Member[] = (await (await e.fetch()).members.fetch()).map(e=>{
+                    return {
+                        username : e.user.tag,
+                        id : e.user.id
+                    }
+                })
+                await new DiscordServers({
+                    name : e.name,
+                    members : members,
+                    serverId : e.id,
+                    games : []
+                }).save()
+            }
+            catch(err:any){
+                error(err.message)
+            }
+        })
+        server.map(async(e,i)=>{
+            try{
+                let isIn = false
+                guilds.map(ele=>{
+                    if(e.serverId === ele.id){
+                        isIn = true
+                    }
+                })
+                if(!isIn){
+                    await server[i].deleteOne()
+                }
+            }
+            catch(err : any){
+                warning(err.message)
+            }
+        })
+    }
+    static async cleanGuilds() : Promise<void>{
+        const server = await DiscordSv.find()
+        server.map(async (e,i)=>{
+            try{
+                if(e.games.length > 0){
+                    server[i].games = []
+                    await server[i].save()
+                }
+            }
+            catch(err : any){
+                warning(err.message)
+            }
+        })
+    }
     constructor(public server : DiscordServer){}
     async save(){
         const check =  await ServersModel.findOne({serverId : this.server.serverId})
         if(check) throw new Error(`This server is allready exist`)
+        const config = new Config()
+        this.server.config = config.config
         const server = new ServersModel(this.server)
         await server.save()
     }

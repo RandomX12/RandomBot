@@ -7,6 +7,7 @@ import { connectDB } from "./lib/connectDB"
 import DiscordServers, { getServerByGuildId } from "./lib/DiscordServers"
 import discordServers, { Member } from "./model/discordServers"
 import discordSv from "./model/discordServers"
+import { verify } from "./lib/Commands"
 require("dotenv").config()
 declare module "discord.js" {
     export interface Client {
@@ -129,10 +130,17 @@ client.on("interactionCreate",async(interaction)=>{
             return
         }
         try{
-                const commandConfig = require("../config.json").commands[interaction.commandName]
+            const commandConfig = require("../config.json").commands[interaction.commandName]
             if(commandConfig){
                 const before = Date.now()
                 log({text : `Executing /${interaction.commandName} by ${interaction.user.tag}`})
+                const pass = await verify(interaction)
+                if(!pass){
+                    const after = Date.now()
+                    const ping = after - before
+                    log({text : `command executed successfully /${interaction.commandName} by ${interaction.user.tag}. ${ping}ms`,textColor : "Green",timeColor : "Green"})
+                    return
+                }
                 await command.execute(interaction)
                 const after = Date.now()
                 const ping = after - before
@@ -237,49 +245,9 @@ client.on("ready",async(c)=>{
         const bDate = Date.now()
         await connectDB()
         log({text : `successfully connected to the database`,textColor : "Green",timeColor : "Green"})
-        let membersCount = c.users.cache.size
-        let channelsCount = c.channels.cache.size
         let guilds = await c.guilds.fetch()
-        const server = await discordSv.find()
-        guilds.map(async e=>{
-            try{
-                let isIn = false
-                server.map(ele=>{
-                    if(ele.serverId === e.id){
-                        isIn = true
-                        return
-                    }
-
-                })
-                if(isIn) return
-                let members : Member[] = (await (await e.fetch()).members.fetch()).map(e=>{
-                    return {
-                        username : e.user.tag,
-                        id : e.user.id
-                    }
-                })
-                await new DiscordServers({
-                    name : e.name,
-                    members : members,
-                    serverId : e.id,
-                    games : []
-                }).save()
-            }
-            catch(err:any){
-                error(err.message)
-            }
-        })
-        c.guilds.cache.map(async e=>{
-            try{
-                const server = await getServerByGuildId(e.id)
-                if(server.games.length === 0) return
-                server.games = []
-                await server.save()
-            }
-            catch(err : any){
-                error("an error occurred while cleaning the servers. \n "+err.message)
-            }
-        })
+        await DiscordServers.scanGuilds(guilds)
+        await DiscordServers.cleanGuilds()
         const aDate = Date.now()
         const ping = aDate - bDate
         log({text : "Bot started "+ping+"ms",textColor : "Cyan"})

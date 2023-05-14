@@ -41,6 +41,14 @@ module.exports = {
                 });
                 return;
             }
+            const isIn = await DiscordServers_1.default.isInGame(interaction.guildId, interaction.user.id);
+            if (isIn) {
+                await interaction.reply({
+                    content: "You are already in a game :x:",
+                    ephemeral: true
+                });
+                return;
+            }
             if (interaction.customId.startsWith("join_spygame")) {
                 let isFull;
                 try {

@@ -5,6 +5,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getServerByGuildId = void 0;
 const discordServers_1 = __importDefault(require("../model/discordServers"));
+const DiscordServersConfig_1 = __importDefault(require("./DiscordServersConfig"));
+const discordServers_2 = __importDefault(require("../model/discordServers"));
+const cmd_1 = require("./cmd");
+const discordServers_3 = __importDefault(require("../model/discordServers"));
 async function getServerByGuildId(id) {
     const server = await discordServers_1.default.findOne({ serverId: id });
     if (!server)
@@ -77,6 +81,67 @@ class DiscordServers {
             return true;
         return false;
     }
+    static async scanGuilds(guilds) {
+        const server = await discordServers_2.default.find();
+        guilds.map(async (e) => {
+            try {
+                let isIn = false;
+                server.map(ele => {
+                    if (ele.serverId === e.id) {
+                        isIn = true;
+                        return;
+                    }
+                });
+                if (isIn)
+                    return;
+                let members = (await (await e.fetch()).members.fetch()).map(e => {
+                    return {
+                        username: e.user.tag,
+                        id: e.user.id
+                    };
+                });
+                await new DiscordServers({
+                    name: e.name,
+                    members: members,
+                    serverId: e.id,
+                    games: []
+                }).save();
+            }
+            catch (err) {
+                (0, cmd_1.error)(err.message);
+            }
+        });
+        server.map(async (e, i) => {
+            try {
+                let isIn = false;
+                guilds.map(ele => {
+                    if (e.serverId === ele.id) {
+                        isIn = true;
+                    }
+                });
+                if (!isIn) {
+                    await server[i].deleteOne();
+                }
+            }
+            catch (err) {
+                (0, cmd_1.warning)(err.message);
+            }
+        });
+    }
+    static async cleanGuilds() {
+        const server = await discordServers_3.default.find();
+        server.map(async (e, i) => {
+            try {
+                if (e.games.length > 0) {
+                    server[i].games = [];
+                    await server[i].save();
+                }
+            }
+            catch (err) {
+                (0, cmd_1.warning)(err.message);
+            }
+        });
+    }
     constructor(server) {
         this.server = server;
     }
@@ -84,6 +149,8 @@ class DiscordServers {
         const check = await discordServers_1.default.findOne({ serverId: this.server.serverId });
         if (check)
             throw new Error(`This server is allready exist`);
+        const config = new DiscordServersConfig_1.default();
+        this.server.config = config.config;
         const server = new discordServers_1.default(this.server);
         await server.save();
     }

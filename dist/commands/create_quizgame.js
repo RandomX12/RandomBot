@@ -108,14 +108,19 @@ module.exports = {
         const category = interaction.options.getString("category");
         const amount = interaction.options.getNumber("amount");
         const maxPlayers = interaction.options.getNumber("max_players");
-        const time = interaction.options.getNumber("time");
+        let time = interaction.options.getNumber("time");
+        if (!time) {
+            time = 30 * 1000;
+        }
         let msg = await interaction.channel.send({
             content: "creating Quiz Game..."
         });
+        const hostId = `${Date.now()}`;
         try {
             const game = new QuizGame_1.default(interaction.guildId, {
                 hostName: interaction.user.tag,
-                hostId: interaction.user.id,
+                hostId: hostId,
+                hostUserId: interaction.user.id,
                 maxPlayers: maxPlayers,
                 channelId: interaction.channelId,
                 announcementId: msg.id,
@@ -131,19 +136,20 @@ module.exports = {
                 content: "cannot create the game :x:",
             });
             msg = null;
-            await DiscordServers_1.default.deleteGame(interaction.guildId, interaction.user.id);
+            await DiscordServers_1.default.deleteGame(interaction.guildId, hostId);
             throw new Error(err?.message);
         }
         const embed = new discord_js_1.EmbedBuilder()
             .setTitle(`Quiz Game`)
             .setThumbnail("https://hips.hearstapps.com/hmg-prod/images/quiz-questions-answers-1669651278.jpg")
-            .addFields({ name: `Info`, value: `Category : **${(0, QuizGame_1.getCategoryByNum)(+category || category)}** \nAmount : **${amount}** \nMax players : **${maxPlayers}**` })
+            .addFields({ name: `Info`, value: `Category : **${(0, QuizGame_1.getCategoryByNum)(+category || category)}** \nAmount : **${amount}** \ntime : **${time / 1000 + " seconds" || "30 seconds"}** \nMax players : **${maxPlayers}**` })
             .setAuthor({ name: `Waiting for the players... 1 / ${maxPlayers}` })
-            .setTimestamp(Date.now());
+            .setTimestamp(Date.now())
+            .setFooter({ text: `id : ${hostId}` });
         const button = new discord_js_1.ButtonBuilder()
             .setLabel("join")
             .setStyle(3)
-            .setCustomId(`join_quizgame_${interaction.user.id}`);
+            .setCustomId(`join_quizgame_${hostId}`);
         const row = new discord_js_1.ActionRowBuilder()
             .addComponents(button);
         try {
@@ -154,12 +160,18 @@ module.exports = {
                 components: [row],
                 content: `@everyone new Quiz Game created by <@${interaction.user.id}> ${(0, cmd_1.TimeTampNow)()}`
             });
+            const rowInte = new discord_js_1.ActionRowBuilder()
+                .addComponents(new discord_js_1.ButtonBuilder()
+                .setCustomId(`delete_quiz_${interaction.user.id}`)
+                .setLabel("Delete")
+                .setStyle(4));
             await interaction.editReply({
                 content: "Game created :white_check_mark:",
+                components: [rowInte]
             });
         }
         catch (err) {
-            await DiscordServers_1.default.deleteGame(interaction.guildId, interaction.user.id);
+            await DiscordServers_1.default.deleteGame(interaction.guildId, hostId);
             if (interaction.replied || interaction.deferred) {
                 await interaction.editReply({
                     content: "Cannot create the game :x:"
@@ -174,10 +186,10 @@ module.exports = {
         }
         setTimeout(async () => {
             try {
-                const game = await QuizGame_1.default.getGameWithHostId(interaction.guildId, interaction.user.id);
+                const game = await QuizGame_1.default.getGameWithHostId(interaction.guildId, hostId);
                 if (game.started)
                     return;
-                await DiscordServers_1.default.deleteGame(interaction.guildId, interaction.user.id);
+                await DiscordServers_1.default.deleteGame(interaction.guildId, hostId);
                 const announcement = interaction.channel.messages.cache.get(game.announcementId);
                 if (announcement) {
                     const embed = new discord_js_1.EmbedBuilder()

@@ -34,7 +34,7 @@ const cmd_1 = require("./lib/cmd");
 const connectDB_1 = require("./lib/connectDB");
 const DiscordServers_1 = __importStar(require("./lib/DiscordServers"));
 const discordServers_1 = __importDefault(require("./model/discordServers"));
-const discordServers_2 = __importDefault(require("./model/discordServers"));
+const Commands_1 = require("./lib/Commands");
 require("dotenv").config();
 // init the discord bot
 const client = new discord_js_1.default.Client({
@@ -122,6 +122,9 @@ client.on("interactionCreate", async (interaction) => {
         else if (interaction.customId.startsWith("answer")) {
             command = interaction.client.buttons.get("answer_[:ans]_[:id]");
         }
+        else if (interaction.customId.startsWith("delete_quiz")) {
+            command = interaction.client.buttons.get("delete_quiz_[:id]");
+        }
         if (!command) {
             console.log(`\x1b[33m`, `[warning]`, `Command Button ${interaction.customId} is not found`);
             return;
@@ -158,6 +161,13 @@ client.on("interactionCreate", async (interaction) => {
             if (commandConfig) {
                 const before = Date.now();
                 (0, cmd_1.log)({ text: `Executing /${interaction.commandName} by ${interaction.user.tag}` });
+                const pass = await (0, Commands_1.verify)(interaction);
+                if (!pass) {
+                    const after = Date.now();
+                    const ping = after - before;
+                    (0, cmd_1.log)({ text: `command executed successfully /${interaction.commandName} by ${interaction.user.tag}. ${ping}ms`, textColor: "Green", timeColor: "Green" });
+                    return;
+                }
                 await command.execute(interaction);
                 const after = Date.now();
                 const ping = after - before;
@@ -264,50 +274,9 @@ client.on("ready", async (c) => {
         const bDate = Date.now();
         await (0, connectDB_1.connectDB)();
         (0, cmd_1.log)({ text: `successfully connected to the database`, textColor: "Green", timeColor: "Green" });
-        let membersCount = c.users.cache.size;
-        let channelsCount = c.channels.cache.size;
         let guilds = await c.guilds.fetch();
-        const server = await discordServers_2.default.find();
-        guilds.map(async (e) => {
-            try {
-                let isIn = false;
-                server.map(ele => {
-                    if (ele.serverId === e.id) {
-                        isIn = true;
-                        return;
-                    }
-                });
-                if (isIn)
-                    return;
-                let members = (await (await e.fetch()).members.fetch()).map(e => {
-                    return {
-                        username: e.user.tag,
-                        id: e.user.id
-                    };
-                });
-                await new DiscordServers_1.default({
-                    name: e.name,
-                    members: members,
-                    serverId: e.id,
-                    games: []
-                }).save();
-            }
-            catch (err) {
-                (0, cmd_1.error)(err.message);
-            }
-        });
-        c.guilds.cache.map(async (e) => {
-            try {
-                const server = await (0, DiscordServers_1.getServerByGuildId)(e.id);
-                if (server.games.length === 0)
-                    return;
-                server.games = [];
-                await server.save();
-            }
-            catch (err) {
-                (0, cmd_1.error)("an error occurred while cleaning the servers. \n " + err.message);
-            }
-        });
+        await DiscordServers_1.default.scanGuilds(guilds);
+        await DiscordServers_1.default.cleanGuilds();
         const aDate = Date.now();
         const ping = aDate - bDate;
         (0, cmd_1.log)({ text: "Bot started " + ping + "ms", textColor: "Cyan" });

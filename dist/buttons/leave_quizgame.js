@@ -29,7 +29,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const discord_js_1 = require("discord.js");
 const DiscordServers_1 = __importDefault(require("../lib/DiscordServers"));
 const QuizGame_1 = __importStar(require("../lib/QuizGame"));
-const spygame_1 = require("../lib/spygame");
 module.exports = {
     data: {
         name: "leave_quizgame_[:id]",
@@ -55,9 +54,6 @@ module.exports = {
         const game = await QuizGame_1.default.getGameWithHostId(interaction.guildId, hostId);
         if (!(0, QuizGame_1.isQuizGame)(game)) {
             let tryTxt = "";
-            if ((0, spygame_1.isSpyGame)(game)) {
-                tryTxt = "Try /leave_spygame";
-            }
             await interaction.reply({
                 content: "You are not in Quiz Game, " + tryTxt,
                 ephemeral: true
@@ -74,21 +70,31 @@ module.exports = {
         if (game.started) {
             if (gameUpdate.players.length === 0) {
                 if (announcement) {
+                    const deleteEmbed = new discord_js_1.EmbedBuilder()
+                        .setTitle("No one else in the game ❌")
+                        .setFooter({ text: "Game Deleted" })
+                        .setAuthor({ name: "Quiz Game" });
                     await DiscordServers_1.default.deleteGame(interaction.guildId, gameUpdate.hostId);
-                    await announcement.delete();
+                    await announcement.edit({
+                        embeds: [deleteEmbed],
+                        components: [],
+                        content: ""
+                    });
                 }
                 else {
                     await DiscordServers_1.default.deleteGame(interaction.guildId, gameUpdate.hostId);
                 }
             }
+            return;
         }
         if (announcement) {
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle(`Quiz Game`)
                 .setThumbnail("https://hips.hearstapps.com/hmg-prod/images/quiz-questions-answers-1669651278.jpg")
-                .addFields({ name: `Info`, value: `Category : **${gameUpdate.category}** \nAmount : **${gameUpdate.amount}** \nMax players : **${gameUpdate.maxPlayers}**` })
+                .addFields({ name: `Info`, value: `Category : **${gameUpdate.category}** \nAmount : **${gameUpdate.amount}** \ntime : **${game.time / 1000 + " seconds" || "30 seconds"} ** \nMax players : **${gameUpdate.maxPlayers}**` })
                 .setAuthor({ name: `Waiting for the players... ${gameUpdate.players.length} / ${gameUpdate.maxPlayers}` })
-                .setTimestamp(Date.now());
+                .setTimestamp(Date.now())
+                .setFooter({ text: `id : ${game.hostId}` });
             await announcement.edit({
                 embeds: [embed]
             });

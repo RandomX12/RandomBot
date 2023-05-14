@@ -65,21 +65,31 @@ module.exports = {
         if (game.started) {
             if (gameUpdate.players.length === 0) {
                 if (announcement) {
+                    const deleteEmbed = new discord_js_1.EmbedBuilder()
+                        .setTitle("No one else in the game ❌")
+                        .setFooter({ text: "Game Deleted" })
+                        .setAuthor({ name: "Quiz Game" });
                     await DiscordServers_1.default.deleteGame(interaction.guildId, gameUpdate.hostId);
-                    await announcement.delete();
+                    await announcement.edit({
+                        embeds: [deleteEmbed],
+                        components: [],
+                        content: ""
+                    });
                 }
                 else {
                     await DiscordServers_1.default.deleteGame(interaction.guildId, gameUpdate.hostId);
                 }
             }
+            return;
         }
         if (announcement) {
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle(`Quiz Game`)
                 .setThumbnail("https://hips.hearstapps.com/hmg-prod/images/quiz-questions-answers-1669651278.jpg")
-                .addFields({ name: `Info`, value: `Category : **${gameUpdate.category}** \nAmount : **${gameUpdate.amount}** \nMax players : **${gameUpdate.maxPlayers}**` })
+                .addFields({ name: `Info`, value: `Category : **${gameUpdate.category}** \nAmount : **${gameUpdate.amount}**\ntime : **${game.time / 1000 + " seconds" || "30 seconds"} **  \nMax players : **${gameUpdate.maxPlayers}**` })
                 .setAuthor({ name: `Waiting for the players... ${gameUpdate.players.length} / ${gameUpdate.maxPlayers}` })
-                .setTimestamp(Date.now());
+                .setTimestamp(Date.now())
+                .setFooter({ text: `id : ${game.hostId}` });
             await announcement.edit({
                 embeds: [embed]
             });

@@ -53,6 +53,8 @@ class Spygame {
         if (discordServer.games.length === 0)
             return false;
         discordServer.games.map(e => {
+            if (!isSpyGame(e))
+                return;
             if (e.hostId === userId) {
                 isHost = true;
             }
@@ -80,8 +82,9 @@ class Spygame {
         if (!isHost)
             throw new Error(`Game Not Found`);
         const server = await (0, DiscordServers_1.getServerByGuildId)(guildId);
+        let isGame = false;
         for (let i = 0; i < server.games.length; i++) {
-            if (server.games[i].hostId === hostId) {
+            if (server.games[i].hostId === hostId && isSpyGame(server.games[i])) {
                 try {
                     server.games[i].players.map(e => {
                         if (e.id === userId) {
@@ -90,6 +93,7 @@ class Spygame {
                     });
                     const user = await DiscordServers_1.default.getUser(guildId, userId);
                     server.games[i].players = [...server.games[i].players, user];
+                    isGame = true;
                     break;
                 }
                 catch (err) {
@@ -97,13 +101,16 @@ class Spygame {
                 }
             }
         }
-        server.name = "changed";
+        if (!isGame)
+            throw new Error(`Game not found`);
         await server.save();
     }
     static async leave(guildId, hostId, userId) {
         const server = await (0, DiscordServers_1.getServerByGuildId)(guildId);
+        let isGame = false;
         for (let i = 0; i < server.games.length; i++) {
-            if (server.games[i].hostId === hostId) {
+            if (server.games[i].hostId === hostId && isSpyGame(server.games[i])) {
+                isGame = true;
                 for (let j = 0; j < server.games[i].players.length; j++) {
                     if (server.games[i].players[j].id === userId) {
                         server.games[i].players.splice(j, 1);
@@ -113,6 +120,8 @@ class Spygame {
                 break;
             }
         }
+        if (!isGame)
+            throw new Error(`Game not found`);
         await server.save();
     }
     static async findGameByUserId(games, userId) {
@@ -262,6 +271,8 @@ class Spygame {
         if (!discordSv)
             throw new Error(`discord server not found.`);
         discordSv.games.map(e => {
+            if (!isSpyGame(e))
+                return;
             if (e.hostId === this.hostId) {
                 throw new Error(`You have already created a Spygame`);
             }

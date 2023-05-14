@@ -83,9 +83,10 @@ module.exports = {
         const embed = new discord_js_1.EmbedBuilder()
             .setTitle(`Quiz Game`)
             .setThumbnail("https://hips.hearstapps.com/hmg-prod/images/quiz-questions-answers-1669651278.jpg")
-            .addFields({ name: `Info`, value: `Category : **${game?.category}** \nAmount : **${game.amount}** \nMax players : **${game.maxPlayers}**` })
+            .addFields({ name: `Info`, value: `Category : **${game?.category}** \nAmount : **${game.amount}** \ntime : **${game.time / 1000 + " seconds" || "30 seconds"} ** \n Max players : **${game.maxPlayers}**` })
             .setAuthor({ name: `Waiting for the players... ${game.players.length} / ${game.maxPlayers}` })
-            .setTimestamp(Date.now());
+            .setTimestamp(Date.now())
+            .setFooter({ text: `id : ${game.hostId}` });
         const announcement = interaction.channel.messages.cache.get(game.announcementId);
         if (announcement) {
             await announcement.edit({
@@ -128,18 +129,37 @@ module.exports = {
                     const startingEmbed = new discord_js_1.EmbedBuilder()
                         .setAuthor({ name: game.quiz[i].category })
                         .setTitle(game.quiz[i].question)
-                        .setThumbnail(QuizGame_1.QuizCategoryImg[game.category]);
+                        .setThumbnail(QuizGame_1.QuizCategoryImg[game.category])
+                        .setFooter({ text: `id : ${hostId}` });
                     const row = new discord_js_1.ActionRowBuilder();
-                    let ans = "";
                     let al = ["A", "B", "C", "D"];
-                    game.quiz[i].answers.map((e, j) => {
-                        ans += al[j] + " : " + e + "\n";
+                    if (game.quiz[i].answers.length === 2) {
+                        let ans = ["A", "B"];
+                        let trIndex = game.quiz[i].answers.indexOf("True");
+                        let flIndex = game.quiz[i].answers.indexOf("False");
                         row.addComponents(new discord_js_1.ButtonBuilder()
-                            .setCustomId(`answer_${al[j]}_${hostId}`)
-                            .setLabel(al[j])
+                            .setCustomId(`answer_${ans[trIndex]}_${hostId}`)
+                            .setLabel("True")
+                            .setStyle(1), new discord_js_1.ButtonBuilder()
+                            .setCustomId(`answer_${ans[flIndex]}_${hostId}`)
+                            .setLabel("False")
                             .setStyle(1));
-                    });
-                    startingEmbed.addFields({ name: "answers :", value: ans });
+                    }
+                    else {
+                        let ans = "";
+                        game.quiz[i].answers.map((e, j) => {
+                            ans += al[j] + " : " + e + "\n";
+                            row.addComponents(new discord_js_1.ButtonBuilder()
+                                .setCustomId(`answer_${al[j]}_${hostId}`)
+                                .setLabel(al[j])
+                                .setStyle(1));
+                        });
+                        startingEmbed.addFields({ name: "answers :", value: ans });
+                    }
+                    row.addComponents(new discord_js_1.ButtonBuilder()
+                        .setCustomId(`remove_ans`)
+                        .setLabel("remove answer")
+                        .setStyle(2));
                     await announcement.edit({
                         embeds: [startingEmbed],
                         components: [row],
@@ -150,11 +170,12 @@ module.exports = {
                     });
                     let endAns = "";
                     game.quiz[i].answers.map((e, j) => {
-                        let check = "";
                         if (j === game.quiz[i].correctIndex) {
-                            check = "✅";
+                            endAns += "**" + al[j] + " : " + e + " ✅" + "**\n";
                         }
-                        endAns += "**" + al[j] + " : " + e + check + "**\n";
+                        else {
+                            endAns += al[j] + " : " + e + "\n";
+                        }
                     });
                     startingEmbed.setFields({ name: "answers :", value: endAns });
                     await announcement.edit({
@@ -194,7 +215,7 @@ module.exports = {
                 });
                 endEmbed.addFields({ name: "players score ", value: playersScore });
                 endEmbed.setTimestamp(Date.now());
-                await announcement.reply({
+                await announcement.edit({
                     content: "",
                     components: [],
                     embeds: [endEmbed]
@@ -203,9 +224,7 @@ module.exports = {
             }
             catch (err) {
                 await DiscordServers_1.default.deleteGame(interaction.guildId, hostId);
-                await announcement?.edit({
-                    content: "an error occurred while starting the game",
-                });
+                await announcement?.delete();
                 (0, cmd_1.error)(err?.message);
             }
         }

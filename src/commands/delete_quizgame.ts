@@ -1,4 +1,4 @@
-import { ApplicationCommandDataResolvable, ApplicationCommandOptionType, CacheType, ChatInputCommandInteraction, EmbedBuilder, GuildMember } from "discord.js";
+import { ApplicationCommandDataResolvable, ApplicationCommandOptionType, CacheType, ChatInputCommandInteraction, EmbedBuilder, GuildMember, PermissionResolvable } from "discord.js";
 import QuizGame from "../lib/QuizGame";
 import DiscordServers from "../lib/DiscordServers";
 
@@ -16,7 +16,7 @@ const cmdBody : ApplicationCommandDataResolvable = {
         }
     ]
 }
-
+const permissions : PermissionResolvable[] = ["Administrator"]
 module.exports = {
     data : cmdBody,
     async execute(interaction : ChatInputCommandInteraction<CacheType>){
@@ -55,5 +55,6 @@ module.exports = {
                 ephemeral : true
             })
         }
-    }
+    },
+    permissions : permissions
 }

@@ -14,6 +14,22 @@ const discordServer = new mongoose_1.Schema({
         required: true,
         type: [Object]
     },
+    config: {
+        required: true,
+        type: {
+            commands: {
+                required: true,
+                type: [{
+                        name: String,
+                        enable: Boolean,
+                        //@ts-ignore
+                        permissions: [String],
+                        rolesId: [String],
+                        bannedUsers: [String]
+                    }]
+            }
+        }
+    },
     // @ts-ignore
     games: {
         required: false,
@@ -23,6 +39,7 @@ const discordServer = new mongoose_1.Schema({
                 name: String,
                 hostId: String,
                 hostName: String,
+                hostUserId: String,
                 index: {
                     type: Number,
                     required: false,

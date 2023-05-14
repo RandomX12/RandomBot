@@ -10,7 +10,6 @@ function log(config) {
     if (!config.textColor) {
         config.textColor = "White";
     }
-    console.clear();
     console.log(`${colorsCode[colorsArr.indexOf(config.timeColor)]}`, `[${new Date().toLocaleTimeString()}] `, `${colorsCode[colorsArr.indexOf(config.textColor)]}`, `${config.text}`, "\x1b[37m");
 }
 exports.log = log;

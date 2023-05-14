@@ -271,7 +271,6 @@ export default class QuizGame{
                 category : e.category as QuizCategory
             }
         })
-        console.log(this.info.hostUserId);
         server.games.push({
             ...this.info,
             name : "Quiz Game",

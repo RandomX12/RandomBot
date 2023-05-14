@@ -60,15 +60,15 @@ exports.categories = {
 };
 exports.QuizCategoryImg = {
     Random: "https://hips.hearstapps.com/hmg-prod/images/quiz-questions-answers-1669651278.jpg",
-    GeneralKnowledge: "https://cdn-icons-png.flaticon.com/512/5248/5248763.png",
+    GeneralKnowledge: "https://cdn-icons-png.flaticon.com/512/2762/2762294.png",
     VideoGames: "https://cdn-icons-png.flaticon.com/512/3408/3408506.png",
     Sports: "https://cdn-icons-png.flaticon.com/512/857/857455.png",
     History: "https://cdn.imgbin.com/0/14/17/ancient-scroll-icon-history-icon-scroll-icon-gHvzqatT.jpg",
-    Geography: "https://upload.wikimedia.org/wikipedia/commons/1/1f/Geography_icon.png",
-    Mathematics: "https://cdn-icons-png.flaticon.com/512/43/43102.png",
+    Geography: "https://cdn-icons-png.flaticon.com/256/1651/1651598.png",
+    Mathematics: "https://cdn-icons-png.flaticon.com/512/4954/4954397.png",
     Computers: "https://cdn-icons-png.flaticon.com/512/4703/4703650.png",
-    Animals: "https://static.thenounproject.com/png/13643-200.png",
-    Vehicles: "https://cdn2.iconfinder.com/data/icons/cars-tractors-and-trucks/117/cars-01-512.png",
+    Animals: "https://cdn-icons-png.flaticon.com/512/616/616408.png",
+    Vehicles: "https://cdni.iconscout.com/illustration/premium/thumb/car-2953450-2451640.png",
 };
 class QuizGame {
     static async join(guildId, hostId, userId) {
@@ -97,6 +97,8 @@ class QuizGame {
         let isIn = false;
         server.games.map((e, i) => {
             if (e.hostId === hostId) {
+                if (!isQuizGame(e))
+                    return;
                 isGame = true;
                 e.players.map((ele, j) => {
                     if (ele.id === userId) {
@@ -230,6 +232,30 @@ class QuizGame {
         server.games[gameIndex].index++;
         await server.save();
     }
+    static async removeAns(guildId, userId) {
+        const server = await (0, DiscordServers_1.getServerByGuildId)(guildId);
+        server.games.map((e, i) => {
+            if (!isQuizGame(e))
+                return;
+            e.players.map((ele, j) => {
+                if (ele.id === userId) {
+                    server.games[i].players[j].answers[e.index] = "N";
+                }
+            });
+        });
+        await server.save();
+    }
+    static async getQuizGamewithHostUserId(guildId, hostUserId) {
+        const server = await (0, DiscordServers_1.getServerByGuildId)(guildId);
+        for (let i = 0; i < server.games.length; i++) {
+            if (isQuizGame(server.games[i])) {
+                if (server.games[i].hostUserId === hostUserId) {
+                    return server.games[i];
+                }
+            }
+        }
+        throw new Error(`Game not found`);
+    }
     constructor(serverId, info) {
         this.serverId = serverId;
         this.info = info;
@@ -277,11 +303,13 @@ class QuizGame {
             ...this.info,
             name: "Quiz Game",
             index: 0,
-            players: [{ username: this.info.hostName, id: this.info.hostId }],
+            players: [{ username: this.info.hostName, id: this.info.hostUserId }],
             quiz: quiz,
             category: this.info.category,
             amount: this.info.amount,
-            time: this.info.time || 15 * 1000
+            time: this.info.time || 15 * 1000,
+            hostId: this.info.hostId,
+            hostUserId: this.info.hostUserId
         });
         await server.save();
     }

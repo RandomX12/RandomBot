@@ -1,4 +1,5 @@
 import { model,Schema } from "mongoose";
+import { ConfigT } from "../lib/DiscordServersConfig";
 export interface Member{
     username: string, // with tag
     id : string
@@ -11,13 +12,12 @@ export interface Game{
     players? : Member[]
     channelId : string,
 }
-
-
 export interface DiscordServer{
     serverId : string,
     name : string,
     members : Member[]
-    games : Game[]
+    games : Game[],
+    config? : ConfigT
 }
 
 
@@ -34,6 +34,22 @@ const discordServer = new Schema<DiscordServer>({
     members : {
         required : true,
         type : [Object]
+    },
+    config : {
+        required : true,
+        type : {
+            commands : {
+                required : true,
+                type : [{
+                    name : String,
+                    enable : Boolean,
+                    //@ts-ignore
+                    permissions : [String],
+                    rolesId : [String],
+                    bannedUsers : [String]
+                }]
+            }
+        }
     },
     // @ts-ignore
     games : {
