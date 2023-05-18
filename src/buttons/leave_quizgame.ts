@@ -1,6 +1,7 @@
 import { ButtonInteraction, CacheType, EmbedBuilder } from "discord.js";
 import DiscordServers, { getServerByGuildId } from "../lib/DiscordServers";
 import QuizGame, { isQuizGame } from "../lib/QuizGame";
+import { warning } from "../lib/cmd";
 
 
 module.exports = {
@@ -73,6 +74,7 @@ module.exports = {
             })
             return
         }else{
+            const channel = await QuizGame.getChannel(interaction,hostId)
             await DiscordServers.deleteGame(interaction.guildId,gameUpdate.hostId)
             const embed = new EmbedBuilder()
             .setAuthor({name : "Quiz Game"})
@@ -81,6 +83,19 @@ module.exports = {
             await interaction.channel.send({
                 embeds : [embed],
             })
+            const server = await getServerByGuildId(interaction.guildId)
+            if(server.config.quiz.multiple_channels){
+                if(!channel) return
+                setTimeout(async()=>{
+                    try{
+                        await channel.delete()
+                    }
+                    catch(err : any){
+                        warning(err.message)
+                    }
+
+                })
+            }
             return
         }    
     }

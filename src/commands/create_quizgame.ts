@@ -1,7 +1,7 @@
-import { ActionRowBuilder, ApplicationCommandDataResolvable, ApplicationCommandOptionType, ButtonBuilder, CacheType, ChatInputCommandInteraction, EmbedBuilder } from "discord.js"
+import { ActionRowBuilder, ApplicationCommandDataResolvable, ApplicationCommandOptionType, ButtonBuilder, CacheType, ChannelType, ChatInputCommandInteraction, EmbedBuilder, GuildTextBasedChannel, TextChannel } from "discord.js"
 import QuizGame , { categories, getCategoryByNum,CategoriesNum } from "../lib/QuizGame"
 import DiscordServers, { getServerByGuildId } from "../lib/DiscordServers"
-import { TimeTampNow, error } from "../lib/cmd"
+import { TimeTampNow, error, warning } from "../lib/cmd"
 
 let choices = Object.keys(categories).map(e=>{
     return {
@@ -80,18 +80,59 @@ module.exports = {
             return
         }
         
-        
         const category = interaction.options.getString("category")
         const amount = interaction.options.getNumber("amount")
         const maxPlayers = interaction.options.getNumber("max_players")
         let time = interaction.options.getNumber("time")
+        const server = await getServerByGuildId(interaction.guildId)
+        const hostId = `${Date.now()}`
+        let channel : TextChannel | GuildTextBasedChannel
+        if(server.config.quiz?.multiple_channels){
+            const category = interaction.guild.channels.cache.get(server.config.quiz?.channels_category)
+            if(category){
+                channel =  await interaction.guild.channels.create({
+                    name : `${hostId}`,
+                    type : ChannelType.GuildText,
+                    //@ts-ignore
+                    parent : category,
+                    permissionOverwrites : [{
+                        id : interaction.guild.roles.everyone.id,
+                        deny : ["SendMessages"]
+                    }]
+                })
+            }else{
+                const cat = await interaction.guild.channels.create({
+                    name : server.config.quiz.category_name || "Quiz Game",
+                    type : ChannelType.GuildCategory,
+                })
+                server.config.quiz.channels_category = cat.id
+                await server.save()
+                if(cat){
+                    channel = await interaction.guild.channels.create({
+                       name : hostId,
+                       parent : cat,
+                       type : ChannelType.GuildText,
+                       permissionOverwrites : [{
+                        id : interaction.guild.roles.everyone.id,
+                        deny : ["SendMessages"]
+                    }]
+                    })
+                }else{
+                    await interaction.reply({
+                        content : "Cannot create category :x:",
+                        ephemeral : true
+                    })
+                }
+            }
+        }else{
+            channel = interaction.channel
+        }
         if(!time){
             time = 30*1000
         }
-        let msg = await interaction.channel.send({
+        let msg = await channel.send({
             content : "creating Quiz Game..."
         })
-        const hostId = `${Date.now()}`
         
         try{
             const game = new QuizGame(interaction.guildId,{
@@ -99,7 +140,7 @@ module.exports = {
                 hostId : hostId,
                 hostUserId : interaction.user.id,
                 maxPlayers : maxPlayers,
-                channelId : interaction.channelId,
+                channelId : channel.id,
                 announcementId : msg.id,
                 category : getCategoryByNum(+category as CategoriesNum || category as "any"),
                 amount : amount,
@@ -115,6 +156,9 @@ module.exports = {
             })
             msg = null
             await DiscordServers.deleteGame(interaction.guildId,hostId)
+            if(server.config.quiz.multiple_channels){
+                await channel.delete()
+            }
             throw new Error(err?.message)
         }
         const embed = new EmbedBuilder()
@@ -151,6 +195,9 @@ module.exports = {
         }
         catch(err : any){
             await DiscordServers.deleteGame(interaction.guildId,hostId)
+            if(server.config.quiz.multiple_channels){
+                await channel.delete()
+            }
             if(interaction.replied || interaction.deferred){
                 await interaction.editReply({
                     content : "Cannot create the game :x:"
@@ -168,7 +215,7 @@ module.exports = {
                 const game = await QuizGame.getGameWithHostId(interaction.guildId,hostId)
                 if(game.started) return
                 await DiscordServers.deleteGame(interaction.guildId,hostId)
-                const announcement = interaction.channel.messages.cache.get(game.announcementId)
+                const announcement = channel.messages.cache.get(game.announcementId)
                 if(announcement){
                     const embed = new EmbedBuilder()
                     .setAuthor({name : "Quiz Game"})
@@ -179,9 +226,12 @@ module.exports = {
                         content : ""
                     })
                 }
+                if(server.config.quiz.multiple_channels){
+                    await channel.delete()
+                }
             }
             catch(err : any){
-                error(err.message)
+                warning(err.message)
             }
         },1000*60*5)
     }

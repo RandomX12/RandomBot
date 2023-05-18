@@ -1,13 +1,13 @@
 // importing the libs
-import Discord, {Collection,GatewayIntentBits } from "discord.js"
+import Discord, {ActionRowBuilder, AuditLogEvent, ButtonBuilder, ChannelType, Collection,EmbedBuilder,GatewayIntentBits } from "discord.js"
 import path from "path"
 import fs from "fs"
-import { error, log, warning } from "./lib/cmd"
+import { TimeTampNow, error, log, warning } from "./lib/cmd"
 import { connectDB } from "./lib/connectDB"
 import DiscordServers, { getServerByGuildId } from "./lib/DiscordServers"
 import discordServers, { Member } from "./model/discordServers"
-import discordSv from "./model/discordServers"
 import { verify } from "./lib/Commands"
+import QuizGame, { QuizCategory, categories ,amount as amountQs, maxPlayers, getCategoryByNum, CategoriesNum} from "./lib/QuizGame"
 require("dotenv").config()
 declare module "discord.js" {
     export interface Client {
@@ -235,6 +235,164 @@ client.on("guildMemberRemove",async(m)=>{
     }
     catch(err : any){
         error(err.message)
+    }
+})
+client.on("channelDelete",async(c)=>{
+    try{
+        if(c.type !== ChannelType.GuildText) return
+        if(!c.guildId) return
+        const server = await getServerByGuildId(c.guildId)
+        if(!server.config.quiz?.multiple_channels) return
+        if(c.parent.id !== server.config.quiz.channels_category) return
+        for(let i =0;i<server.games.length;i++){
+            if(server.games[i].channelId === c.id){
+                await DiscordServers.deleteGame(c.guildId,server.games[i].hostId)
+            }
+        }
+    }
+    catch(err : any){
+        error(err.message)
+    }
+})
+client.on("channelCreate",async(c)=>{
+    try{
+        if(!c.guild) return
+        if(c.type !== ChannelType.GuildText) return
+        const AuditLogFetch  = await c.guild.fetchAuditLogs({limit : 1,type : AuditLogEvent.ChannelCreate})
+        const logChannel = await client.channels.cache.get(c.id)
+        if(!logChannel) return
+        if(!AuditLogFetch.entries.first()) return
+        const creator = AuditLogFetch.entries.first().executor
+        if(creator.id === client.user.id) return
+        const options = c.name.split("-")
+        if(options.length !== 3 && options.length !== 4) return
+        const cat = Object.keys(categories)
+        let isValidCat = false
+        let category : QuizCategory
+        cat.map((e)=>{
+            if(e.toLowerCase() === options[0].toLowerCase()){
+                isValidCat = true
+                category = e as QuizCategory
+            }
+        })
+        if(!isValidCat) return
+        if(typeof +options[1] !== "number") return
+        const amount = +options[1]
+        if(amount > amountQs[1] || amount <amountQs[0]) return
+        const maxPl = +options[2]
+        if(maxPl < maxPlayers[0] || maxPl > maxPlayers[1]) return
+        let time : number
+        if(options[3]){
+            time = +options[3]
+            if(time !== 5 && time!==10 && time!==15 && time!==30 && time!==45) return
+        }
+        if(!time){
+            time = 30
+        }
+        time = time * 1000
+        const channel = c
+        const hostId = `${Date.now()}`
+        let msg = await channel.send({
+            content : "creating Quiz Game..."
+        })
+        await c.edit({
+            name : hostId,
+            permissionOverwrites : [{
+                id : c.guild.roles.everyone,
+                deny : ["SendMessages"]
+            }]
+        })
+        try{
+            const game = new QuizGame(channel.guildId,{
+                hostName : creator.tag,
+                hostId : hostId,
+                hostUserId : creator.id,
+                maxPlayers : maxPl,
+                channelId : channel.id,
+                announcementId : msg.id,
+                category : category,
+                amount : amount,
+                time : time || 30*1000
+            },true)
+            await game.save()
+        }
+        catch(err : any){
+            await msg.delete()
+            msg = null
+            await DiscordServers.deleteGame(c.guildId,hostId)
+            throw new Error(err?.message)
+        }
+        const embed = new EmbedBuilder()
+        .setTitle(`Quiz Game`)
+        .setThumbnail("https://hips.hearstapps.com/hmg-prod/images/quiz-questions-answers-1669651278.jpg")
+        .addFields({name : `Info`,value : `Category : **${category}** \nAmount : **${amount}** \ntime : **${time / 1000 + " seconds" || "30 seconds"}** \nMax players : **${maxPl}**`})
+        .setAuthor({name : `Waiting for the players... 0 / ${maxPl}`})
+        .setTimestamp(Date.now())
+        .setFooter({text : `id : ${hostId}`})
+        const button = new ButtonBuilder()
+        .setLabel("join")
+        .setStyle(3)
+        .setCustomId(`join_quizgame_${hostId}`)
+        const roww : any = new ActionRowBuilder()
+        .addComponents(button)
+        try{
+            if(!msg) throw new Error(`Cannot create the game`)
+            await msg.edit({
+                embeds : [embed],
+                components : [roww],
+                content : `@everyone new Quiz Game created by <@${creator.id}> ${TimeTampNow()}`
+            })
+        }
+        catch(err : any){
+            await DiscordServers.deleteGame(c.guildId,hostId)
+            throw new Error(err?.message)
+        }
+        setTimeout(async()=>{
+            try{
+                const game = await QuizGame.getGameWithHostId(c.guildId,hostId)
+                if(game.started) return
+                await DiscordServers.deleteGame(channel.guildId,hostId)
+                const announcement = channel.messages.cache.get(game.announcementId)
+                if(announcement){
+                    const embed = new EmbedBuilder()
+                    .setAuthor({name : "Quiz Game"})
+                    .setTitle(`Time out : game deleted`)
+                    await announcement.edit({
+                        embeds : [embed],
+                        components : [],
+                        content : ""
+                    })
+                }
+                await new Promise((res,rej)=>{
+                    setTimeout(res,5*1000)
+                })
+                await channel.delete()
+            }
+            catch(err : any){
+                warning(err.message)
+            }
+        },1000*60*5)
+        // const server = await getServerByGuildId(c.guildId)
+        // if(!server.config.quiz?.multiple_channels) return
+        // if(c.parent.id !== server.config.quiz.channels_category) return
+        // const row : any = new ActionRowBuilder()
+        // .addComponents(
+        //     new ButtonBuilder()
+        //     .setCustomId("keep")
+        //     .setLabel("keep")
+        //     .setStyle(2),
+        //     new ButtonBuilder()
+        //     .setCustomId("delete_channel")
+        //     .setLabel("delete channel")
+        //     .setStyle(4)
+        // )
+        // await c.send({
+        //     content : "This category supposed to be for Quiz Games.\n Keeping this channel in quiz game category may cause errors and bugs",
+        //     components :  [row]
+        // })
+    }
+    catch(err : any){
+        warning(err.message)
     }
 })
 client.on("ready",async(c)=>{

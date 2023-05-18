@@ -1,6 +1,7 @@
 import { ApplicationCommandDataResolvable, ApplicationCommandOptionType, CacheType, ChatInputCommandInteraction, EmbedBuilder, GuildMember, PermissionResolvable } from "discord.js";
 import QuizGame from "../lib/QuizGame";
-import DiscordServers from "../lib/DiscordServers";
+import DiscordServers, { getServerByGuildId } from "../lib/DiscordServers";
+import { error, warning } from "../lib/cmd";
 
 const cmdBody : ApplicationCommandDataResolvable = {
     name : "delete_quizgame",
@@ -31,8 +32,8 @@ module.exports = {
         try{
             const hostId = interaction.options.getString("id")
             const game = await QuizGame.getGameWithHostId(interaction.guildId,hostId)
+            const announcement = await QuizGame.getAnnouncement(interaction,interaction.guildId,game.hostId)
             await DiscordServers.deleteGame(interaction.guildId,game.hostId)
-            const announcement = interaction.channel.messages.cache.get(game.announcementId)
             if(announcement){
                 const deleteEmbed = new EmbedBuilder()
                 .setTitle(`${interaction.user.tag} deleted the game`)
@@ -47,6 +48,18 @@ module.exports = {
                     content : "Game deleted :white_check_mark:",
                     ephemeral : true
                 })
+                const server = await getServerByGuildId(interaction.guildId)
+                await announcement.channel.edit({name : "Game Deleted"})
+                if(server.config.quiz.multiple_channels){
+                    setTimeout(async()=>{
+                        try{
+                            await announcement.channel.delete()
+                        }
+                        catch(err : any){
+                            warning(err.message)
+                        }
+                    },1000*10)
+                }
             }
         }
         catch(err : any){
@@ -54,6 +67,7 @@ module.exports = {
                 content : "Cannot delete the game :x:",
                 ephemeral : true
             })
+            error(err.message)
         }
     },
     permissions : permissions

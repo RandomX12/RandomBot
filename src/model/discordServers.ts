@@ -48,6 +48,25 @@ const discordServer = new Schema<DiscordServer>({
                     rolesId : [String],
                     bannedUsers : [String]
                 }]
+            },
+            quiz : {
+                type : {
+                    multiple_channels : Boolean,
+                    channels_category : {
+                        required : false,
+                        type : String
+                    },
+                    private : Boolean,
+                    category_name : {
+                        type : String,
+                        require : false
+                    }
+                },
+                required : true,
+                default : {
+                    multiple_channels : false,
+                    private : false
+                }
             }
         }
     },

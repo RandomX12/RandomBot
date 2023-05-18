@@ -2,7 +2,7 @@ import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, CacheType, ChatInpu
 import DiscordServers, { getServerByGuildId } from "../lib/DiscordServers";
 import QuizGame, { CategoriesNum, QuizCategoryImg, answerType, getCategoryByNum, isQuizGame, rank } from "../lib/QuizGame";
 import { QuizGamePlayer, answers } from "../model/QuizGame";
-import { TimeTampNow, error } from "../lib/cmd";
+import { TimeTampNow, error, warning } from "../lib/cmd";
 import { numberEmojisStyled } from "../lib/spygame";
 
 module.exports = {
@@ -37,6 +37,7 @@ module.exports = {
             })
             return
         }
+        const server = await getServerByGuildId(interaction.guildId)
         try{
             await QuizGame.join(interaction.guildId,hostId,interaction.user.id)
         }
@@ -101,7 +102,8 @@ module.exports = {
                 })
                 await QuizGame.start(interaction.guildId,hostId)
                 for(let i = 0;i<game.amount;i++){
-                    const startingEmbed = new EmbedBuilder()
+                
+                const startingEmbed = new EmbedBuilder()
                 .setAuthor({name : game.quiz[i].category})
                 .setTitle(game.quiz[i].question)
                 .setThumbnail(QuizCategoryImg[game.category])
@@ -205,8 +207,20 @@ module.exports = {
             await DiscordServers.deleteGame(interaction.guildId,hostId)
             }
             catch(err : any){
+                try{
+                    const announcement = await QuizGame.getAnnouncement(interaction,interaction.guildId,hostId)
+                    if(server.config.quiz.multiple_channels){
+                        if(announcement){
+                            await announcement.channel.delete()
+                        }
+                    }else{
+                        await announcement?.delete()
+                    }
+                }
+                catch(err : any){
+                    warning(err.message)
+                }
                 await DiscordServers.deleteGame(interaction.guildId,hostId)
-                await announcement?.delete()
                 error(err?.message)
             }
         }

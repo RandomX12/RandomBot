@@ -2,6 +2,7 @@ import { CacheType, ChatInputCommandInteraction, EmbedBuilder } from "discord.js
 import DiscordServers, { getServerByGuildId } from "../lib/DiscordServers";
 import  QuizGame, { isQuizGame } from "../lib/QuizGame";
 import Spygame, { isSpyGame } from "../lib/spygame";
+import { warning } from "../lib/cmd";
 
 
 module.exports = {
@@ -38,7 +39,7 @@ module.exports = {
             ephemeral : true
         })
         const gameUpdate = await QuizGame.getGameWithHostId(interaction.guildId,game.hostId)
-        const announcement = interaction.channel.messages.cache.get(gameUpdate.announcementId)
+        const announcement = await QuizGame.getAnnouncement(interaction,interaction.guildId,gameUpdate.hostId)
         if(game.started) {
             if(gameUpdate.players.length === 0){
                 if(announcement){
@@ -52,6 +53,17 @@ module.exports = {
                         components : [],
                         content : ""
                     })
+                    const server = await getServerByGuildId(interaction.guildId)
+                    if(server.config.quiz.multiple_channels){
+                        setTimeout(async()=>{
+                            try{
+                                await announcement.channel.delete()
+                            }
+                            catch(err : any){
+                                warning(err.message)
+                            }
+                        },1000*10)
+                    }
                 }else{
                     await DiscordServers.deleteGame(interaction.guildId,gameUpdate.hostId)
                 }
@@ -71,14 +83,22 @@ module.exports = {
             })
             return
         }else{
+            const channel = await QuizGame.getChannel(interaction,game.hostId)
             await DiscordServers.deleteGame(interaction.guildId,gameUpdate.hostId)
+            if(server.config.quiz.multiple_channels){
+                if(channel){
+                    await channel.delete()
+                    return
+                }
+            }
             const embed = new EmbedBuilder()
             .setAuthor({name : "Quiz Game"})
             .setTitle("It looks like someone deleted the game announcement ❌")
             .setFooter({text : "Game deleted"})
-            await interaction.channel.send({
+            await interaction.channel?.send({
                 embeds : [embed],
             })
+
             return
         }
     }

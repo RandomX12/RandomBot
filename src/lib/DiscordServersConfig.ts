@@ -10,8 +10,10 @@ export interface CommandsConfig{
     bannedUsers? : string[]
 }
 
+
 export interface ConfigT{
-    commands : CommandsConfig[]
+    commands : CommandsConfig[],
+    quiz? : QuizGameConfig<true | false>
 }
 
 export interface command{
@@ -20,12 +22,33 @@ export interface command{
     permissions? : PermissionResolvable[]
 }
 
+interface MlChannels{
+    multiple_channels : boolean,
+    channels_category : string
+    private? : boolean ,
+    category_name :string
+}
+
+type DefaultQuizConfig = QuizGameConfig<false>
+
+export type QuizGameConfig<T extends boolean>  = T extends true 
+? MlChannels
+: {multiple_channels : false}
+
+
+
 export default class Config{
     constructor(public config? : ConfigT){
         // written by KHLALA 
         if(!this.config){
             this.config = {
-                commands : []
+                commands : [],
+                quiz : {multiple_channels : false}
+            }
+        }
+        if(this.config.quiz.multiple_channels){
+            if(!this.config.quiz.category_name || !this.config.quiz.channels_category){
+                throw new Error(`category props are required when "multiple_channels" is set to "true"`)
             }
         }
         let commands : command[] = []

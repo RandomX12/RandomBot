@@ -1,3 +1,4 @@
+import { ButtonInteraction, CacheType, ChatInputCommandInteraction, GuildTextBasedChannel, Message } from "discord.js";
 import { Game, Member } from "../model/discordServers"
 import Qz , { answers, Qs, QuizGame as QuizGameType } from "../model/QuizGame"
 import DiscordServers, { getServerByGuildId } from "./DiscordServers";
@@ -64,6 +65,8 @@ interface QuizGameInfo{
     time? : number
 }
 
+export const amount = [3,10] 
+export const maxPlayers = [2,20]
 export default class QuizGame{
     
     static async join(guildId : string,hostId : string,userId : string){
@@ -231,8 +234,31 @@ export default class QuizGame{
         }
         throw new Error(`Game not found`)
     }
-    constructor(public serverId : string,public info : QuizGameInfo){
-        if(info.amount < 3 || info.amount > 10) throw new Error(`Amount must be between 3 and 10`)
+    static async getAnnouncement(interaction : ChatInputCommandInteraction<CacheType> | ButtonInteraction<CacheType>,guildId: string,hostId : string){
+        const server = await getServerByGuildId(guildId)
+        for(let i = 0;i<server.games.length;i++){
+            if(server.games[i].hostId === hostId){
+                if(!isQuizGame(server.games[i])) throw new Error(`This game is not a Quiz Game`)
+                const channel : any = await interaction.guild.channels.cache.get(server.games[i].channelId).fetch()
+                const announcement : Message<true> = channel.messages.cache.get((server.games[i] as QuizGameType).announcementId)
+                return announcement
+            }
+        }
+        throw new Error(`announcement not found`)
+    }
+    static async getChannel(interaction : ChatInputCommandInteraction<CacheType> | ButtonInteraction<CacheType>,hostId : string){
+        const server = await getServerByGuildId(interaction.guildId)
+        for(let i = 0 ;i<server.games.length;i++){
+            if(server.games[i].hostId === hostId){
+                if(!isQuizGame(server.games[i])) throw new Error(`This game is not quiz game`)
+                const channel : any = await interaction.guild.channels.cache.get((server.games[i] as QuizGameType).channelId).fetch()
+                return channel as GuildTextBasedChannel
+            }
+        }
+        throw new Error(`Game with id="${hostId}" not found`)
+    }
+    constructor(public serverId : string,public info : QuizGameInfo,public empty? : boolean){
+        if(info.amount < amount[0] || info.amount > amount[1]) throw new Error(`Amount must be between 3 and 10`)
     }
     async save(){
         const server = await getServerByGuildId(this.serverId)
@@ -271,11 +297,15 @@ export default class QuizGame{
                 category : e.category as QuizCategory
             }
         })
+        let players = [{username : this.info.hostName,id : this.info.hostUserId}]
+        if(this.empty){
+            players = []
+        }
         server.games.push({
             ...this.info,
             name : "Quiz Game",
             index : 0,
-            players : [{username : this.info.hostName,id : this.info.hostUserId}],
+            players : players,
             quiz : quiz,
             category : this.info.category,
             amount : this.info.amount,
