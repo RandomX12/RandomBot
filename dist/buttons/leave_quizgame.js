@@ -22,13 +22,11 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 const discord_js_1 = require("discord.js");
-const DiscordServers_1 = __importDefault(require("../lib/DiscordServers"));
+const DiscordServers_1 = __importStar(require("../lib/DiscordServers"));
 const QuizGame_1 = __importStar(require("../lib/QuizGame"));
+const cmd_1 = require("../lib/cmd");
 module.exports = {
     data: {
         name: "leave_quizgame_[:id]",
@@ -101,6 +99,7 @@ module.exports = {
             return;
         }
         else {
+            const channel = await QuizGame_1.default.getChannel(interaction, hostId);
             await DiscordServers_1.default.deleteGame(interaction.guildId, gameUpdate.hostId);
             const embed = new discord_js_1.EmbedBuilder()
                 .setAuthor({ name: "Quiz Game" })
@@ -109,6 +108,19 @@ module.exports = {
             await interaction.channel.send({
                 embeds: [embed],
             });
+            const server = await (0, DiscordServers_1.getServerByGuildId)(interaction.guildId);
+            if (server.config.quiz.multiple_channels) {
+                if (!channel)
+                    return;
+                setTimeout(async () => {
+                    try {
+                        await channel.delete();
+                    }
+                    catch (err) {
+                        (0, cmd_1.warning)(err.message);
+                    }
+                });
+            }
             return;
         }
     }

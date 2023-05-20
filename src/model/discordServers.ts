@@ -60,6 +60,10 @@ const discordServer = new Schema<DiscordServer>({
                     category_name : {
                         type : String,
                         require : false
+                    },
+                    roles : {
+                        required : false,
+                        type : [String]
                     }
                 },
                 required : true,
@@ -153,10 +157,15 @@ const discordServer = new Schema<DiscordServer>({
                 time : {
                     require : false,
                     type : Number
+                },
+                mainChannel : {
+                    require : false,
+                    type : Boolean,
+                    default : true
                 }
             }
         ],
-        default : null
+        default : []
     }
 })
 

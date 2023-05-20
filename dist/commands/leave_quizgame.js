@@ -27,6 +27,7 @@ const discord_js_1 = require("discord.js");
 const DiscordServers_1 = __importStar(require("../lib/DiscordServers"));
 const QuizGame_1 = __importStar(require("../lib/QuizGame"));
 const spygame_1 = __importStar(require("../lib/spygame"));
+const cmd_1 = require("../lib/cmd");
 module.exports = {
     data: {
         name: "leave_quizgame",
@@ -61,7 +62,7 @@ module.exports = {
             ephemeral: true
         });
         const gameUpdate = await QuizGame_1.default.getGameWithHostId(interaction.guildId, game.hostId);
-        const announcement = interaction.channel.messages.cache.get(gameUpdate.announcementId);
+        const announcement = await QuizGame_1.default.getAnnouncement(interaction, interaction.guildId, gameUpdate.hostId);
         if (game.started) {
             if (gameUpdate.players.length === 0) {
                 if (announcement) {
@@ -75,6 +76,16 @@ module.exports = {
                         components: [],
                         content: ""
                     });
+                    if (!gameUpdate.mainChannel) {
+                        setTimeout(async () => {
+                            try {
+                                await announcement.channel.delete();
+                            }
+                            catch (err) {
+                                (0, cmd_1.warning)(err.message);
+                            }
+                        }, 1000 * 10);
+                    }
                 }
                 else {
                     await DiscordServers_1.default.deleteGame(interaction.guildId, gameUpdate.hostId);
@@ -96,12 +107,19 @@ module.exports = {
             return;
         }
         else {
+            const channel = await QuizGame_1.default.getChannel(interaction, game.hostId);
             await DiscordServers_1.default.deleteGame(interaction.guildId, gameUpdate.hostId);
+            if (!game.mainChannel) {
+                if (channel) {
+                    await channel.delete();
+                    return;
+                }
+            }
             const embed = new discord_js_1.EmbedBuilder()
                 .setAuthor({ name: "Quiz Game" })
                 .setTitle("It looks like someone deleted the game announcement ❌")
                 .setFooter({ text: "Game deleted" });
-            await interaction.channel.send({
+            await interaction.channel?.send({
                 embeds: [embed],
             });
             return;

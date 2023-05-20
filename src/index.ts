@@ -312,7 +312,8 @@ client.on("channelCreate",async(c)=>{
                 announcementId : msg.id,
                 category : category,
                 amount : amount,
-                time : time || 30*1000
+                time : time || 30*1000,
+                mainChannel : false
             },true)
             await game.save()
         }
@@ -320,9 +321,10 @@ client.on("channelCreate",async(c)=>{
             await msg.delete()
             msg = null
             await DiscordServers.deleteGame(c.guildId,hostId)
+            await c.delete()
             throw new Error(err?.message)
         }
-        const embed = new EmbedBuilder()
+        const embed = new EmbedBuilder() 
         .setTitle(`Quiz Game`)
         .setThumbnail("https://hips.hearstapps.com/hmg-prod/images/quiz-questions-answers-1669651278.jpg")
         .addFields({name : `Info`,value : `Category : **${category}** \nAmount : **${amount}** \ntime : **${time / 1000 + " seconds" || "30 seconds"}** \nMax players : **${maxPl}**`})
@@ -345,6 +347,7 @@ client.on("channelCreate",async(c)=>{
         }
         catch(err : any){
             await DiscordServers.deleteGame(c.guildId,hostId)
+            await c.delete()
             throw new Error(err?.message)
         }
         setTimeout(async()=>{
@@ -372,24 +375,6 @@ client.on("channelCreate",async(c)=>{
                 warning(err.message)
             }
         },1000*60*5)
-        // const server = await getServerByGuildId(c.guildId)
-        // if(!server.config.quiz?.multiple_channels) return
-        // if(c.parent.id !== server.config.quiz.channels_category) return
-        // const row : any = new ActionRowBuilder()
-        // .addComponents(
-        //     new ButtonBuilder()
-        //     .setCustomId("keep")
-        //     .setLabel("keep")
-        //     .setStyle(2),
-        //     new ButtonBuilder()
-        //     .setCustomId("delete_channel")
-        //     .setLabel("delete channel")
-        //     .setStyle(4)
-        // )
-        // await c.send({
-        //     content : "This category supposed to be for Quiz Games.\n Keeping this channel in quiz game category may cause errors and bugs",
-        //     components :  [row]
-        // })
     }
     catch(err : any){
         warning(err.message)

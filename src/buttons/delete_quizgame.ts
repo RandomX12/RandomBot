@@ -1,7 +1,6 @@
 import { ButtonInteraction, CacheType, CategoryChannel, ChannelType, GuildTextBasedChannel } from "discord.js";
 import QuizGame from "../lib/QuizGame";
 import DiscordServers, { getServerByGuildId } from "../lib/DiscordServers";
-import { error } from "../lib/cmd";
 
 
 module.exports = {
@@ -9,6 +8,7 @@ module.exports = {
         name : "delete_quiz_[:id]",
         description : "Delete a quiz game"
     },
+
     async execute(interaction : ButtonInteraction<CacheType>){
         if(!interaction?.customId?.startsWith("delete_quiz")){
             await interaction.reply({
@@ -24,18 +24,16 @@ module.exports = {
             if(game.started) throw new Error(`Game started`)
             await DiscordServers.deleteGame(interaction.guildId,game.hostId)
             const channel : any = await interaction.guild.channels.cache.get(game.channelId)?.fetch()
-            if(!channel){
+            const announcement : GuildTextBasedChannel = channel.messages.cache.get(game.announcementId)
+            if(game.mainChannel){
                 await msg.delete()
+                await announcement.delete()
                 return 
             }
-            const announcement : GuildTextBasedChannel = channel.messages.cache.get(game.announcementId)
             if(announcement){
                 await announcement.delete()
             }
-            const server = await getServerByGuildId(interaction.guildId)
-            if(server.config.quiz.multiple_channels){
-                await channel.delete()
-            }
+            await channel.delete()
             await msg.delete()
             return
         }

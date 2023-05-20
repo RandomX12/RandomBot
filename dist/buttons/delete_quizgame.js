@@ -25,10 +25,17 @@ module.exports = {
             if (game.started)
                 throw new Error(`Game started`);
             await DiscordServers_1.default.deleteGame(interaction.guildId, game.hostId);
-            const announcement = interaction.channel.messages.cache.get(game.announcementId);
+            const channel = await interaction.guild.channels.cache.get(game.channelId)?.fetch();
+            const announcement = channel.messages.cache.get(game.announcementId);
+            if (game.mainChannel) {
+                await msg.delete();
+                await announcement.delete();
+                return;
+            }
             if (announcement) {
                 await announcement.delete();
             }
+            await channel.delete();
             await msg.delete();
             return;
         }

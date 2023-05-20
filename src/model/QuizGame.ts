@@ -25,7 +25,8 @@ export interface QuizGame extends Game{
     category : QuizCategory,
     amount  : number,
     time? : number,
-    hostUserId : string
+    hostUserId : string,
+    mainChannel? : boolean
 }
 export const QuizSchema = new Schema<QuizGame>({
     name :String,
@@ -77,6 +78,11 @@ export const QuizSchema = new Schema<QuizGame>({
                 category : {
                     type : String,
                     required : true
+                },
+                mainChannel : {
+                    required : false,
+                    type : Boolean,
+                    default : true
                 }
 })
 

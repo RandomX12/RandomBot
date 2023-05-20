@@ -27,6 +27,29 @@ const discordServer = new mongoose_1.Schema({
                         rolesId: [String],
                         bannedUsers: [String]
                     }]
+            },
+            quiz: {
+                type: {
+                    multiple_channels: Boolean,
+                    channels_category: {
+                        required: false,
+                        type: String
+                    },
+                    private: Boolean,
+                    category_name: {
+                        type: String,
+                        require: false
+                    },
+                    roles: {
+                        required: false,
+                        type: [String]
+                    }
+                },
+                required: true,
+                default: {
+                    multiple_channels: false,
+                    private: false
+                }
             }
         }
     },
@@ -112,10 +135,15 @@ const discordServer = new mongoose_1.Schema({
                 time: {
                     require: false,
                     type: Number
+                },
+                mainChannel: {
+                    require: false,
+                    type: Boolean,
+                    default: true
                 }
             }
         ],
-        default: null
+        default: []
     }
 });
 exports.default = (0, mongoose_1.model)("Discord servers", discordServer);

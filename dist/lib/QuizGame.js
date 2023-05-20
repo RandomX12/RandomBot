@@ -23,7 +23,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.QuizCategoryImg = exports.categories = exports.regex = exports.rank = exports.getCategoryByNum = exports.isQuizGame = void 0;
+exports.maxPlayers = exports.amount = exports.QuizCategoryImg = exports.categories = exports.regex = exports.rank = exports.getCategoryByNum = exports.isQuizGame = void 0;
 const DiscordServers_1 = __importStar(require("./DiscordServers"));
 function isQuizGame(game) {
     if (game.name === "Quiz Game") {
@@ -70,6 +70,8 @@ exports.QuizCategoryImg = {
     Animals: "https://cdn-icons-png.flaticon.com/512/616/616408.png",
     Vehicles: "https://cdni.iconscout.com/illustration/premium/thumb/car-2953450-2451640.png",
 };
+exports.amount = [3, 10];
+exports.maxPlayers = [2, 20];
 class QuizGame {
     static async join(guildId, hostId, userId) {
         const server = await (0, DiscordServers_1.getServerByGuildId)(guildId);
@@ -256,10 +258,36 @@ class QuizGame {
         }
         throw new Error(`Game not found`);
     }
-    constructor(serverId, info) {
+    static async getAnnouncement(interaction, guildId, hostId) {
+        const server = await (0, DiscordServers_1.getServerByGuildId)(guildId);
+        for (let i = 0; i < server.games.length; i++) {
+            if (server.games[i].hostId === hostId) {
+                if (!isQuizGame(server.games[i]))
+                    throw new Error(`This game is not a Quiz Game`);
+                const channel = await interaction.guild.channels.cache.get(server.games[i].channelId).fetch();
+                const announcement = channel.messages.cache.get(server.games[i].announcementId);
+                return announcement;
+            }
+        }
+        throw new Error(`announcement not found`);
+    }
+    static async getChannel(interaction, hostId) {
+        const server = await (0, DiscordServers_1.getServerByGuildId)(interaction.guildId);
+        for (let i = 0; i < server.games.length; i++) {
+            if (server.games[i].hostId === hostId) {
+                if (!isQuizGame(server.games[i]))
+                    throw new Error(`This game is not quiz game`);
+                const channel = await interaction.guild.channels.cache.get(server.games[i].channelId).fetch();
+                return channel;
+            }
+        }
+        throw new Error(`Game with id="${hostId}" not found`);
+    }
+    constructor(serverId, info, empty) {
         this.serverId = serverId;
         this.info = info;
-        if (info.amount < 3 || info.amount > 10)
+        this.empty = empty;
+        if (info.amount < exports.amount[0] || info.amount > exports.amount[1])
             throw new Error(`Amount must be between 3 and 10`);
     }
     async save() {
@@ -299,11 +327,15 @@ class QuizGame {
                 category: e.category
             };
         });
+        let players = [{ username: this.info.hostName, id: this.info.hostUserId }];
+        if (this.empty) {
+            players = [];
+        }
         server.games.push({
             ...this.info,
             name: "Quiz Game",
             index: 0,
-            players: [{ username: this.info.hostName, id: this.info.hostUserId }],
+            players: players,
             quiz: quiz,
             category: this.info.category,
             amount: this.info.amount,

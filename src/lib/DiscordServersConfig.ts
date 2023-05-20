@@ -13,7 +13,7 @@ export interface CommandsConfig{
 
 export interface ConfigT{
     commands : CommandsConfig[],
-    quiz? : QuizGameConfig<true | false>
+    quiz? : QuizGameConfig<true | false,true | false>
 }
 
 export interface command{
@@ -22,17 +22,25 @@ export interface command{
     permissions? : PermissionResolvable[]
 }
 
-interface MlChannels{
+type MlChannels<Private extends boolean> = Private extends true
+?{
     multiple_channels : boolean,
     channels_category : string
-    private? : boolean ,
+    private: Private,
+    roles : string[]
     category_name :string
 }
+:
+{
+    multiple_channels : boolean,
+    channels_category : string
+    private: Private,
+    category_name :string 
+}
+type DefaultQuizConfig = QuizGameConfig<false,false>
 
-type DefaultQuizConfig = QuizGameConfig<false>
-
-export type QuizGameConfig<T extends boolean>  = T extends true 
-? MlChannels
+export type QuizGameConfig<Multiple extends boolean,Private extends boolean>  = Multiple extends true 
+? MlChannels<Private>
 : {multiple_channels : false}
 
 
@@ -101,6 +109,7 @@ export default class Config{
             })
         }
     }
+    
     async save(guildId : string){
         const server = await getServerByGuildId(guildId)
         server.config = this.config

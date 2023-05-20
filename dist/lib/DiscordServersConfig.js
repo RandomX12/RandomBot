@@ -12,8 +12,14 @@ class Config {
         // written by KHLALA 
         if (!this.config) {
             this.config = {
-                commands: []
+                commands: [],
+                quiz: { multiple_channels: false }
             };
+        }
+        if (this.config.quiz.multiple_channels) {
+            if (!this.config.quiz.category_name || !this.config.quiz.channels_category) {
+                throw new Error(`category props are required when "multiple_channels" is set to "true"`);
+            }
         }
         let commands = [];
         const cmdPath = path_1.default.join(__dirname, "../commands");

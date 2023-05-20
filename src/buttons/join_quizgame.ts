@@ -1,4 +1,4 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, CacheType, ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, CacheType, ChannelType, ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
 import DiscordServers, { getServerByGuildId } from "../lib/DiscordServers";
 import QuizGame, { CategoriesNum, QuizCategoryImg, answerType, getCategoryByNum, isQuizGame, rank } from "../lib/QuizGame";
 import { QuizGamePlayer, answers } from "../model/QuizGame";
@@ -56,6 +56,7 @@ module.exports = {
         }
         const game = await DiscordServers.getGameByHostId(interaction.guildId,hostId)
         if(!isQuizGame(game)) return
+        if(game.started) return
         const embed = new EmbedBuilder()
         .setTitle(`Quiz Game`)
         .setThumbnail("https://hips.hearstapps.com/hmg-prod/images/quiz-questions-answers-1669651278.jpg")
@@ -102,7 +103,6 @@ module.exports = {
                 })
                 await QuizGame.start(interaction.guildId,hostId)
                 for(let i = 0;i<game.amount;i++){
-                
                 const startingEmbed = new EmbedBuilder()
                 .setAuthor({name : game.quiz[i].category})
                 .setTitle(game.quiz[i].question)
@@ -204,8 +204,25 @@ module.exports = {
                 components : [],
                 embeds : [endEmbed]
             })
+
+            const channel = await QuizGame.getChannel(interaction,hostId)
             await DiscordServers.deleteGame(interaction.guildId,hostId)
-            }
+            if(game.mainChannel) return
+            if(channel){
+                await channel.edit({name : "game end",type : ChannelType.GuildText,permissionOverwrites : [{
+                    id : interaction.guild.roles.everyone,
+                    deny : []
+                }]}) 
+                setTimeout(async()=>{
+                    try{
+                        await channel.delete()
+                    }
+                    catch(err : any){
+                        warning(err.message)
+                    }
+                },20*1000)
+            }    
+        }
             catch(err : any){
                 try{
                     const announcement = await QuizGame.getAnnouncement(interaction,interaction.guildId,hostId)

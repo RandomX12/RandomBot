@@ -1,7 +1,8 @@
-import { ActionRowBuilder, ApplicationCommandDataResolvable, ApplicationCommandOptionType, ButtonBuilder, CacheType, ChannelType, ChatInputCommandInteraction, EmbedBuilder, GuildTextBasedChannel, TextChannel } from "discord.js"
+import { ActionRowBuilder, ApplicationCommandDataResolvable, ApplicationCommandOptionType, ButtonBuilder, CacheType, ChannelType, ChatInputCommandInteraction, EmbedBuilder, GuildTextBasedChannel, OverwriteResolvable, PermissionOverwrites, TextChannel } from "discord.js"
 import QuizGame , { categories, getCategoryByNum,CategoriesNum } from "../lib/QuizGame"
 import DiscordServers, { getServerByGuildId } from "../lib/DiscordServers"
 import { TimeTampNow, error, warning } from "../lib/cmd"
+import { PermissionsBitField } from "discord.js"
 
 let choices = Object.keys(categories).map(e=>{
     return {
@@ -79,7 +80,7 @@ module.exports = {
             })
             return
         }
-        
+        let mainChannel = true
         const category = interaction.options.getString("category")
         const amount = interaction.options.getNumber("amount")
         const maxPlayers = interaction.options.getNumber("max_players")
@@ -88,42 +89,82 @@ module.exports = {
         const hostId = `${Date.now()}`
         let channel : TextChannel | GuildTextBasedChannel
         if(server.config.quiz?.multiple_channels){
-            const category = interaction.guild.channels.cache.get(server.config.quiz?.channels_category)
-            if(category){
-                channel =  await interaction.guild.channels.create({
-                    name : `${hostId}`,
-                    type : ChannelType.GuildText,
-                    //@ts-ignore
-                    parent : category,
-                    permissionOverwrites : [{
-                        id : interaction.guild.roles.everyone.id,
-                        deny : ["SendMessages"]
-                    }]
-                })
-            }else{
-                const cat = await interaction.guild.channels.create({
-                    name : server.config.quiz.category_name || "Quiz Game",
-                    type : ChannelType.GuildCategory,
-                })
-                server.config.quiz.channels_category = cat.id
-                await server.save()
-                if(cat){
-                    channel = await interaction.guild.channels.create({
-                       name : hostId,
-                       parent : cat,
-                       type : ChannelType.GuildText,
-                       permissionOverwrites : [{
-                        id : interaction.guild.roles.everyone.id,
-                        deny : ["SendMessages"]
-                    }]
-                    })
-                }else{
-                    await interaction.reply({
-                        content : "Cannot create category :x:",
-                        ephemeral : true
+            try{
+                const category = interaction.guild.channels.cache.get(server.config.quiz?.channels_category)
+                let permissions : OverwriteResolvable[] = [{
+                    id : interaction.guild.roles.everyone.id,
+                    deny : ["SendMessages"]
+                }]
+                if(server.config.quiz.private){
+                    permissions[0].deny = [PermissionsBitField.Flags.ViewChannel]
+                    server.config.quiz.roles?.map((role)=>{
+                        if(!role) return
+                        permissions.push({
+                            id : role,
+                            allow : [PermissionsBitField.Flags.ViewChannel],
+                            deny : ["SendMessages"]
+                        })
                     })
                 }
+                if(category){
+                    channel =  await interaction.guild.channels.create({
+                        name : `${hostId}`,
+                        type : ChannelType.GuildText,
+                        //@ts-ignore
+                        parent : category,
+                        permissionOverwrites : permissions
+                    })
+                    mainChannel = false
+                }else{
+                    
+                    const cat = await interaction.guild.channels.create<ChannelType.GuildCategory>({
+                        name : server.config.quiz.category_name || "Quiz Game",
+                        type : ChannelType.GuildCategory,
+                        permissionOverwrites : permissions
+                    })
+                    server.config.quiz.channels_category = cat.id
+                    await server.save()
+                    if(cat){
+                        channel = await interaction.guild.channels.create({
+                           name : hostId,
+                           parent : cat,
+                           type : ChannelType.GuildText,
+                           permissionOverwrites : permissions
+                        })
+                    }else{
+                        await interaction.reply({
+                            content : "Cannot create category :x:",
+                            ephemeral : true
+                        })
+                        return
+                    }
+                    mainChannel = false
+                }
+                const row : any = new ActionRowBuilder()
+                .addComponents(
+                    new ButtonBuilder()
+                    .setCustomId(`join_quizgame_${hostId}`)
+                    .setLabel("join")
+                    .setStyle(3),
+                    new ButtonBuilder()
+                    .setCustomId(`leave_quizgame_${hostId}`)
+                    .setLabel("leave")
+                    .setStyle(4),
+                )
+                await channel.send({
+                    components : [row]
+                })
             }
+            catch(err : any){
+                if(interaction.replied || interaction.deferred){
+                    await interaction.editReply({
+                        content  : "An error occurred while creating the channel :x:\n This may be from bad configurations, please check your configuration and make sure everything is OK."
+                    })
+                }
+                warning(err.message)
+                return
+            }
+            
         }else{
             channel = interaction.channel
         }
@@ -144,7 +185,8 @@ module.exports = {
                 announcementId : msg.id,
                 category : getCategoryByNum(+category as CategoriesNum || category as "any"),
                 amount : amount,
-                time : time || 30*1000
+                time : time || 30*1000,
+                mainChannel : mainChannel
             })
             await game.save()
         }
@@ -231,7 +273,7 @@ module.exports = {
                 }
             }
             catch(err : any){
-                warning(err.message)
+                return
             }
         },1000*60*5)
     }

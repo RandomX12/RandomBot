@@ -52,6 +52,11 @@ exports.QuizSchema = new mongoose_1.Schema({
     category: {
         type: String,
         required: true
+    },
+    mainChannel: {
+        required: false,
+        type: Boolean,
+        default: true
     }
 });
 exports.default = (0, mongoose_1.model)('Quiz Game', exports.QuizSchema);

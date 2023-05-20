@@ -35,6 +35,7 @@ const connectDB_1 = require("./lib/connectDB");
 const DiscordServers_1 = __importStar(require("./lib/DiscordServers"));
 const discordServers_1 = __importDefault(require("./model/discordServers"));
 const Commands_1 = require("./lib/Commands");
+const QuizGame_1 = __importStar(require("./lib/QuizGame"));
 require("dotenv").config();
 // init the discord bot
 const client = new discord_js_1.default.Client({
@@ -264,6 +265,166 @@ client.on("guildMemberRemove", async (m) => {
     }
     catch (err) {
         (0, cmd_1.error)(err.message);
+    }
+});
+client.on("channelDelete", async (c) => {
+    try {
+        if (c.type !== discord_js_1.ChannelType.GuildText)
+            return;
+        if (!c.guildId)
+            return;
+        const server = await (0, DiscordServers_1.getServerByGuildId)(c.guildId);
+        if (!server.config.quiz?.multiple_channels)
+            return;
+        if (c.parent.id !== server.config.quiz.channels_category)
+            return;
+        for (let i = 0; i < server.games.length; i++) {
+            if (server.games[i].channelId === c.id) {
+                await DiscordServers_1.default.deleteGame(c.guildId, server.games[i].hostId);
+            }
+        }
+    }
+    catch (err) {
+        (0, cmd_1.error)(err.message);
+    }
+});
+client.on("channelCreate", async (c) => {
+    try {
+        if (!c.guild)
+            return;
+        if (c.type !== discord_js_1.ChannelType.GuildText)
+            return;
+        const AuditLogFetch = await c.guild.fetchAuditLogs({ limit: 1, type: discord_js_1.AuditLogEvent.ChannelCreate });
+        const logChannel = await client.channels.cache.get(c.id);
+        if (!logChannel)
+            return;
+        if (!AuditLogFetch.entries.first())
+            return;
+        const creator = AuditLogFetch.entries.first().executor;
+        if (creator.id === client.user.id)
+            return;
+        const options = c.name.split("-");
+        if (options.length !== 3 && options.length !== 4)
+            return;
+        const cat = Object.keys(QuizGame_1.categories);
+        let isValidCat = false;
+        let category;
+        cat.map((e) => {
+            if (e.toLowerCase() === options[0].toLowerCase()) {
+                isValidCat = true;
+                category = e;
+            }
+        });
+        if (!isValidCat)
+            return;
+        if (typeof +options[1] !== "number")
+            return;
+        const amount = +options[1];
+        if (amount > QuizGame_1.amount[1] || amount < QuizGame_1.amount[0])
+            return;
+        const maxPl = +options[2];
+        if (maxPl < QuizGame_1.maxPlayers[0] || maxPl > QuizGame_1.maxPlayers[1])
+            return;
+        let time;
+        if (options[3]) {
+            time = +options[3];
+            if (time !== 5 && time !== 10 && time !== 15 && time !== 30 && time !== 45)
+                return;
+        }
+        if (!time) {
+            time = 30;
+        }
+        time = time * 1000;
+        const channel = c;
+        const hostId = `${Date.now()}`;
+        let msg = await channel.send({
+            content: "creating Quiz Game..."
+        });
+        await c.edit({
+            name: hostId,
+            permissionOverwrites: [{
+                    id: c.guild.roles.everyone,
+                    deny: ["SendMessages"]
+                }]
+        });
+        try {
+            const game = new QuizGame_1.default(channel.guildId, {
+                hostName: creator.tag,
+                hostId: hostId,
+                hostUserId: creator.id,
+                maxPlayers: maxPl,
+                channelId: channel.id,
+                announcementId: msg.id,
+                category: category,
+                amount: amount,
+                time: time || 30 * 1000,
+                mainChannel: false
+            }, true);
+            await game.save();
+        }
+        catch (err) {
+            await msg.delete();
+            msg = null;
+            await DiscordServers_1.default.deleteGame(c.guildId, hostId);
+            await c.delete();
+            throw new Error(err?.message);
+        }
+        const embed = new discord_js_1.EmbedBuilder()
+            .setTitle(`Quiz Game`)
+            .setThumbnail("https://hips.hearstapps.com/hmg-prod/images/quiz-questions-answers-1669651278.jpg")
+            .addFields({ name: `Info`, value: `Category : **${category}** \nAmount : **${amount}** \ntime : **${time / 1000 + " seconds" || "30 seconds"}** \nMax players : **${maxPl}**` })
+            .setAuthor({ name: `Waiting for the players... 0 / ${maxPl}` })
+            .setTimestamp(Date.now())
+            .setFooter({ text: `id : ${hostId}` });
+        const button = new discord_js_1.ButtonBuilder()
+            .setLabel("join")
+            .setStyle(3)
+            .setCustomId(`join_quizgame_${hostId}`);
+        const roww = new discord_js_1.ActionRowBuilder()
+            .addComponents(button);
+        try {
+            if (!msg)
+                throw new Error(`Cannot create the game`);
+            await msg.edit({
+                embeds: [embed],
+                components: [roww],
+                content: `@everyone new Quiz Game created by <@${creator.id}> ${(0, cmd_1.TimeTampNow)()}`
+            });
+        }
+        catch (err) {
+            await DiscordServers_1.default.deleteGame(c.guildId, hostId);
+            await c.delete();
+            throw new Error(err?.message);
+        }
+        setTimeout(async () => {
+            try {
+                const game = await QuizGame_1.default.getGameWithHostId(c.guildId, hostId);
+                if (game.started)
+                    return;
+                await DiscordServers_1.default.deleteGame(channel.guildId, hostId);
+                const announcement = channel.messages.cache.get(game.announcementId);
+                if (announcement) {
+                    const embed = new discord_js_1.EmbedBuilder()
+                        .setAuthor({ name: "Quiz Game" })
+                        .setTitle(`Time out : game deleted`);
+                    await announcement.edit({
+                        embeds: [embed],
+                        components: [],
+                        content: ""
+                    });
+                }
+                await new Promise((res, rej) => {
+                    setTimeout(res, 5 * 1000);
+                });
+                await channel.delete();
+            }
+            catch (err) {
+                (0, cmd_1.warning)(err.message);
+            }
+        }, 1000 * 60 * 5);
+    }
+    catch (err) {
+        (0, cmd_1.warning)(err.message);
     }
 });
 client.on("ready", async (c) => {

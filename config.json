@@ -10,6 +10,7 @@
         "spygame" : false,
         "create_quizgame" : true,
         "leave_quizgame" : true,
-        "delete_quizgame" : true
+        "delete_quizgame" : true,
+        "delete_all" : true
     }
 }

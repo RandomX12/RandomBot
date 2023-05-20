@@ -22,14 +22,12 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 const discord_js_1 = require("discord.js");
 const QuizGame_1 = __importStar(require("../lib/QuizGame"));
-const DiscordServers_1 = __importDefault(require("../lib/DiscordServers"));
+const DiscordServers_1 = __importStar(require("../lib/DiscordServers"));
 const cmd_1 = require("../lib/cmd");
+const discord_js_2 = require("discord.js");
 let choices = Object.keys(QuizGame_1.categories).map(e => {
     return {
         name: e,
@@ -105,28 +103,111 @@ module.exports = {
             });
             return;
         }
+        let mainChannel = true;
         const category = interaction.options.getString("category");
         const amount = interaction.options.getNumber("amount");
         const maxPlayers = interaction.options.getNumber("max_players");
         let time = interaction.options.getNumber("time");
+        const server = await (0, DiscordServers_1.getServerByGuildId)(interaction.guildId);
+        const hostId = `${Date.now()}`;
+        let channel;
+        if (server.config.quiz?.multiple_channels) {
+            try {
+                const category = interaction.guild.channels.cache.get(server.config.quiz?.channels_category);
+                let permissions = [{
+                        id: interaction.guild.roles.everyone.id,
+                        deny: ["SendMessages"]
+                    }];
+                if (server.config.quiz.private) {
+                    permissions[0].deny = [discord_js_2.PermissionsBitField.Flags.ViewChannel];
+                    server.config.quiz.roles?.map((role) => {
+                        if (!role)
+                            return;
+                        permissions.push({
+                            id: role,
+                            allow: [discord_js_2.PermissionsBitField.Flags.ViewChannel],
+                            deny: ["SendMessages"]
+                        });
+                    });
+                }
+                if (category) {
+                    channel = await interaction.guild.channels.create({
+                        name: `${hostId}`,
+                        type: discord_js_1.ChannelType.GuildText,
+                        //@ts-ignore
+                        parent: category,
+                        permissionOverwrites: permissions
+                    });
+                    mainChannel = false;
+                }
+                else {
+                    const cat = await interaction.guild.channels.create({
+                        name: server.config.quiz.category_name || "Quiz Game",
+                        type: discord_js_1.ChannelType.GuildCategory,
+                        permissionOverwrites: permissions
+                    });
+                    server.config.quiz.channels_category = cat.id;
+                    await server.save();
+                    if (cat) {
+                        channel = await interaction.guild.channels.create({
+                            name: hostId,
+                            parent: cat,
+                            type: discord_js_1.ChannelType.GuildText,
+                            permissionOverwrites: permissions
+                        });
+                    }
+                    else {
+                        await interaction.reply({
+                            content: "Cannot create category :x:",
+                            ephemeral: true
+                        });
+                        return;
+                    }
+                    mainChannel = false;
+                }
+                const row = new discord_js_1.ActionRowBuilder()
+                    .addComponents(new discord_js_1.ButtonBuilder()
+                    .setCustomId(`join_quizgame_${hostId}`)
+                    .setLabel("join")
+                    .setStyle(3), new discord_js_1.ButtonBuilder()
+                    .setCustomId(`leave_quizgame_${hostId}`)
+                    .setLabel("leave")
+                    .setStyle(4));
+                await channel.send({
+                    components: [row]
+                });
+            }
+            catch (err) {
+                if (interaction.replied || interaction.deferred) {
+                    await interaction.editReply({
+                        content: "An error occurred while creating the channel :x:\n This may be from bad configurations, please check your configuration and make sure everything is OK."
+                    });
+                }
+                (0, cmd_1.warning)(err.message);
+                return;
+            }
+        }
+        else {
+            channel = interaction.channel;
+        }
         if (!time) {
             time = 30 * 1000;
         }
-        let msg = await interaction.channel.send({
+        let msg = await channel.send({
             content: "creating Quiz Game..."
         });
-        const hostId = `${Date.now()}`;
         try {
             const game = new QuizGame_1.default(interaction.guildId, {
                 hostName: interaction.user.tag,
                 hostId: hostId,
                 hostUserId: interaction.user.id,
                 maxPlayers: maxPlayers,
-                channelId: interaction.channelId,
+                channelId: channel.id,
                 announcementId: msg.id,
                 category: (0, QuizGame_1.getCategoryByNum)(+category || category),
                 amount: amount,
-                time: time || 30 * 1000
+                time: time || 30 * 1000,
+                mainChannel: mainChannel
             });
             await game.save();
         }
@@ -137,6 +218,9 @@ module.exports = {
             });
             msg = null;
             await DiscordServers_1.default.deleteGame(interaction.guildId, hostId);
+            if (server.config.quiz.multiple_channels) {
+                await channel.delete();
+            }
             throw new Error(err?.message);
         }
         const embed = new discord_js_1.EmbedBuilder()
@@ -172,6 +256,9 @@ module.exports = {
         }
         catch (err) {
             await DiscordServers_1.default.deleteGame(interaction.guildId, hostId);
+            if (server.config.quiz.multiple_channels) {
+                await channel.delete();
+            }
             if (interaction.replied || interaction.deferred) {
                 await interaction.editReply({
                     content: "Cannot create the game :x:"
@@ -190,7 +277,7 @@ module.exports = {
                 if (game.started)
                     return;
                 await DiscordServers_1.default.deleteGame(interaction.guildId, hostId);
-                const announcement = interaction.channel.messages.cache.get(game.announcementId);
+                const announcement = channel.messages.cache.get(game.announcementId);
                 if (announcement) {
                     const embed = new discord_js_1.EmbedBuilder()
                         .setAuthor({ name: "Quiz Game" })
@@ -201,9 +288,12 @@ module.exports = {
                         content: ""
                     });
                 }
+                if (server.config.quiz.multiple_channels) {
+                    await channel.delete();
+                }
             }
             catch (err) {
-                (0, cmd_1.error)(err.message);
+                return;
             }
         }, 1000 * 60 * 5);
     }

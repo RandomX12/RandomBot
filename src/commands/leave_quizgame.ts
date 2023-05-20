@@ -53,8 +53,7 @@ module.exports = {
                         components : [],
                         content : ""
                     })
-                    const server = await getServerByGuildId(interaction.guildId)
-                    if(server.config.quiz.multiple_channels){
+                    if(!gameUpdate.mainChannel){
                         setTimeout(async()=>{
                             try{
                                 await announcement.channel.delete()
@@ -85,7 +84,7 @@ module.exports = {
         }else{
             const channel = await QuizGame.getChannel(interaction,game.hostId)
             await DiscordServers.deleteGame(interaction.guildId,gameUpdate.hostId)
-            if(server.config.quiz.multiple_channels){
+            if(!game.mainChannel){
                 if(channel){
                     await channel.delete()
                     return

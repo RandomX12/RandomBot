@@ -21,14 +21,6 @@ const permissions : PermissionResolvable[] = ["Administrator"]
 module.exports = {
     data : cmdBody,
     async execute(interaction : ChatInputCommandInteraction<CacheType>){
-        const member = interaction.member as GuildMember
-        if(!member.permissions.has("Administrator")){
-            await interaction.reply({
-                content : "You don't have the permission to delete the game :x:",
-                ephemeral : true
-            })
-            return
-        }
         try{
             const hostId = interaction.options.getString("id")
             const game = await QuizGame.getGameWithHostId(interaction.guildId,hostId)
@@ -48,9 +40,8 @@ module.exports = {
                     content : "Game deleted :white_check_mark:",
                     ephemeral : true
                 })
-                const server = await getServerByGuildId(interaction.guildId)
+                if(!game.mainChannel){
                 await announcement.channel.edit({name : "Game Deleted"})
-                if(server.config.quiz.multiple_channels){
                     setTimeout(async()=>{
                         try{
                             await announcement.channel.delete()

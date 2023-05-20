@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const discord_js_1 = require("discord.js");
 const QuizGame_1 = __importDefault(require("../lib/QuizGame"));
 const DiscordServers_1 = __importDefault(require("../lib/DiscordServers"));
+const cmd_1 = require("../lib/cmd");
 const cmdBody = {
     name: "delete_quizgame",
     description: "Delete a Quiz Game",
@@ -24,19 +25,11 @@ const permissions = ["Administrator"];
 module.exports = {
     data: cmdBody,
     async execute(interaction) {
-        const member = interaction.member;
-        if (!member.permissions.has("Administrator")) {
-            await interaction.reply({
-                content: "You don't have the permission to delete the game :x:",
-                ephemeral: true
-            });
-            return;
-        }
         try {
             const hostId = interaction.options.getString("id");
             const game = await QuizGame_1.default.getGameWithHostId(interaction.guildId, hostId);
+            const announcement = await QuizGame_1.default.getAnnouncement(interaction, interaction.guildId, game.hostId);
             await DiscordServers_1.default.deleteGame(interaction.guildId, game.hostId);
-            const announcement = interaction.channel.messages.cache.get(game.announcementId);
             if (announcement) {
                 const deleteEmbed = new discord_js_1.EmbedBuilder()
                     .setTitle(`${interaction.user.tag} deleted the game`)
@@ -51,6 +44,17 @@ module.exports = {
                     content: "Game deleted :white_check_mark:",
                     ephemeral: true
                 });
+                if (!game.mainChannel) {
+                    await announcement.channel.edit({ name: "Game Deleted" });
+                    setTimeout(async () => {
+                        try {
+                            await announcement.channel.delete();
+                        }
+                        catch (err) {
+                            (0, cmd_1.warning)(err.message);
+                        }
+                    }, 1000 * 10);
+                }
             }
         }
         catch (err) {
@@ -58,6 +62,7 @@ module.exports = {
                 content: "Cannot delete the game :x:",
                 ephemeral: true
             });
+            (0, cmd_1.error)(err.message);
         }
     },
     permissions: permissions

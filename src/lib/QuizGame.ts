@@ -62,7 +62,8 @@ interface QuizGameInfo{
     announcementId : string,
     category : QuizCategory,
     amount : number,
-    time? : number
+    time? : number,
+    mainChannel? : boolean
 }
 
 export const amount = [3,10] 
