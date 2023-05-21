@@ -453,6 +453,7 @@ client.on("ready", async (c) => {
             };
         });
         console.table(svs);
+        client.user.setActivity({ type: discord_js_1.ActivityType.Watching, name: "/create_quizgame" });
     }
     catch (err) {
         (0, cmd_1.log)({ text: `There was an error while connecting to the database. \n ${err.message}`, textColor: "Red", timeColor: "Red" });

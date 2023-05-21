@@ -39,8 +39,27 @@ module.exports = {
                     try {
                         if (!(0, QuizGame_1.isQuizGame)(e))
                             return;
-                        if (e.mainChannel)
+                        if (e.mainChannel) {
+                            const channel = interaction.guild.channels.cache.get(e.channelId);
+                            if (channel) {
+                                if (channel.type === discord_js_1.ChannelType.GuildText) {
+                                    const announcement = channel.messages.cache.get(e.announcementId);
+                                    if (announcement) {
+                                        const deleteEmbed = new discord_js_1.EmbedBuilder()
+                                            .setTitle(`${interaction.user.tag} deleted the game`)
+                                            .setAuthor({ name: "Quiz Game" })
+                                            .setFooter({ text: "Game Deleted" });
+                                        await announcement.edit({
+                                            content: "",
+                                            components: [],
+                                            embeds: [deleteEmbed]
+                                        });
+                                        return;
+                                    }
+                                }
+                            }
                             return;
+                        }
                         const channel = interaction.guild.channels.cache.get(e.channelId);
                         if (!channel)
                             return;

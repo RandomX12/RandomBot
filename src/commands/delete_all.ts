@@ -37,7 +37,27 @@ module.exports = {
                 server.games?.map(async e=>{
                     try{
                         if(!isQuizGame(e)) return
-                        if(e.mainChannel) return
+                        if(e.mainChannel) {
+                            const channel = interaction.guild.channels.cache.get(e.channelId)
+                            if(channel){
+                                if(channel.type === ChannelType.GuildText){
+                                    const announcement = channel.messages.cache.get(e.announcementId)
+                                    if(announcement){
+                                        const deleteEmbed = new EmbedBuilder()
+                                        .setTitle(`${interaction.user.tag} deleted the game`)
+                                        .setAuthor({name : "Quiz Game"})
+                                        .setFooter({text : "Game Deleted"})
+                                        await announcement.edit({
+                                            content : "",
+                                            components : [],
+                                            embeds : [deleteEmbed]
+                                        })
+                                        return
+                                    }
+                                }
+                            }
+                            return
+                        }
                         const channel =  interaction.guild.channels.cache.get(e.channelId)
                         if(!channel) return
                         await channel.delete()

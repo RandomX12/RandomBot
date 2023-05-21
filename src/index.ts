@@ -1,5 +1,5 @@
 // importing the libs
-import Discord, {ActionRowBuilder, AuditLogEvent, ButtonBuilder, ChannelType, Collection,EmbedBuilder,GatewayIntentBits } from "discord.js"
+import Discord, {ActionRowBuilder, ActivityType, AuditLogEvent, ButtonBuilder, ChannelType, Collection,EmbedBuilder,GatewayIntentBits } from "discord.js"
 import path from "path"
 import fs from "fs"
 import { TimeTampNow, error, log, warning } from "./lib/cmd"
@@ -406,6 +406,7 @@ client.on("ready",async(c)=>{
             }
         })
         console.table(svs)
+        client.user.setActivity({type : ActivityType.Watching,name : "/create_quizgame"})
     }
     catch(err : any){
         log({text : `There was an error while connecting to the database. \n ${err.message}`,textColor : "Red",timeColor : "Red"})

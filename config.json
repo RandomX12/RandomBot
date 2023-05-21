@@ -11,6 +11,12 @@
         "create_quizgame" : true,
         "leave_quizgame" : true,
         "delete_quizgame" : true,
-        "delete_all" : true
+        "delete_all" : true,
+        "help" : true
+    },
+    "info" : {
+        "website" : "http://localhost:3000",
+        "commands" : "http://localhost:3000/commands",
+        "server" : "discord.gg/dza564d5a"
     }
 }
