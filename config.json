@@ -1,4 +1,4 @@
-{
+{   "productionMode" : true,
     "commands" : {
         "ping" : true,
         "create_spygame" : false,

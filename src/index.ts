@@ -412,5 +412,18 @@ client.on("ready",async(c)=>{
         log({text : `There was an error while connecting to the database. \n ${err.message}`,textColor : "Red",timeColor : "Red"})
     }
 })
-
-client.login(process.env.TOKEN)
+let tokenName = "TOKEN"
+const productionMode = require("../config.json").productionMode
+if(productionMode){
+    log({textColor : "Yellow",text : "You are running The bot on production mode",timeColor : "Yellow"})
+    tokenName = "TOKEN1"
+}
+client.login(process.env[tokenName])
+// for express server :)
+try{
+    const server = require("./server.js")
+    server()
+}
+catch(err : any){
+    warning("Express Server is offline !.\nif you are in production mode please set 'productionMode' in ./config.json to true.")
+}

@@ -1,10 +1,31 @@
 import { CacheType, ChatInputCommandInteraction, GuildMember } from "discord.js";
-import { getServerByGuildId } from "./DiscordServers";
+import DiscordServers, { getServerByGuildId } from "./DiscordServers";
 import Config from "./DiscordServersConfig";
+import discordServers, { Member } from "../model/discordServers";
 
 
 export async function verify(interaction : ChatInputCommandInteraction<CacheType>) : Promise<boolean>{
-    const server = await getServerByGuildId(interaction.guildId)
+    let server : any = await discordServers.findOne({serverId : interaction.guildId})
+    if(!server){
+        const members : Member[] = interaction.guild.members.cache.map((e)=>{
+            return {
+                username : e.user.tag,
+                id : e.user.id
+            }
+        })
+        server = new DiscordServers({
+            name : interaction.guild.name,
+            members : members,
+            serverId : interaction.guildId,
+            games : []
+       })
+       await server.save()
+       interaction.reply({
+        content : "This server is not saved in the database. try again",
+        ephemeral : true
+       })
+       return false
+    }
     if(!server.config){
         server.config = new Config().config
         await server.save()

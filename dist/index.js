@@ -460,3 +460,10 @@ client.on("ready", async (c) => {
     }
 });
 client.login(process.env.TOKEN);
+try {
+    const server = require("./server.js");
+    server();
+}
+catch (err) {
+    (0, cmd_1.warning)("Express Server is offline !.\nif you are in production mode please set 'productionMode' in ./config.json to true.");
+}
