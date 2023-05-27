@@ -7,6 +7,6 @@ exports.connectDB = void 0;
 const mongoose_1 = __importDefault(require("mongoose"));
 require("dotenv").config();
 async function connectDB() {
-    await mongoose_1.default.connect(process.env.DB);
+    await mongoose_1.default.connect(process.env["DB"]);
 }
 exports.connectDB = connectDB;

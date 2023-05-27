@@ -39,9 +39,10 @@ module.exports = {
         }
         const server = await getServerByGuildId(interaction.guildId)
         try{
-            await QuizGame.join(interaction.guildId,hostId,interaction.user.id)
+            await QuizGame.join(interaction.guildId,hostId,interaction.user)
         }
         catch(err : any){
+            warning(err.message)
             if(interaction.replied || interaction.deferred){
                 await interaction.editReply({
                     content : "an error occurred while trying to join the game",

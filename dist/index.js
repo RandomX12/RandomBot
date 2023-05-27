@@ -459,7 +459,14 @@ client.on("ready", async (c) => {
         (0, cmd_1.log)({ text: `There was an error while connecting to the database. \n ${err.message}`, textColor: "Red", timeColor: "Red" });
     }
 });
-client.login(process.env.TOKEN);
+let tokenName = "TOKEN";
+const productionMode = require("../config.json").productionMode;
+if (productionMode) {
+    (0, cmd_1.log)({ textColor: "Yellow", text: "You are running The bot on production mode", timeColor: "Yellow" });
+    tokenName = "TOKEN1";
+}
+client.login(process.env[tokenName]);
+// for express server :)
 try {
     const server = require("./server.js");
     server();

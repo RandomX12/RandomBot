@@ -4,10 +4,31 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.verify = void 0;
-const DiscordServers_1 = require("./DiscordServers");
+const DiscordServers_1 = __importDefault(require("./DiscordServers"));
 const DiscordServersConfig_1 = __importDefault(require("./DiscordServersConfig"));
+const discordServers_1 = __importDefault(require("../model/discordServers"));
 async function verify(interaction) {
-    const server = await (0, DiscordServers_1.getServerByGuildId)(interaction.guildId);
+    let server = await discordServers_1.default.findOne({ serverId: interaction.guildId });
+    if (!server) {
+        const members = interaction.guild.members.cache.map((e) => {
+            return {
+                username: e.user.tag,
+                id: e.user.id
+            };
+        });
+        server = new DiscordServers_1.default({
+            name: interaction.guild.name,
+            members: members,
+            serverId: interaction.guildId,
+            games: []
+        });
+        await server.save();
+        interaction.reply({
+            content: "This server is not saved in the database. try again",
+            ephemeral: true
+        });
+        return false;
+    }
     if (!server.config) {
         server.config = new DiscordServersConfig_1.default().config;
         await server.save();

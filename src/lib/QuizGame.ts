@@ -1,4 +1,4 @@
-import { ButtonInteraction, CacheType, ChatInputCommandInteraction, GuildTextBasedChannel, Message } from "discord.js";
+import { ButtonInteraction, CacheType, ChatInputCommandInteraction, GuildTextBasedChannel, Message, User } from "discord.js";
 import { Game, Member } from "../model/discordServers"
 import Qz , { answers, Qs, QuizGame as QuizGameType } from "../model/QuizGame"
 import DiscordServers, { getServerByGuildId } from "./DiscordServers";
@@ -70,17 +70,16 @@ export const amount = [3,10]
 export const maxPlayers = [2,20]
 export default class QuizGame{
     
-    static async join(guildId : string,hostId : string,userId : string){
+    static async join(guildId : string,hostId : string,user : User){
         const server = await getServerByGuildId(guildId)
         let gameFound = false
         for(let i = 0;i<server.games.length;i++){
             if(server.games[i].hostId === hostId){
                 if(!isQuizGame(server.games[i])) throw new Error(`This game is not Quiz Game`)
                 gameFound = true
-                const isIn = await DiscordServers.isInGame(guildId,userId)
-                if(isIn) throw new Error(`User id="${userId} is already in the game"`)
-                const user = await DiscordServers.getUser(guildId,userId)
-                server.games[i].players.push(user)
+                const isIn = await DiscordServers.isInGame(guildId,user.id)
+                if(isIn) throw new Error(`User id="${user.id} is already in the game"`)
+                server.games[i].players.push({username  :user.tag,id : user.id})
                 await server.save()
                 break
             }

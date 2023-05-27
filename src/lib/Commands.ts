@@ -3,7 +3,6 @@ import DiscordServers, { getServerByGuildId } from "./DiscordServers";
 import Config from "./DiscordServersConfig";
 import discordServers, { Member } from "../model/discordServers";
 
-
 export async function verify(interaction : ChatInputCommandInteraction<CacheType>) : Promise<boolean>{
     let server : any = await discordServers.findOne({serverId : interaction.guildId})
     if(!server){
