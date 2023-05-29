@@ -5,6 +5,7 @@ import { Collection } from "discord.js"
 import discordServers from "../model/discordServers"
 import { error, warning } from "./cmd"
 import  DiscordSv  from "../model/discordServers"
+import { deleteGameLog } from "./QuizGame"
 
 export async function getServerByGuildId(id : string){
     const server =  await ServersModel.findOne({serverId : id})
@@ -59,6 +60,7 @@ export default class DiscordServers{
         if(!user) throw new Error(`User not found`)
         return user
     }
+    @deleteGameLog()
     static async deleteGame(guildId : string,hostId : string){
         const server = await getServerByGuildId(guildId)
         server.games.map((e,i)=>{

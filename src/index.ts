@@ -292,15 +292,32 @@ client.on("channelCreate",async(c)=>{
         time = time * 1000
         const channel = c
         const hostId = `${Date.now()}`
+        const jlAction : any = new ActionRowBuilder()
+            .setComponents(
+                new ButtonBuilder()
+                .setLabel("join")
+                .setCustomId("join_quizgame_"+hostId)
+                .setStyle(3),
+                new ButtonBuilder()
+                .setLabel("leave")
+                .setCustomId("leave_quizgame_"+hostId)
+                .setStyle(4)
+            )
+            await c.send({
+                components : [jlAction]
+            })
         let msg = await channel.send({
             content : "creating Quiz Game..."
         })
+        const permissions = c.permissionOverwrites
+        permissions.cache.map(e=>{
+            if(e.id === c.guild.roles.everyone.id){
+                e.deny.add("SendMessages")
+            }
+        })
         await c.edit({
-            name : hostId,
-            permissionOverwrites : [{
-                id : c.guild.roles.everyone,
-                deny : ["SendMessages"]
-            }]
+            name : "waiting 🟡",
+            permissionOverwrites : permissions.cache
         })
         try{
             const game = new QuizGame(channel.guildId,{
@@ -344,6 +361,7 @@ client.on("channelCreate",async(c)=>{
                 components : [roww],
                 content : `@everyone new Quiz Game created by <@${creator.id}> ${TimeTampNow()}`
             })
+            
         }
         catch(err : any){
             await DiscordServers.deleteGame(c.guildId,hostId)
@@ -394,7 +412,6 @@ client.on("ready",async(c)=>{
         const aDate = Date.now()
         const ping = aDate - bDate
         log({text : "Bot started "+ping+"ms",textColor : "Cyan"})
-        // log({text : `${c.guilds.cache.size} servers                  |                  ${membersCount} members                  |                  ${channelsCount} channels`})
         const DcServers = await discordServers.find()
         let svs = DcServers.map(e=>{
             return {

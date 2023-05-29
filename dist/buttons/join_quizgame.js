@@ -59,9 +59,10 @@ module.exports = {
         }
         const server = await (0, DiscordServers_1.getServerByGuildId)(interaction.guildId);
         try {
-            await QuizGame_1.default.join(interaction.guildId, hostId, interaction.user.id);
+            await QuizGame_1.default.join(interaction.guildId, hostId, interaction.user);
         }
         catch (err) {
+            (0, cmd_1.warning)(err.message);
             if (interaction.replied || interaction.deferred) {
                 await interaction.editReply({
                     content: "an error occurred while trying to join the game",

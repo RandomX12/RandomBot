@@ -15,6 +15,12 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
@@ -23,8 +29,9 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.maxPlayers = exports.amount = exports.QuizCategoryImg = exports.categories = exports.regex = exports.rank = exports.getCategoryByNum = exports.isQuizGame = void 0;
+exports.maxPlayers = exports.amount = exports.deleteGameLog = exports.QuizCategoryImg = exports.categories = exports.regex = exports.rank = exports.getCategoryByNum = exports.isQuizGame = void 0;
 const DiscordServers_1 = __importStar(require("./DiscordServers"));
+const cmd_1 = require("./cmd");
 function isQuizGame(game) {
     if (game.name === "Quiz Game") {
         return true;
@@ -70,10 +77,30 @@ exports.QuizCategoryImg = {
     Animals: "https://cdn-icons-png.flaticon.com/512/616/616408.png",
     Vehicles: "https://cdni.iconscout.com/illustration/premium/thumb/car-2953450-2451640.png",
 };
+function createGameLog() {
+    return function (target, key, descriptor) {
+        let originalFn = descriptor.value;
+        descriptor.value = async function () {
+            (0, cmd_1.log)({ textColor: "Yellow", timeColor: "Yellow", text: `creating Quiz Game...` });
+            await originalFn.apply(this, []);
+            (0, cmd_1.log)({ textColor: "Blue", timeColor: "Blue", text: `Game created` });
+        };
+    };
+}
+function deleteGameLog() {
+    return function (target, key, descriptor) {
+        const originalFn = descriptor.value;
+        descriptor.value = async function (...args) {
+            await originalFn.apply(this, args);
+            (0, cmd_1.log)({ text: "Game deleted", textColor: "Magenta", timeColor: "Magenta" });
+        };
+    };
+}
+exports.deleteGameLog = deleteGameLog;
 exports.amount = [3, 10];
 exports.maxPlayers = [2, 20];
 class QuizGame {
-    static async join(guildId, hostId, userId) {
+    static async join(guildId, hostId, user) {
         const server = await (0, DiscordServers_1.getServerByGuildId)(guildId);
         let gameFound = false;
         for (let i = 0; i < server.games.length; i++) {
@@ -81,11 +108,10 @@ class QuizGame {
                 if (!isQuizGame(server.games[i]))
                     throw new Error(`This game is not Quiz Game`);
                 gameFound = true;
-                const isIn = await DiscordServers_1.default.isInGame(guildId, userId);
+                const isIn = await DiscordServers_1.default.isInGame(guildId, user.id);
                 if (isIn)
-                    throw new Error(`User id="${userId} is already in the game"`);
-                const user = await DiscordServers_1.default.getUser(guildId, userId);
-                server.games[i].players.push(user);
+                    throw new Error(`User id="${user.id} is already in the game"`);
+                server.games[i].players.push({ username: user.tag, id: user.id });
                 await server.save();
                 break;
             }
@@ -346,4 +372,7 @@ class QuizGame {
         await server.save();
     }
 }
+__decorate([
+    createGameLog()
+], QuizGame.prototype, "save", null);
 exports.default = QuizGame;

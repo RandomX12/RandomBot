@@ -3,6 +3,7 @@ import { Game, Member } from "../model/discordServers"
 import Qz , { answers, Qs, QuizGame as QuizGameType } from "../model/QuizGame"
 import DiscordServers, { getServerByGuildId } from "./DiscordServers";
 import { isSpyGame } from "./spygame";
+import { log } from "./cmd";
 export function isQuizGame(game : Game) : game is QuizGameType{
     if(game.name === "Quiz Game"){
         return true
@@ -64,6 +65,26 @@ interface QuizGameInfo{
     amount : number,
     time? : number,
     mainChannel? : boolean
+}
+
+function createGameLog(){
+    return function(target : Object,key : string,descriptor : PropertyDescriptor){
+        let originalFn = descriptor.value
+        descriptor.value = async function(){
+            log({textColor : "Yellow",timeColor : "Yellow",text : `creating Quiz Game...`})
+            await originalFn.apply(this,[])
+            log({textColor : "Blue",timeColor : "Blue",text : `Game created`})
+        }
+    }
+}
+export function deleteGameLog(){
+    return function(target : Object,key : string,descriptor : PropertyDescriptor){
+        const originalFn = descriptor.value
+        descriptor.value = async function(...args : string[]){
+            await originalFn.apply(this,args)
+            log({text : "Game deleted",textColor :"Magenta",timeColor : "Magenta"})
+        }
+    }
 }
 
 export const amount = [3,10] 
@@ -260,6 +281,7 @@ export default class QuizGame{
     constructor(public serverId : string,public info : QuizGameInfo,public empty? : boolean){
         if(info.amount < amount[0] || info.amount > amount[1]) throw new Error(`Amount must be between 3 and 10`)
     }
+    @createGameLog()
     async save(){
         const server = await getServerByGuildId(this.serverId)
         let hasGame = false

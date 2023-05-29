@@ -102,7 +102,10 @@ module.exports = {
                     embeds : [embed],
                     components : []
                 })
+            
+                const channel = await QuizGame.getChannel(interaction,hostId)    
                 await QuizGame.start(interaction.guildId,hostId)
+                await channel.edit({name : "started 🟢"}) 
                 for(let i = 0;i<game.amount;i++){
                 const startingEmbed = new EmbedBuilder()
                 .setAuthor({name : game.quiz[i].category})
@@ -206,7 +209,6 @@ module.exports = {
                 embeds : [endEmbed]
             })
 
-            const channel = await QuizGame.getChannel(interaction,hostId)
             await DiscordServers.deleteGame(interaction.guildId,hostId)
             if(game.mainChannel) return
             if(channel){
