@@ -26,6 +26,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.client = void 0;
 // importing the libs
 const discord_js_1 = __importStar(require("discord.js"));
 const path_1 = __importDefault(require("path"));
@@ -47,6 +48,7 @@ const client = new discord_js_1.default.Client({
         discord_js_1.GatewayIntentBits.GuildMessageReactions
     ]
 });
+exports.client = client;
 // command handling
 client.commands = new discord_js_1.Collection();
 const commandPath = path_1.default.join(__dirname, "commands");
@@ -143,13 +145,13 @@ client.on("interactionCreate", async (interaction) => {
         }
     }
     else if (interaction.isCommand() && interaction.isChatInputCommand()) {
-        const userCMD = cmds.get(interaction.commandName).get(interaction.user.id);
+        const userCMD = cmds.get(interaction.commandName)?.get(interaction.user.id);
         if (userCMD)
             return;
         if (!userCMD) {
-            cmds.get(interaction.commandName).set(interaction.user.id, { username: interaction.user.tag, id: interaction.user.id });
+            cmds.get(interaction.commandName)?.set(interaction.user.id, { username: interaction.user.tag, id: interaction.user.id });
             setTimeout(() => {
-                cmds.get(interaction.commandName).delete(interaction.user.id);
+                cmds.get(interaction.commandName)?.delete(interaction.user.id);
             }, 5000);
         }
         const command = interaction.client.commands.get(interaction.commandName);
@@ -337,15 +339,29 @@ client.on("channelCreate", async (c) => {
         time = time * 1000;
         const channel = c;
         const hostId = `${Date.now()}`;
+        const jlAction = new discord_js_1.ActionRowBuilder()
+            .setComponents(new discord_js_1.ButtonBuilder()
+            .setLabel("join")
+            .setCustomId("join_quizgame_" + hostId)
+            .setStyle(3), new discord_js_1.ButtonBuilder()
+            .setLabel("leave")
+            .setCustomId("leave_quizgame_" + hostId)
+            .setStyle(4));
+        await c.send({
+            components: [jlAction]
+        });
         let msg = await channel.send({
             content: "creating Quiz Game..."
         });
+        const permissions = c.permissionOverwrites;
+        permissions.cache.map(e => {
+            if (e.id === c.guild.roles.everyone.id) {
+                e.deny.add("SendMessages");
+            }
+        });
         await c.edit({
-            name: hostId,
-            permissionOverwrites: [{
-                    id: c.guild.roles.everyone,
-                    deny: ["SendMessages"]
-                }]
+            name: "waiting 🟡",
+            permissionOverwrites: permissions.cache
         });
         try {
             const game = new QuizGame_1.default(channel.guildId, {
@@ -428,7 +444,6 @@ client.on("channelCreate", async (c) => {
     }
 });
 client.on("ready", async (c) => {
-    console.clear();
     console.log(`[${new Date().toLocaleTimeString()}] Discord bot connected as : ${c.user.username}`);
     (0, cmd_1.log)({ text: `connecting to the database`, textColor: "Magenta", timeColor: "Magenta" });
     try {
@@ -441,7 +456,6 @@ client.on("ready", async (c) => {
         const aDate = Date.now();
         const ping = aDate - bDate;
         (0, cmd_1.log)({ text: "Bot started " + ping + "ms", textColor: "Cyan" });
-        // log({text : `${c.guilds.cache.size} servers                  |                  ${membersCount} members                  |                  ${channelsCount} channels`})
         const DcServers = await discordServers_1.default.find();
         let svs = DcServers.map(e => {
             return {

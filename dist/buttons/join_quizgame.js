@@ -125,7 +125,9 @@ module.exports = {
                     embeds: [embed],
                     components: []
                 });
+                const channel = await QuizGame_1.default.getChannel(interaction, hostId);
                 await QuizGame_1.default.start(interaction.guildId, hostId);
+                await channel.edit({ name: "started 🟢" });
                 for (let i = 0; i < game.amount; i++) {
                     const startingEmbed = new discord_js_1.EmbedBuilder()
                         .setAuthor({ name: game.quiz[i].category })
@@ -221,7 +223,6 @@ module.exports = {
                     components: [],
                     embeds: [endEmbed]
                 });
-                const channel = await QuizGame_1.default.getChannel(interaction, hostId);
                 await DiscordServers_1.default.deleteGame(interaction.guildId, hostId);
                 if (game.mainChannel)
                     return;

@@ -22,11 +22,14 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const discord_js_1 = require("discord.js");
-const DiscordServers_1 = __importStar(require("../lib/DiscordServers"));
+const DiscordServers_1 = __importDefault(require("../lib/DiscordServers"));
 const QuizGame_1 = __importStar(require("../lib/QuizGame"));
-const spygame_1 = __importStar(require("../lib/spygame"));
+const spygame_1 = require("../lib/spygame");
 const cmd_1 = require("../lib/cmd");
 module.exports = {
     data: {
@@ -43,8 +46,7 @@ module.exports = {
             return;
         }
         // still under dev :)
-        const server = await (0, DiscordServers_1.getServerByGuildId)(interaction.guildId);
-        const game = await spygame_1.default.findGameByUserId(server.games, interaction.user.id);
+        const game = await QuizGame_1.default.getGameWithUserId(interaction.guildId, interaction.user.id);
         if (!(0, QuizGame_1.isQuizGame)(game)) {
             let tryTxt = "";
             if ((0, spygame_1.isSpyGame)(game)) {

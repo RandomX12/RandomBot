@@ -29,7 +29,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.maxPlayers = exports.amount = exports.deleteGameLog = exports.QuizCategoryImg = exports.categories = exports.regex = exports.rank = exports.getCategoryByNum = exports.isQuizGame = void 0;
+exports.Quiz = exports.QzGame = exports.Game = exports.maxPlayers = exports.amount = exports.deleteGameLog = exports.QuizCategoryImg = exports.categories = exports.regex = exports.rank = exports.getCategoryNumByName = exports.getCategoryByNum = exports.isQuizGame = void 0;
 const DiscordServers_1 = __importStar(require("./DiscordServers"));
 const cmd_1 = require("./cmd");
 function isQuizGame(game) {
@@ -51,6 +51,17 @@ function getCategoryByNum(num) {
     return category;
 }
 exports.getCategoryByNum = getCategoryByNum;
+function getCategoryNumByName(name) {
+    let catName;
+    let cats = exports.categories;
+    Object.keys(exports.categories).map((e) => {
+        if (e === name) {
+            catName = cats[name];
+        }
+    });
+    return catName;
+}
+exports.getCategoryNumByName = getCategoryNumByName;
 exports.rank = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟", "1️⃣1️⃣", "1️⃣2️⃣", "1️⃣3️⃣", "1️⃣4️⃣", "1️⃣5️⃣", "1️⃣6️⃣", "1️⃣7️⃣", "1️⃣8️⃣", "1️⃣9️⃣", "2️⃣0️⃣"];
 exports.regex = /&quot;|&amp;|&#039;|&eacute;|&#039;|&amp;|&quot;|&shy;|&ldquo;|&rdquo;|&#039;|;|&/g;
 exports.categories = {
@@ -142,8 +153,13 @@ class QuizGame {
             throw new Error(`This user is not in game`);
         await server.save();
     }
+    /**
+     * This function will no longer be supported in the futur versions of RandomBot
+     */
     static async getGameWithHostId(guildId, hostId) {
-        const game = await DiscordServers_1.default.getGameByHostId(guildId, hostId);
+        (0, cmd_1.warning)(`This function will no longer be supported in the futur versions of RandomBot`);
+        const game = new QzGame(guildId, hostId);
+        await game.fetch();
         if (!isQuizGame(game))
             throw new Error(`Game With hostId="${hostId}" is not a Quiz Game`);
         return game;
@@ -189,7 +205,7 @@ class QuizGame {
         const server = await (0, DiscordServers_1.getServerByGuildId)(guildId);
         let isGame = false;
         server.games.map((e, i) => {
-            if (e.hostId === e.hostId) {
+            if (e.hostId === hostId) {
                 if (!isQuizGame(e))
                     return;
                 isGame = true;
@@ -309,6 +325,28 @@ class QuizGame {
         }
         throw new Error(`Game with id="${hostId}" not found`);
     }
+    static async getGameWithUserId(guildId, userId) {
+        const server = await (0, DiscordServers_1.getServerByGuildId)(guildId);
+        for (let i = 0; i < server.games.length; i++) {
+            let isIn = false;
+            for (let j = 0; j < server.games[i].players.length; j++) {
+                if (server.games[i].players[j].id === userId) {
+                    isIn = true;
+                    if (server.games[i].name === "Quiz Game") {
+                        const g = new QzGame(guildId, server.games[i].hostId);
+                        g.applyData(server.games[i]);
+                        return g;
+                    }
+                    else {
+                        throw new Error(`This is not a quiz game`);
+                    }
+                }
+            }
+            if (isIn)
+                return;
+        }
+        throw new Error(`Game not found`);
+    }
     constructor(serverId, info, empty) {
         this.serverId = serverId;
         this.info = info;
@@ -331,28 +369,9 @@ class QuizGame {
         if (QuizCatNum === "any") {
             catUrl = "";
         }
-        let amount = this.info.amount;
-        const req = await fetch(`https://opentdb.com/api.php?amount=${amount}&difficulty=easy${catUrl}`);
-        const res = await req.json();
-        let quiz = res.results.map((e) => {
-            let q = e.question.replace(exports.regex, ' ');
-            let c = e.correct_answer.replace(exports.regex, ' ');
-            let ans = e.incorrect_answers.map(ele => {
-                return ele.replace(exports.regex, ' ');
-            });
-            let num = Math.floor(Math.random() * ans.length);
-            let an = ans[num];
-            ans[num] = c;
-            ans.push(an);
-            let t = e.type;
-            return {
-                question: q,
-                answers: ans,
-                correctIndex: num,
-                type: t,
-                category: e.category
-            };
-        });
+        let qz = new Quiz(this.info.category, this.info.amount);
+        await qz.fetch();
+        const quiz = qz.quiz;
         let players = [{ username: this.info.hostName, id: this.info.hostUserId }];
         if (this.empty) {
             players = [];
@@ -376,3 +395,224 @@ __decorate([
     createGameLog()
 ], QuizGame.prototype, "save", null);
 exports.default = QuizGame;
+class Game {
+    static async getGame(guildId, hostId) {
+        const server = await (0, DiscordServers_1.getServerByGuildId)(guildId);
+        for (let i = 0; i < server.games.length; i++) {
+            if (server.games[i].hostId === hostId) {
+                return server.games[i];
+            }
+        }
+        throw new Error(`Game not found with id="${hostId}"`);
+    }
+    static async getGameWithUserId(guildId, userId) {
+        const server = await (0, DiscordServers_1.getServerByGuildId)(guildId);
+        for (let i = 0; i < server.games.length; i++) {
+            let isIn = false;
+            for (let j = 0; j < server.games[i].players.length; j++) {
+                if (server.games[i].players[j].id === userId) {
+                    isIn = true;
+                    if (server.games[i].name === "Quiz Game") {
+                        const g = new QzGame(guildId, server.games[i].hostId);
+                        g.applyData(server.games[i]);
+                        return g;
+                    }
+                    return server.games[i];
+                }
+            }
+            if (isIn)
+                return;
+        }
+        throw new Error(`Game not found`);
+    }
+}
+exports.Game = Game;
+/**
+ * The New Constructor for Quiz Game
+ */
+class QzGame extends Game {
+    /**
+     * New Get game Function
+     * @param guildId Server id
+     * @param hostId game id
+     * @returns new QzGame()
+     */
+    static async getGame(guildId, hostId) {
+        const server = await (0, DiscordServers_1.getServerByGuildId)(guildId);
+        for (let i = 0; server.games.length; i++) {
+            if (server.games[i].hostId === hostId) {
+                if (!isQuizGame(server.games[i]))
+                    throw new Error(`This is not a quiz game`);
+                const game = new QzGame(server.serverId, server.games[i].hostId);
+                game.applyData(server.games[i]);
+                return game;
+            }
+        }
+        throw new Error(`Game with id="${hostId}" not found`);
+    }
+    /**
+     * Get all game data without the methods
+     */
+    get cache() {
+        const cache = this;
+        delete cache.delete;
+        delete cache.applyData;
+        delete cache.fetch;
+        delete cache.update;
+        return cache;
+    }
+    constructor(
+    /**
+     * Server id
+     */
+    guildId, 
+    /**
+     * Game id
+     */
+    hostId) {
+        super();
+        this.guildId = guildId;
+        this.hostId = hostId;
+        /**
+         * Round number of the game.
+         * start from 0
+         */
+        this.index = 0;
+        this.started = false;
+        this.end = false;
+        this.mainChannel = false;
+    }
+    /**
+     * Set the game data.
+     */
+    applyData(game) {
+        this.name = game.name || this.name;
+        this.hostName = game.hostName || this.hostName;
+        this.players = game.players || this.players;
+        this.channelId = game.channelId || this.channelId;
+        this.index = game.index || this.index;
+        this.maxPlayers = game.maxPlayers || this.maxPlayers;
+        this.announcementId = game.announcementId || this.announcementId;
+        this.started = game.started || this.started;
+        this.end = game.end || this.end;
+        this.amount = game.amount || this.amount;
+        this.quiz = game.quiz || this.quiz;
+        this.category = game.category || this.category;
+        this.time = game.time || this.time;
+        this.mainChannel = game.mainChannel || this.mainChannel;
+    }
+    /**
+     * Fetch the game data from the database and update the local props
+     */
+    async fetch() {
+        const game = await Game.getGame(this.guildId, this.hostId);
+        if (!isQuizGame(game))
+            throw new Error("This game is not a quiz game");
+        this.applyData(game);
+    }
+    /**
+     * Save changes in the database
+     */
+    async update() {
+        const server = await (0, DiscordServers_1.getServerByGuildId)(this.guildId);
+        for (let i = 0; i < server.games.length; i++) {
+            if (server.games[i].hostId === this.hostId) {
+                server.games[i] = this.cache;
+                await server.save();
+            }
+        }
+    }
+    /**
+     * Delete the game from the database
+     */
+    async delete(reason) {
+        await DiscordServers_1.default.deleteGame(this.guildId, this.hostId);
+    }
+    /**
+     * set the property started to true and save it in the database
+     */
+    async start() {
+        const server = await (0, DiscordServers_1.getServerByGuildId)(this.guildId);
+        for (let i = 0; i < server.games.length; i++) {
+            if (server.games[i].hostId === this.hostId) {
+                if (!isQuizGame(server.games[i]))
+                    throw new Error(`This game is not Quiz Game`);
+                server.games[i].started = true;
+                await server.save();
+                this.started = true;
+                return;
+            }
+        }
+        throw new Error(`Game with id="${this.hostId}" is not found`);
+    }
+    /**
+     * set the property end to true and save it in the database
+     */
+    async endGame() {
+        const server = await (0, DiscordServers_1.getServerByGuildId)(this.guildId);
+        for (let i = 0; i < server.games.length; i++) {
+            if (server.games[i].hostId === this.hostId) {
+                if (!isQuizGame(server.games[i]))
+                    throw new Error(`This is not a Quiz Game`);
+                server.games[i].end = true;
+                await server.save();
+                this.end = true;
+                return;
+            }
+        }
+        throw new Error(`Game with id="${this.hostId}" is not found`);
+    }
+}
+exports.QzGame = QzGame;
+/**
+ * New Constructor of Quiz.
+ */
+class Quiz {
+    constructor(
+    /**
+     * Name of the category
+     */
+    category, 
+    /**
+     * Number of questions
+     */
+    amount) {
+        this.category = category;
+        this.amount = amount;
+        /**
+         * Number of the category in the API
+         */
+        this.categoryNum = getCategoryNumByName(this.category);
+    }
+    /**
+     * Fetch the quiz from the API
+     */
+    async fetch() {
+        let catUrl = `&category=${this.categoryNum}`;
+        if (this.categoryNum === "any") {
+            catUrl = "";
+        }
+        const req = await fetch(`https://opentdb.com/api.php?amount=${this.amount}&difficulty=easy${catUrl}`);
+        const res = await req.json();
+        this.quiz = res.results.map((e) => {
+            let q = e.question.replace(exports.regex, ' ');
+            let c = e.correct_answer.replace(exports.regex, ' ');
+            let ans = e.incorrect_answers.map(ele => {
+                return ele.replace(exports.regex, ' ');
+            });
+            let num = Math.floor(Math.random() * ans.length);
+            let an = ans[num];
+            ans[num] = c;
+            ans.push(an);
+            let t = e.type;
+            return {
+                question: q,
+                answers: ans,
+                correctIndex: num,
+                type: t,
+                category: e.category
+            };
+        });
+    }
+}
+exports.Quiz = Quiz;

@@ -1,5 +1,5 @@
 // importing the libs
-import Discord, {ActionRowBuilder, ActivityType, AuditLogEvent, ButtonBuilder, ChannelType, Collection,EmbedBuilder,GatewayIntentBits } from "discord.js"
+import Discord, {ActionRowBuilder, ActivityType, Application, AuditLogEvent, ButtonBuilder, ChannelType, Collection,EmbedBuilder,GatewayIntentBits } from "discord.js"
 import path from "path"
 import fs from "fs"
 import { TimeTampNow, error, log, warning } from "./lib/cmd"
@@ -25,6 +25,8 @@ const client = new Discord.Client({
         GatewayIntentBits.GuildMessageReactions
 ]
 })
+export {client}
+
 // command handling
 client.commands = new Collection()
 const commandPath = path.join(__dirname,"commands")
@@ -116,12 +118,12 @@ client.on("interactionCreate",async(interaction)=>{
             error(err.message)
         }
     }else if(interaction.isCommand() && interaction.isChatInputCommand()){
-        const userCMD = cmds.get(interaction.commandName).get(interaction.user.id)
+        const userCMD = cmds.get(interaction.commandName)?.get(interaction.user.id)
         if(userCMD) return
         if(!userCMD){
-            cmds.get(interaction.commandName).set(interaction.user.id,{username : interaction.user.tag,id : interaction.user.id})
+            cmds.get(interaction.commandName)?.set(interaction.user.id,{username : interaction.user.tag,id : interaction.user.id})
             setTimeout(()=>{
-                cmds.get(interaction.commandName).delete(interaction.user.id)
+                cmds.get(interaction.commandName)?.delete(interaction.user.id)
             },5000)
         }
         const command = interaction.client.commands.get(interaction.commandName)
@@ -399,7 +401,6 @@ client.on("channelCreate",async(c)=>{
     }
 })
 client.on("ready",async(c)=>{
-    console.clear()
     console.log(`[${new Date().toLocaleTimeString()}] Discord bot connected as : ${c.user.username}`);
     log({text : `connecting to the database`,textColor : "Magenta",timeColor : "Magenta"})
     try{

@@ -132,7 +132,7 @@ module.exports = {
                 }
                 if (category) {
                     channel = await interaction.guild.channels.create({
-                        name: `${hostId}`,
+                        name: `waiting 🟡`,
                         type: discord_js_1.ChannelType.GuildText,
                         //@ts-ignore
                         parent: category,
@@ -150,7 +150,7 @@ module.exports = {
                     await server.save();
                     if (cat) {
                         channel = await interaction.guild.channels.create({
-                            name: hostId,
+                            name: "waiting 🟡",
                             parent: cat,
                             type: discord_js_1.ChannelType.GuildText,
                             permissionOverwrites: permissions

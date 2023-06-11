@@ -1,6 +1,6 @@
 import { CacheType, ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
-import DiscordServers, { getServerByGuildId } from "../lib/DiscordServers";
-import  QuizGame, { isQuizGame } from "../lib/QuizGame";
+import DiscordServers, { Server, getServerByGuildId } from "../lib/DiscordServers";
+import  QuizGame, { Game, isQuizGame } from "../lib/QuizGame";
 import Spygame, { isSpyGame } from "../lib/spygame";
 import { warning } from "../lib/cmd";
 
@@ -20,8 +20,7 @@ module.exports = {
             return
         }
         // still under dev :)
-        const server = await getServerByGuildId(interaction.guildId)
-        const game = await Spygame.findGameByUserId(server.games,interaction.user.id)
+        const game = await QuizGame.getGameWithUserId(interaction.guildId,interaction.user.id)
         if(!isQuizGame(game)){
             let tryTxt = ""
             if(isSpyGame(game)){

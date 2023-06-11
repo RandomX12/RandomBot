@@ -9,13 +9,19 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getServerByGuildId = void 0;
+exports.Server = exports.fetchServer = exports.getServerByGuildId = void 0;
 const discordServers_1 = __importDefault(require("../model/discordServers"));
 const DiscordServersConfig_1 = __importDefault(require("./DiscordServersConfig"));
 const discordServers_2 = __importDefault(require("../model/discordServers"));
 const cmd_1 = require("./cmd");
 const discordServers_3 = __importDefault(require("../model/discordServers"));
 const QuizGame_1 = require("./QuizGame");
+const __1 = require("..");
+/**
+ * Get the server document from the data base
+ * @param id server id
+ * @returns Server Document
+ */
 async function getServerByGuildId(id) {
     const server = await discordServers_1.default.findOne({ serverId: id });
     if (!server)
@@ -23,6 +29,17 @@ async function getServerByGuildId(id) {
     return server;
 }
 exports.getServerByGuildId = getServerByGuildId;
+/**
+ * Get discord server
+ * @param id server id
+ * @returns new Server()
+ */
+async function fetchServer(id) {
+    const sv = new Server(id);
+    await sv.fetch();
+    return sv;
+}
+exports.fetchServer = fetchServer;
 class DiscordServers {
     static async deleteGuild(id) {
         const server = await getServerByGuildId(id);
@@ -166,3 +183,92 @@ __decorate([
     (0, QuizGame_1.deleteGameLog)()
 ], DiscordServers, "deleteGame", null);
 exports.default = DiscordServers;
+/**
+ * New Constructor for discord server
+ */
+class Server {
+    /**
+     * New Get server function
+     * @param guildId server id
+     * @returns new Server()
+     */
+    static async getServer(guildId) {
+        const server = await getServerByGuildId(guildId);
+        const guild = new Server(server.serverId);
+        guild.applyData(server);
+        return guild;
+    }
+    constructor(serverId) {
+        this.serverId = serverId;
+    }
+    /**
+     * Set the server data.
+     */
+    applyData(data) {
+        this.name = data.name || this.name;
+        this.config = data.config || this.config;
+        this.members = data.members;
+        this.games = data.games || this.games;
+    }
+    /**
+     * fetch the server data from the database
+     */
+    async fetch() {
+        const server = await getServerByGuildId(this.serverId);
+        this.applyData(server);
+    }
+    /**
+     * delete the server
+     */
+    async delete() {
+        await DiscordServers.deleteGuild(this.serverId);
+    }
+    /**
+     * Update the server
+     */
+    async update() {
+        const server = await getServerByGuildId(this.serverId);
+        server.name = this.name;
+        server.config = this.config;
+        server.members = this.members;
+        server.games = this.games;
+        await server.save();
+    }
+    /**
+     * change server config
+     * @param config config of the server
+     */
+    async setConfig(config) {
+        const server = await getServerByGuildId(this.serverId);
+        const c = new DiscordServersConfig_1.default(config);
+        server.config = c.config;
+        await server.save();
+        this.config = c.config;
+        return;
+    }
+    /**
+     * delete all games in this server
+     */
+    async cleanGames() {
+        const server = await getServerByGuildId(this.serverId);
+        server.games = [];
+        await server.save();
+    }
+    /**
+     * Get the number of online member in this server
+     * @returns number of online members
+     */
+    async getOnlineMembersNumber() {
+        let server;
+        __1.client.guilds.cache.map(async (e) => {
+            if (e.id === this.serverId) {
+                server = e;
+            }
+        });
+        if (!server)
+            throw new Error(`server not found`);
+        const sv = await server.fetch();
+        return sv.approximatePresenceCount;
+    }
+}
+exports.Server = Server;

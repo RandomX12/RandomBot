@@ -1,16 +1,31 @@
-import { OAuth2Guild } from "discord.js"
+import { Guild, GuildMember, OAuth2Guild } from "discord.js"
 import ServersModel ,{DiscordServer, Game, Member} from "../model/discordServers"
-import Config from "./DiscordServersConfig"
+import Config, { ConfigT } from "./DiscordServersConfig"
 import { Collection } from "discord.js"
 import discordServers from "../model/discordServers"
 import { error, warning } from "./cmd"
 import  DiscordSv  from "../model/discordServers"
 import { deleteGameLog } from "./QuizGame"
-
+import { client } from ".."
+/**
+ * Get the server document from the data base
+ * @param id server id
+ * @returns Server Document
+ */
 export async function getServerByGuildId(id : string){
     const server =  await ServersModel.findOne({serverId : id})
     if(!server) throw new Error(`Server not found. id=${id}`)
     return server
+}
+/**
+ * Get discord server
+ * @param id server id 
+ * @returns new Server()
+ */
+export async function  fetchServer(id : string) : Promise<Server>{
+    const sv = new Server(id)
+    await sv.fetch()
+    return sv
 }
 
 export default class DiscordServers{
@@ -145,5 +160,100 @@ export default class DiscordServers{
         this.server.config = config.config
         const server = new ServersModel(this.server)
         await server.save()
+    }
+}
+
+
+/**
+ * New Constructor for discord server
+ */
+export class Server implements DiscordServer{
+    /**
+     * New Get server function
+     * @param guildId server id
+     * @returns new Server()
+     */
+    static async getServer(guildId : string){
+        const server = await getServerByGuildId(guildId)
+        const guild = new Server(server.serverId)
+        guild.applyData(server)
+        return guild
+    }
+    /**server name */
+    public name: string;
+    /**server config */
+    public config?: ConfigT;
+    /** server members */
+    public members: Member[]
+    /** */
+    public games: Game[]
+    constructor(public readonly serverId : string){}
+    /**
+     * Set the server data.
+     */
+    applyData(data : Partial<DiscordServer>) : void{
+        this.name = data.name || this.name
+        this.config = data.config || this.config
+        this.members = data.members
+        this.games = data.games || this.games
+    }
+    /**
+     * fetch the server data from the database
+     */
+    async fetch() : Promise<void>{
+        const server = await getServerByGuildId(this.serverId)
+        this.applyData(server)
+    }
+    /**
+     * delete the server
+     */
+    async delete() : Promise<void>{
+        await DiscordServers.deleteGuild(this.serverId)
+    }
+    /**
+     * Update the server
+     */
+    async update() : Promise<void>{
+        const server = await getServerByGuildId(this.serverId)
+        server.name = this.name
+        server.config = this.config
+        server.members = this.members
+        server.games = this.games
+        await server.save()
+    }
+    /**
+     * change server config
+     * @param config config of the server
+     */
+    async setConfig(config : ConfigT) : Promise<void>{
+        const server = await getServerByGuildId(this.serverId)
+        const c = new Config(config)
+        server.config = c.config
+        await server.save()
+        this.config = c.config
+        return
+    }
+    /**
+     * delete all games in this server
+     */
+    async cleanGames() : Promise<void>{
+        const server = await getServerByGuildId(this.serverId)
+        server.games = []
+        await server.save()
+    }
+    /**
+     * Get the number of online member in this server
+     * @returns number of online members
+     */
+    async getOnlineMembersNumber() : Promise<number>{
+        let server : Guild
+        client.guilds.cache.map(async(e)=>{
+            if(e.id === this.serverId){
+                server = e
+            }
+        })
+        if(!server) throw new Error(`server not found`)
+        const sv = await server.fetch()
+        return sv.approximatePresenceCount
     }
 }

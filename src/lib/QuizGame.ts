@@ -1,15 +1,14 @@
 import { ButtonInteraction, CacheType, ChatInputCommandInteraction, GuildTextBasedChannel, Message, User } from "discord.js";
-import { Game, Member } from "../model/discordServers"
-import Qz , { answers, Qs, QuizGame as QuizGameType } from "../model/QuizGame"
+import { Game as GameT, Member } from "../model/discordServers"
+import { answers, Qs, QuizGamePlayer, QuizGame as QuizGameType } from "../model/QuizGame"
 import DiscordServers, { getServerByGuildId } from "./DiscordServers";
-import { isSpyGame } from "./spygame";
-import { log } from "./cmd";
-export function isQuizGame(game : Game) : game is QuizGameType{
+import { log, warning } from "./cmd";
+export function isQuizGame(game : GameT) : game is QuizGameType{
     if(game.name === "Quiz Game"){
         return true
     }
 }
-export function getCategoryByNum(num : CategoriesNum | "any"){
+export function getCategoryByNum<T extends CategoriesNum | "any">(num :T){
     if(num === "any") return "Random"
     let names : QuizCategory[] = Object.keys(categories) as QuizCategory[]
     let category : QuizCategory
@@ -20,17 +19,26 @@ export function getCategoryByNum(num : CategoriesNum | "any"){
     })
     return category
 }
+export function getCategoryNumByName<T extends QuizCategory,R extends typeof categories>(name : T) : R[T] {
+    let catName : R[T]
+    let cats : R = categories as R
+    Object.keys(categories).map((e)=>{
+        if(e === name){
+            catName = cats[name]
+        }
+    })
+    return catName
+}
+
 interface APIresponse{
     results : {category : string,type : answerType,difficulty :"easy",question : string,correct_answer : string,incorrect_answers : string[]}[]
 }
     
 export const rank = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟", "1️⃣1️⃣", "1️⃣2️⃣", "1️⃣3️⃣", "1️⃣4️⃣", "1️⃣5️⃣", "1️⃣6️⃣", "1️⃣7️⃣", "1️⃣8️⃣", "1️⃣9️⃣", "2️⃣0️⃣"];
 export type CategoriesNum = 9 | 15 | 21 | 23 | 22 | 19 | 18 | 27 | 28
-export type QuizCategory = "Random" | "GeneralKnowledge" | "VideoGames" | "Sports" | "History" | "Geography" | "Mathematics" | "Computers" | "Animals" | "Vehicles";
-type Categories = Record<QuizCategory,CategoriesNum | "any">
 export type answerType = "multiple" | "boolean"
 export const regex = /&quot;|&amp;|&#039;|&eacute;|&#039;|&amp;|&quot;|&shy;|&ldquo;|&rdquo;|&#039;|;|&/g 
-export const categories : Categories = {
+export const categories  = {
     Random : "any",
     GeneralKnowledge : 9,
     VideoGames : 15,
@@ -41,7 +49,8 @@ export const categories : Categories = {
     Computers : 18,
     Animals : 27,
     Vehicles : 28,
-}
+} as const
+export type QuizCategory = keyof typeof categories;
 export const QuizCategoryImg : Record<QuizCategory,string> = {
     Random : "https://hips.hearstapps.com/hmg-prod/images/quiz-questions-answers-1669651278.jpg",
     GeneralKnowledge : "https://cdn-icons-png.flaticon.com/512/2762/2762294.png",
@@ -127,14 +136,19 @@ export default class QuizGame{
         if(!isIn) throw new Error(`This user is not in game`)
         await server.save()
     }
+    /**
+     * This function will no longer be supported in the futur versions of RandomBot
+     */
     static async getGameWithHostId(guildId : string,hostId : string){
-        const game = await DiscordServers.getGameByHostId(guildId,hostId)
+        warning(`This function will no longer be supported in the futur versions of RandomBot`)
+        const game = new QzGame(guildId,hostId)
+        await game.fetch()
         if(!isQuizGame(game)) throw new Error(`Game With hostId="${hostId}" is not a Quiz Game`)
         return game
     }
     static async isIn(guildId : string,hostId : string,userId : string) : Promise<boolean>{
         const server = await getServerByGuildId(guildId)
-        let game : Game
+        let game : GameT
         let player : Member
         server.games.map(e=>{
             if(e.hostId === hostId){
@@ -169,7 +183,7 @@ export default class QuizGame{
         const server = await getServerByGuildId(guildId)
         let isGame = false
         server.games.map((e,i)=>{
-            if(e.hostId === e.hostId){
+            if(e.hostId === hostId){
                 if(!isQuizGame(e)) return
                 isGame = true;
                 (server.games[i] as QuizGameType).started = true
@@ -278,6 +292,27 @@ export default class QuizGame{
         }
         throw new Error(`Game with id="${hostId}" not found`)
     }
+    static async getGameWithUserId(guildId : string,userId :string){
+        const server  = await getServerByGuildId(guildId)
+        for(let i = 0;i<server.games.length;i++){
+            let isIn = false
+            for(let j = 0;j< server.games[i].players.length;j++){
+                if(server.games[i].players[j].id === userId){
+                    isIn = true
+                    if(server.games[i].name === "Quiz Game"){
+                        const g = new QzGame(guildId,server.games[i].hostId)
+                        g.applyData(server.games[i])
+                        return g
+                    }else{
+                        throw new Error(`This is not a quiz game`)
+                    }
+                }
+            }
+            if(isIn) return
+        }
+        throw new Error(`Game not found`)
+    }
+
     constructor(public serverId : string,public info : QuizGameInfo,public empty? : boolean){
         if(info.amount < amount[0] || info.amount > amount[1]) throw new Error(`Amount must be between 3 and 10`)
     }
@@ -296,11 +331,268 @@ export default class QuizGame{
         if(QuizCatNum === "any"){
             catUrl = ""
         }
-        let amount = this.info.amount
-        const req = await fetch(`https://opentdb.com/api.php?amount=${amount}&difficulty=easy${catUrl}`)
+        let qz = new Quiz(this.info.category,this.info.amount)
+        await qz.fetch()
+        const quiz = qz.quiz
+        let players = [{username : this.info.hostName,id : this.info.hostUserId}]
+        if(this.empty){
+            players = []
+        }
+        server.games.push({
+            ...this.info,
+            name : "Quiz Game",
+            index : 0,
+            players : players,
+            quiz : quiz,
+            category : this.info.category,
+            amount : this.info.amount,
+            time : this.info.time || 15*1000,
+            hostId : this.info.hostId,
+            hostUserId : this.info.hostUserId
+        } as QuizGameType)
+        await server.save()
+    }
+}
+
+
+export abstract class Game implements GameT{
+    
+    static async getGame(guildId : string,hostId : string){
+        const server = await getServerByGuildId(guildId)
+        for(let i = 0;i<server.games.length;i++){
+            if(server.games[i].hostId === hostId){
+                return server.games[i]
+            }
+        }
+        throw new Error(`Game not found with id="${hostId}"`)
+    }
+    static async getGameWithUserId(guildId : string,userId : string){
+        const server  = await getServerByGuildId(guildId)
+        for(let i = 0;i<server.games.length;i++){
+            let isIn = false
+            for(let j = 0;j< server.games[i].players.length;j++){
+                if(server.games[i].players[j].id === userId){
+                    isIn = true
+                    if(server.games[i].name === "Quiz Game"){
+                        const g = new QzGame(guildId,server.games[i].hostId)
+                        g.applyData(server.games[i])
+                        return g
+                    }
+                    return server.games[i]
+                }
+            }
+            if(isIn) return
+        }
+        throw new Error(`Game not found`)
+    }
+    
+    abstract hostName: string;
+    abstract players?: Member[];
+    abstract channelId: string;
+    abstract name: "Spy Game" | "Quiz Game";
+    abstract hostId: string;
+    abstract guildId : string
+
+    abstract update() :void
+    abstract delete(reason? : string) : void
+}
+
+
+/**
+ * The New Constructor for Quiz Game
+ */
+export class QzGame extends Game implements QuizGameType{
+    /**
+     * New Get game Function
+     * @param guildId Server id
+     * @param hostId game id
+     * @returns new QzGame()
+     */
+    static async getGame(guildId: string, hostId: string): Promise<QzGame> {
+        const server = await getServerByGuildId(guildId)
+        for(let i = 0;server.games.length;i++){
+            if(server.games[i].hostId  === hostId){
+                if(!isQuizGame(server.games[i])) throw new Error(`This is not a quiz game`)
+                const game = new QzGame(server.serverId,server.games[i].hostId)
+                game.applyData(server.games[i])
+                return game
+            }
+        }
+        throw new Error(`Game with id="${hostId}" not found`)
+    }
+    
+    
+    
+    public hostName: string;
+    public name: "Spy Game" | "Quiz Game";
+    public players: QuizGamePlayer[];
+    public channelId: string;
+    /**
+     * Round number of the game.
+     * start from 0
+     */
+    public index : number = 0;
+    /**
+     * id of the user who creates the game
+     */
+    public readonly hostUserId : string;
+    public maxPlayers : number;
+    public announcementId : string;
+    public started : boolean = false;
+    public end : boolean = false;
+    /**
+     * Number of questions in the game
+     */
+    public amount: number;
+    /**
+     * All the questions and the answers 
+     */
+    public quiz: Qs[];
+    public category: QuizCategory;
+    /**
+     * Time for each question
+     */
+    public time?: number;
+    public mainChannel?: boolean = false;
+    /**
+     * Get all game data without the methods
+     */
+    get cache(){
+        const cache = this
+        delete cache.delete
+        delete cache.applyData
+        delete cache.fetch
+        delete cache.update
+        return cache as QuizGameType
+    }
+    constructor(
+    /**
+     * Server id 
+     */
+    public readonly guildId : string,
+    /**
+     * Game id
+     */
+    public readonly hostId : string){super()}
+    /**
+     * Set the game data.
+     */
+    applyData(game : Partial<QuizGameType>){
+        this.name = game.name || this.name
+        this.hostName = game.hostName || this.hostName
+        this.players = game.players ||this.players
+        this.channelId = game.channelId||this.channelId
+        this.index = game.index || this.index
+        this.maxPlayers = game.maxPlayers||this.maxPlayers
+        this.announcementId = game.announcementId||this.announcementId
+        this.started = game.started||this.started
+        this.end = game.end||this.end
+        this.amount = game.amount||this.amount
+        this.quiz = game.quiz||this.quiz
+        this.category = game.category||this.category
+        this.time = game.time||this.time
+        this.mainChannel = game.mainChannel ||this.mainChannel
+    }
+    /**
+     * Fetch the game data from the database and update the local props
+     */
+    async fetch() : Promise<void>{
+        const game = await Game.getGame(this.guildId,this.hostId)
+        if(!isQuizGame(game)) throw new Error("This game is not a quiz game")
+        this.applyData(game)
+    }
+    /**
+     * Save changes in the database
+     */
+    async update(): Promise<void> {
+        const server = await getServerByGuildId(this.guildId)
+        for(let i = 0 ;i<server.games.length;i++){
+            if(server.games[i].hostId === this.hostId){
+                server.games[i] = this.cache
+                await server.save()
+            }
+        }
+    }
+    /**
+     * Delete the game from the database
+     */
+    async delete(reason?: string): Promise<void> {
+        await DiscordServers.deleteGame(this.guildId,this.hostId)
+    }
+    /**
+     * set the property started to true and save it in the database
+     */
+    async start() : Promise<void>{
+        const server = await getServerByGuildId(this.guildId)
+        for(let i = 0;i<server.games.length;i++){
+            if(server.games[i].hostId === this.hostId){
+                if(!isQuizGame(server.games[i])) throw new Error(`This game is not Quiz Game`);
+                (server.games[i] as QuizGameType).started = true
+                await server.save()
+                this.started = true
+                return
+            }
+        }
+        throw new Error(`Game with id="${this.hostId}" is not found`)
+    }
+    /**
+     * set the property end to true and save it in the database
+     */
+    async endGame() : Promise<void>{
+        const server = await getServerByGuildId(this.guildId)
+        for(let i = 0;i<server.games.length;i++){
+            if(server.games[i].hostId === this.hostId){
+                if(!isQuizGame(server.games[i])) throw new Error(`This is not a Quiz Game`);
+                (server.games[i] as QuizGameType).end = true
+                await server.save()
+                this.end = true
+                return
+            }
+        }
+        throw new Error(`Game with id="${this.hostId}" is not found`)
+    }
+}
+
+interface QuizT{
+    category : QuizCategory,
+    amount  : number,
+    quiz : Qs[],
+    fetch : ()=> void,
+    categoryNum : CategoriesNum | 'any'
+}
+
+/**
+ * New Constructor of Quiz.
+ */
+export class Quiz<CategoryT extends QuizCategory> implements QuizT{
+    /**
+     * Quiz body
+     */
+    public quiz: Qs[];
+    /**
+     * Number of the category in the API
+     */
+    public categoryNum = getCategoryNumByName(this.category)
+    constructor(
+    /**
+     * Name of the category
+     */
+    public category : CategoryT,
+    /**
+     * Number of questions
+     */
+    public amount : number){}
+    /**
+     * Fetch the quiz from the API
+     */
+    async fetch() : Promise<void> {
+        let catUrl = `&category=${this.categoryNum}`
+        if(this.categoryNum === "any"){
+            catUrl = ""
+        }
+        const req = await fetch(`https://opentdb.com/api.php?amount=${this.amount}&difficulty=easy${catUrl}`)
         const res : APIresponse = await req.json()
-        let quiz : Qs[] = 
-        res.results.map((e)=>{
+        this.quiz = res.results.map((e)=>{
             let q = e.question.replace(regex,' ')
             let c = e.correct_answer.replace(regex,' ')
             let ans = e.incorrect_answers.map(ele=>{
@@ -319,22 +611,5 @@ export default class QuizGame{
                 category : e.category as QuizCategory
             }
         })
-        let players = [{username : this.info.hostName,id : this.info.hostUserId}]
-        if(this.empty){
-            players = []
-        }
-        server.games.push({
-            ...this.info,
-            name : "Quiz Game",
-            index : 0,
-            players : players,
-            quiz : quiz,
-            category : this.info.category,
-            amount : this.info.amount,
-            time : this.info.time || 15*1000,
-            hostId : this.info.hostId,
-            hostUserId : this.info.hostUserId
-        } as QuizGameType)
-        await server.save()
     }
 }
