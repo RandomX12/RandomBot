@@ -28,7 +28,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.client = void 0;
 // importing the libs
-const discord_js_1 = __importStar(require("discord.js"));
+const discord_js_1 = require("discord.js");
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
 const cmd_1 = require("./lib/cmd");
@@ -37,36 +37,31 @@ const DiscordServers_1 = __importStar(require("./lib/DiscordServers"));
 const discordServers_1 = __importDefault(require("./model/discordServers"));
 const Commands_1 = require("./lib/Commands");
 const QuizGame_1 = __importStar(require("./lib/QuizGame"));
+const Bot_1 = require("./lib/Bot");
+const consoleCmd_1 = __importDefault(require("./lib/consoleCmd"));
+// 
+(0, consoleCmd_1.default)();
 require("dotenv").config();
 // init the discord bot
-const client = new discord_js_1.default.Client({
-    intents: [
-        discord_js_1.GatewayIntentBits.Guilds,
-        discord_js_1.GatewayIntentBits.GuildMessages,
-        discord_js_1.GatewayIntentBits.MessageContent,
-        discord_js_1.GatewayIntentBits.GuildMembers,
-        discord_js_1.GatewayIntentBits.GuildMessageReactions
-    ]
-});
+// const client = new Discord.Client({
+//     intents : [
+//         GatewayIntentBits.Guilds,
+// 		GatewayIntentBits.GuildMessages,
+// 		GatewayIntentBits.MessageContent,
+// 		GatewayIntentBits.GuildMembers,
+//         GatewayIntentBits.GuildMessageReactions
+// ]
+// })
+// export {client}
+const { client, cmds } = Bot_1.Bot;
 exports.client = client;
 // command handling
-client.commands = new discord_js_1.Collection();
-const commandPath = path_1.default.join(__dirname, "commands");
-const commandFiles = fs_1.default.readdirSync(commandPath).filter(file => file.endsWith(".ts") || file.endsWith(".js"));
-let cmds = new Map();
+// client.commands = new Collection()
+// const commandPath = path.join(__dirname,"commands")
+// const commandFiles = fs.readdirSync(commandPath).filter(file=>file.endsWith(".ts") || file.endsWith(".js"))
+// let cmds = new Map<string,Map<string,Member>>()
 setTimeout(() => {
-    for (const file of commandFiles) {
-        const filePath = path_1.default.join(commandPath, file);
-        const command = require(filePath);
-        if ("data" in command && "execute" in command) {
-            client.commands.set(command.data.name, command);
-            cmds.set(command.data.name, new Map());
-            client.application?.commands?.create(command.data);
-        }
-        else {
-            console.log("\x1b[33m", "[warning] : ", "\x1b[37m", `The command at ${filePath} has a missing property.`);
-        }
-    }
+    Bot_1.Bot.scanCommands();
 }, 3000);
 client.buttons = new discord_js_1.Collection();
 const buttonsPath = path_1.default.join(__dirname, "./buttons");
@@ -145,15 +140,9 @@ client.on("interactionCreate", async (interaction) => {
         }
     }
     else if (interaction.isCommand() && interaction.isChatInputCommand()) {
-        const userCMD = cmds.get(interaction.commandName)?.get(interaction.user.id);
-        if (userCMD)
+        let check = Bot_1.Bot.checkRequest(interaction);
+        if (!check)
             return;
-        if (!userCMD) {
-            cmds.get(interaction.commandName)?.set(interaction.user.id, { username: interaction.user.tag, id: interaction.user.id });
-            setTimeout(() => {
-                cmds.get(interaction.commandName)?.delete(interaction.user.id);
-            }, 5000);
-        }
         const command = interaction.client.commands.get(interaction.commandName);
         if (!command) {
             console.log(`\x1b[33m`, `[warning]`, `Command /${interaction.commandName} is not found`);
@@ -444,6 +433,7 @@ client.on("channelCreate", async (c) => {
     }
 });
 client.on("ready", async (c) => {
+    console.clear();
     console.log(`[${new Date().toLocaleTimeString()}] Discord bot connected as : ${c.user.username}`);
     (0, cmd_1.log)({ text: `connecting to the database`, textColor: "Magenta", timeColor: "Magenta" });
     try {
@@ -472,6 +462,9 @@ client.on("ready", async (c) => {
     catch (err) {
         (0, cmd_1.log)({ text: `There was an error while connecting to the database. \n ${err.message}`, textColor: "Red", timeColor: "Red" });
     }
+    setTimeout(() => {
+        console.log(Bot_1.Bot.uptime);
+    }, 1000 * 60);
 });
 let tokenName = "TOKEN";
 const productionMode = require("../config.json").productionMode;
@@ -479,7 +472,8 @@ if (productionMode) {
     (0, cmd_1.log)({ textColor: "Yellow", text: "You are running The bot on production mode", timeColor: "Yellow" });
     tokenName = "TOKEN1";
 }
-client.login(process.env[tokenName]);
+// client.login(process.env[tokenName])
+Bot_1.Bot.lunch();
 // for express server :)
 try {
     const server = require("./server.js");

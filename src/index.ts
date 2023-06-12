@@ -8,6 +8,12 @@ import DiscordServers, { getServerByGuildId } from "./lib/DiscordServers"
 import discordServers, { Member } from "./model/discordServers"
 import { verify } from "./lib/Commands"
 import QuizGame, { QuizCategory, categories ,amount as amountQs, maxPlayers, getCategoryByNum, CategoriesNum} from "./lib/QuizGame"
+import { Bot } from "./lib/Bot"
+import  listenToCmdRunTime, { addRuntimeCMD } from "./lib/consoleCmd"
+
+
+// 
+listenToCmdRunTime()
 require("dotenv").config()
 declare module "discord.js" {
     export interface Client {
@@ -16,34 +22,27 @@ declare module "discord.js" {
     }
     }
 // init the discord bot
-const client = new Discord.Client({
-    intents : [
-        GatewayIntentBits.Guilds,
-		GatewayIntentBits.GuildMessages,
-		GatewayIntentBits.MessageContent,
-		GatewayIntentBits.GuildMembers,
-        GatewayIntentBits.GuildMessageReactions
-]
-})
+// const client = new Discord.Client({
+//     intents : [
+//         GatewayIntentBits.Guilds,
+// 		GatewayIntentBits.GuildMessages,
+// 		GatewayIntentBits.MessageContent,
+// 		GatewayIntentBits.GuildMembers,
+//         GatewayIntentBits.GuildMessageReactions
+// ]
+// })
+// export {client}
+const {client,cmds} = Bot
 export {client}
-
 // command handling
-client.commands = new Collection()
-const commandPath = path.join(__dirname,"commands")
-const commandFiles = fs.readdirSync(commandPath).filter(file=>file.endsWith(".ts") || file.endsWith(".js"))
-let cmds = new Map<string,Map<string,Member>>()
+
+
+// client.commands = new Collection()
+// const commandPath = path.join(__dirname,"commands")
+// const commandFiles = fs.readdirSync(commandPath).filter(file=>file.endsWith(".ts") || file.endsWith(".js"))
+// let cmds = new Map<string,Map<string,Member>>()
 setTimeout(()=>{
-    for(const file of commandFiles){
-        const filePath = path.join(commandPath,file)
-        const command = require(filePath)
-        if("data" in command && "execute" in command){
-            client.commands.set(command.data.name,command)
-            cmds.set(command.data.name,new Map<string,Member>())
-            client.application?.commands?.create(command.data)
-        }else{
-            console.log("\x1b[33m","[warning] : ","\x1b[37m",`The command at ${filePath} has a missing property.`)
-        }
-    }
+    Bot.scanCommands()
 },3000)
 
 
@@ -118,14 +117,8 @@ client.on("interactionCreate",async(interaction)=>{
             error(err.message)
         }
     }else if(interaction.isCommand() && interaction.isChatInputCommand()){
-        const userCMD = cmds.get(interaction.commandName)?.get(interaction.user.id)
-        if(userCMD) return
-        if(!userCMD){
-            cmds.get(interaction.commandName)?.set(interaction.user.id,{username : interaction.user.tag,id : interaction.user.id})
-            setTimeout(()=>{
-                cmds.get(interaction.commandName)?.delete(interaction.user.id)
-            },5000)
-        }
+        let check = Bot.checkRequest(interaction)
+        if(!check) return
         const command = interaction.client.commands.get(interaction.commandName)
         if(!command){
             console.log(`\x1b[33m`,`[warning]`,`Command /${interaction.commandName} is not found`);
@@ -401,6 +394,7 @@ client.on("channelCreate",async(c)=>{
     }
 })
 client.on("ready",async(c)=>{
+    console.clear();
     console.log(`[${new Date().toLocaleTimeString()}] Discord bot connected as : ${c.user.username}`);
     log({text : `connecting to the database`,textColor : "Magenta",timeColor : "Magenta"})
     try{
@@ -429,6 +423,9 @@ client.on("ready",async(c)=>{
     catch(err : any){
         log({text : `There was an error while connecting to the database. \n ${err.message}`,textColor : "Red",timeColor : "Red"})
     }
+    setTimeout(()=>{
+        console.log(Bot.uptime);
+    },1000*60)
 })
 let tokenName = "TOKEN"
 const productionMode = require("../config.json").productionMode
@@ -436,7 +433,9 @@ if(productionMode){
     log({textColor : "Yellow",text : "You are running The bot on production mode",timeColor : "Yellow"})
     tokenName = "TOKEN1"
 }
-client.login(process.env[tokenName])
+// client.login(process.env[tokenName])
+Bot.lunch()
+
 // for express server :)
 try{
     const server = require("./server.js")
