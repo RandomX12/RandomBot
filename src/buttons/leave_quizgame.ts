@@ -1,7 +1,7 @@
 import { ButtonInteraction, CacheType, EmbedBuilder } from "discord.js";
 import DiscordServers, { getServerByGuildId } from "../lib/DiscordServers";
 import QuizGame, { isQuizGame } from "../lib/QuizGame";
-import { warning } from "../lib/cmd";
+import { error, warning } from "../lib/cmd";
 
 
 module.exports = {
@@ -44,19 +44,27 @@ module.exports = {
         const announcement = interaction.channel.messages.cache.get(gameUpdate.announcementId)
         if(game.started) {
             if(gameUpdate.players.length === 0){
+                await DiscordServers.deleteGame(interaction.guildId,gameUpdate.hostId)
                 if(announcement){
                     const deleteEmbed = new EmbedBuilder()
                     .setTitle("No one else in the game ❌")
                     .setFooter({text : "Game Deleted"})
                     .setAuthor({name : "Quiz Game"})
-                    await DiscordServers.deleteGame(interaction.guildId,gameUpdate.hostId)
                     await announcement.edit({
                         embeds : [deleteEmbed],
                         components : [],
                         content : ""
                     })
-                }else{
-                    await DiscordServers.deleteGame(interaction.guildId,gameUpdate.hostId)
+                }
+                if(!game.mainChannel){
+                    await announcement.channel.edit({name : "Game end 🔴"})
+                    setTimeout(async()=>{
+                        try{
+                            await announcement.channel.delete()
+                        }catch(err : any){
+                            warning(err.message)
+                        }
+                    },1000*10)
                 }
             }
         return

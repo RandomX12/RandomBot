@@ -67,20 +67,28 @@ module.exports = {
         const announcement = interaction.channel.messages.cache.get(gameUpdate.announcementId);
         if (game.started) {
             if (gameUpdate.players.length === 0) {
+                await DiscordServers_1.default.deleteGame(interaction.guildId, gameUpdate.hostId);
                 if (announcement) {
                     const deleteEmbed = new discord_js_1.EmbedBuilder()
                         .setTitle("No one else in the game ❌")
                         .setFooter({ text: "Game Deleted" })
                         .setAuthor({ name: "Quiz Game" });
-                    await DiscordServers_1.default.deleteGame(interaction.guildId, gameUpdate.hostId);
                     await announcement.edit({
                         embeds: [deleteEmbed],
                         components: [],
                         content: ""
                     });
                 }
-                else {
-                    await DiscordServers_1.default.deleteGame(interaction.guildId, gameUpdate.hostId);
+                if (!game.mainChannel) {
+                    await announcement.channel.edit({ name: "Game end 🔴" });
+                    setTimeout(async () => {
+                        try {
+                            await announcement.channel.delete();
+                        }
+                        catch (err) {
+                            (0, cmd_1.warning)(err.message);
+                        }
+                    }, 1000 * 10);
                 }
             }
             return;

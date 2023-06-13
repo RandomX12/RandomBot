@@ -98,6 +98,7 @@ export function deleteGameLog(){
 
 export const amount = [3,10] 
 export const maxPlayers = [2,20]
+export const maxGames = 15
 export default class QuizGame{
     
     static async join(guildId : string,hostId : string,user : User){
@@ -348,7 +349,7 @@ export default class QuizGame{
             amount : this.info.amount,
             time : this.info.time || 15*1000,
             hostId : this.info.hostId,
-            hostUserId : this.info.hostUserId
+            hostUserId : this.info.hostUserId,
         } as QuizGameType)
         await server.save()
     }

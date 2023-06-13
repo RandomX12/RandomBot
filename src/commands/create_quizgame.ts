@@ -1,5 +1,5 @@
 import { ActionRowBuilder, ApplicationCommandDataResolvable, ApplicationCommandOptionType, ButtonBuilder, CacheType, ChannelType, ChatInputCommandInteraction, EmbedBuilder, GuildTextBasedChannel, OverwriteResolvable, PermissionOverwrites, TextChannel } from "discord.js"
-import QuizGame , { categories, getCategoryByNum,CategoriesNum } from "../lib/QuizGame"
+import QuizGame , { categories, getCategoryByNum,CategoriesNum, maxGames } from "../lib/QuizGame"
 import DiscordServers, { getServerByGuildId } from "../lib/DiscordServers"
 import { TimeTampNow, error, warning } from "../lib/cmd"
 import { PermissionsBitField } from "discord.js"
@@ -86,6 +86,12 @@ module.exports = {
         const maxPlayers = interaction.options.getNumber("max_players")
         let time = interaction.options.getNumber("time")
         const server = await getServerByGuildId(interaction.guildId)
+        if(server.games.length >= maxGames) {
+            await interaction.editReply({
+                content : `Cannot create the game :x:\nThis server has reached the maximum number of games ${maxGames}.`,
+            })
+            return
+        }
         const hostId = `${Date.now()}`
         let channel : TextChannel | GuildTextBasedChannel
         if(server.config.quiz?.multiple_channels){
@@ -174,7 +180,7 @@ module.exports = {
         let msg = await channel.send({
             content : "creating Quiz Game..."
         })
-        
+
         try{
             const game = new QuizGame(interaction.guildId,{
                 hostName : interaction.user.tag,
@@ -187,7 +193,8 @@ module.exports = {
                 amount : amount,
                 time : time || 30*1000,
                 mainChannel : mainChannel
-            })
+            },true)
+            
             await game.save()
         }
         catch(err : any){
@@ -207,7 +214,7 @@ module.exports = {
         .setTitle(`Quiz Game`)
         .setThumbnail("https://hips.hearstapps.com/hmg-prod/images/quiz-questions-answers-1669651278.jpg")
         .addFields({name : `Info`,value : `Category : **${getCategoryByNum(+category as CategoriesNum || category as "any")}** \nAmount : **${amount}** \ntime : **${time / 1000 + " seconds" || "30 seconds"}** \nMax players : **${maxPlayers}**`})
-        .setAuthor({name : `Waiting for the players... 1 / ${maxPlayers}`})
+        .setAuthor({name : `Waiting for the players... 0 / ${maxPlayers}`})
         .setTimestamp(Date.now())
         .setFooter({text : `id : ${hostId}`})
         const button = new ButtonBuilder()

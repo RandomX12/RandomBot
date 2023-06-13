@@ -4,10 +4,10 @@ import path from "path"
 import fs from "fs"
 import { TimeTampNow, error, log, warning } from "./lib/cmd"
 import { connectDB } from "./lib/connectDB"
-import DiscordServers, { getServerByGuildId } from "./lib/DiscordServers"
+import DiscordServers, { fetchServer, getServerByGuildId } from "./lib/DiscordServers"
 import discordServers, { Member } from "./model/discordServers"
 import { verify } from "./lib/Commands"
-import QuizGame, { QuizCategory, categories ,amount as amountQs, maxPlayers, getCategoryByNum, CategoriesNum} from "./lib/QuizGame"
+import QuizGame, { QuizCategory, categories ,amount as amountQs, maxPlayers, getCategoryByNum, CategoriesNum, maxGames} from "./lib/QuizGame"
 import { Bot } from "./lib/Bot"
 import  listenToCmdRunTime, { addRuntimeCMD } from "./lib/consoleCmd"
 
@@ -117,8 +117,8 @@ client.on("interactionCreate",async(interaction)=>{
             error(err.message)
         }
     }else if(interaction.isCommand() && interaction.isChatInputCommand()){
-        let check = Bot.checkRequest(interaction)
-        if(!check) return
+        // let check = Bot.checkRequest(interaction)
+        // if(!check) return
         const command = interaction.client.commands.get(interaction.commandName)
         if(!command){
             console.log(`\x1b[33m`,`[warning]`,`Command /${interaction.commandName} is not found`);
@@ -287,6 +287,13 @@ client.on("channelCreate",async(c)=>{
         time = time * 1000
         const channel = c
         const hostId = `${Date.now()}`
+        const server = await fetchServer(channel.guildId)
+        if(server.games.length >= maxGames){
+            await channel.send({
+                content : `Cannot create the game :x:\nThis server has reached the maximum number of games ${maxGames}.`
+            })
+            return
+        }
         const jlAction : any = new ActionRowBuilder()
             .setComponents(
                 new ButtonBuilder()

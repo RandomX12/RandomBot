@@ -79,6 +79,7 @@ module.exports = {
                         content: ""
                     });
                     if (!gameUpdate.mainChannel) {
+                        await announcement.channel.edit({ name: "Game end 🔴" });
                         setTimeout(async () => {
                             try {
                                 await announcement.channel.delete();

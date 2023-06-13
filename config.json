@@ -12,7 +12,8 @@
         "leave_quizgame" : true,
         "delete_quizgame" : true,
         "delete_all" : true,
-        "help" : true
+        "help" : true,
+        "games" : true
     },
     "info" : {
         "website" : "http://localhost:3000",

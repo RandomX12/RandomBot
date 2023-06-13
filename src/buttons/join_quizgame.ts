@@ -105,7 +105,9 @@ module.exports = {
             
                 const channel = await QuizGame.getChannel(interaction,hostId)    
                 await QuizGame.start(interaction.guildId,hostId)
-                await channel.edit({name : "started 🟢"}) 
+                if(!game.mainChannel){
+                    await channel.edit({name : "started 🟢"}) 
+                }
                 for(let i = 0;i<game.amount;i++){
                 const startingEmbed = new EmbedBuilder()
                 .setAuthor({name : game.quiz[i].category})
@@ -179,7 +181,7 @@ module.exports = {
             const gameUpdate = await QuizGame.getGameWithHostId(interaction.guildId,hostId)
             const endEmbed = new EmbedBuilder()
             .setTitle(`Quiz Game`)
-            .setAuthor({name : "Game end"})
+            .setAuthor({name : "Game end 🔴"})
             let playersScore = ""
             let players = gameUpdate.players
             let rankedPlayers = []
@@ -212,10 +214,6 @@ module.exports = {
             await DiscordServers.deleteGame(interaction.guildId,hostId)
             if(game.mainChannel) return
             if(channel){
-                await channel.edit({name : "game end",type : ChannelType.GuildText,permissionOverwrites : [{
-                    id : interaction.guild.roles.everyone,
-                    deny : []
-                }]}) 
                 setTimeout(async()=>{
                     try{
                         await channel.delete()
@@ -224,24 +222,37 @@ module.exports = {
                         warning(err.message)
                     }
                 },20*1000)
+                await channel.edit({name : "game end 🔴",type : ChannelType.GuildText,permissionOverwrites : [{
+                    id : interaction.guild.roles.everyone,
+                    deny : []
+                }]}) 
+                
             }    
         }
             catch(err : any){
                 try{
                     const announcement = await QuizGame.getAnnouncement(interaction,interaction.guildId,hostId)
-                    if(server.config.quiz.multiple_channels){
+                    await DiscordServers.deleteGame(interaction.guildId,hostId)
+                    error(err?.message)
+                    await announcement.edit({
+                        content : "an error occured while starting the game :x:\nThe game is deleted",
+                    })
+                    if(!game.mainChannel){
                         if(announcement){
-                            await announcement.channel.delete()
+                            setTimeout(async()=>{
+                                try{
+                                await announcement.channel.delete()
+                                }
+                                catch(err : any){
+                                    warning(`An error occured while deleting the game channel`)
+                                }
+                            },1000*10)
                         }
-                    }else{
-                        await announcement?.delete()
                     }
                 }
                 catch(err : any){
-                    warning(err.message)
+                    warning(err?.message)
                 }
-                await DiscordServers.deleteGame(interaction.guildId,hostId)
-                error(err?.message)
             }
         }
     }

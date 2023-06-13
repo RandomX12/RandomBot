@@ -140,9 +140,8 @@ client.on("interactionCreate", async (interaction) => {
         }
     }
     else if (interaction.isCommand() && interaction.isChatInputCommand()) {
-        let check = Bot_1.Bot.checkRequest(interaction);
-        if (!check)
-            return;
+        // let check = Bot.checkRequest(interaction)
+        // if(!check) return
         const command = interaction.client.commands.get(interaction.commandName);
         if (!command) {
             console.log(`\x1b[33m`, `[warning]`, `Command /${interaction.commandName} is not found`);
@@ -328,6 +327,13 @@ client.on("channelCreate", async (c) => {
         time = time * 1000;
         const channel = c;
         const hostId = `${Date.now()}`;
+        const server = await (0, DiscordServers_1.fetchServer)(channel.guildId);
+        if (server.games.length >= QuizGame_1.maxGames) {
+            await channel.send({
+                content: `Cannot create the game :x:\nThis server has reached the maximum number of games ${QuizGame_1.maxGames}.`
+            });
+            return;
+        }
         const jlAction = new discord_js_1.ActionRowBuilder()
             .setComponents(new discord_js_1.ButtonBuilder()
             .setLabel("join")

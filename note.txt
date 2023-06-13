@@ -1,0 +1,15 @@
+// update 1.0.0@beta2V
+
+- fix game end
+- fix game channel not deleting
+- add new slash cmd "/games" to liste all the games in the server
+- set limit to quiz game number
+
+// update 1.0.0@beta3V
+
+fix uptime runtime command
+add new slash command "/loop" create multiple games in the same time
+add methods to Bot constructor (setActivity ,....)
+add new runtime commands
+add code line in warning function (in Cmd.ts)
+...

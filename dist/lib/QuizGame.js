@@ -29,7 +29,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Quiz = exports.QzGame = exports.Game = exports.maxPlayers = exports.amount = exports.deleteGameLog = exports.QuizCategoryImg = exports.categories = exports.regex = exports.rank = exports.getCategoryNumByName = exports.getCategoryByNum = exports.isQuizGame = void 0;
+exports.Quiz = exports.QzGame = exports.Game = exports.maxGames = exports.maxPlayers = exports.amount = exports.deleteGameLog = exports.QuizCategoryImg = exports.categories = exports.regex = exports.rank = exports.getCategoryNumByName = exports.getCategoryByNum = exports.isQuizGame = void 0;
 const DiscordServers_1 = __importStar(require("./DiscordServers"));
 const cmd_1 = require("./cmd");
 function isQuizGame(game) {
@@ -110,6 +110,7 @@ function deleteGameLog() {
 exports.deleteGameLog = deleteGameLog;
 exports.amount = [3, 10];
 exports.maxPlayers = [2, 20];
+exports.maxGames = 15;
 class QuizGame {
     static async join(guildId, hostId, user) {
         const server = await (0, DiscordServers_1.getServerByGuildId)(guildId);
@@ -386,7 +387,7 @@ class QuizGame {
             amount: this.info.amount,
             time: this.info.time || 15 * 1000,
             hostId: this.info.hostId,
-            hostUserId: this.info.hostUserId
+            hostUserId: this.info.hostUserId,
         });
         await server.save();
     }

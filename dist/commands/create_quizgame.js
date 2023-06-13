@@ -109,6 +109,12 @@ module.exports = {
         const maxPlayers = interaction.options.getNumber("max_players");
         let time = interaction.options.getNumber("time");
         const server = await (0, DiscordServers_1.getServerByGuildId)(interaction.guildId);
+        if (server.games.length >= QuizGame_1.maxGames) {
+            await interaction.editReply({
+                content: `Cannot create the game :x:\nThis server has reached the maximum number of games ${QuizGame_1.maxGames}.`,
+            });
+            return;
+        }
         const hostId = `${Date.now()}`;
         let channel;
         if (server.config.quiz?.multiple_channels) {
@@ -208,7 +214,7 @@ module.exports = {
                 amount: amount,
                 time: time || 30 * 1000,
                 mainChannel: mainChannel
-            });
+            }, true);
             await game.save();
         }
         catch (err) {
@@ -227,7 +233,7 @@ module.exports = {
             .setTitle(`Quiz Game`)
             .setThumbnail("https://hips.hearstapps.com/hmg-prod/images/quiz-questions-answers-1669651278.jpg")
             .addFields({ name: `Info`, value: `Category : **${(0, QuizGame_1.getCategoryByNum)(+category || category)}** \nAmount : **${amount}** \ntime : **${time / 1000 + " seconds" || "30 seconds"}** \nMax players : **${maxPlayers}**` })
-            .setAuthor({ name: `Waiting for the players... 1 / ${maxPlayers}` })
+            .setAuthor({ name: `Waiting for the players... 0 / ${maxPlayers}` })
             .setTimestamp(Date.now())
             .setFooter({ text: `id : ${hostId}` });
         const button = new discord_js_1.ButtonBuilder()

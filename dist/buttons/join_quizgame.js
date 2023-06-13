@@ -127,7 +127,9 @@ module.exports = {
                 });
                 const channel = await QuizGame_1.default.getChannel(interaction, hostId);
                 await QuizGame_1.default.start(interaction.guildId, hostId);
-                await channel.edit({ name: "started 🟢" });
+                if (!game.mainChannel) {
+                    await channel.edit({ name: "started 🟢" });
+                }
                 for (let i = 0; i < game.amount; i++) {
                     const startingEmbed = new discord_js_1.EmbedBuilder()
                         .setAuthor({ name: game.quiz[i].category })
@@ -194,7 +196,7 @@ module.exports = {
                 const gameUpdate = await QuizGame_1.default.getGameWithHostId(interaction.guildId, hostId);
                 const endEmbed = new discord_js_1.EmbedBuilder()
                     .setTitle(`Quiz Game`)
-                    .setAuthor({ name: "Game end" });
+                    .setAuthor({ name: "Game end 🔴" });
                 let playersScore = "";
                 let players = gameUpdate.players;
                 let rankedPlayers = [];
@@ -227,10 +229,6 @@ module.exports = {
                 if (game.mainChannel)
                     return;
                 if (channel) {
-                    await channel.edit({ name: "game end", type: discord_js_1.ChannelType.GuildText, permissionOverwrites: [{
-                                id: interaction.guild.roles.everyone,
-                                deny: []
-                            }] });
                     setTimeout(async () => {
                         try {
                             await channel.delete();
@@ -239,25 +237,36 @@ module.exports = {
                             (0, cmd_1.warning)(err.message);
                         }
                     }, 20 * 1000);
+                    await channel.edit({ name: "game end 🔴", type: discord_js_1.ChannelType.GuildText, permissionOverwrites: [{
+                                id: interaction.guild.roles.everyone,
+                                deny: []
+                            }] });
                 }
             }
             catch (err) {
                 try {
                     const announcement = await QuizGame_1.default.getAnnouncement(interaction, interaction.guildId, hostId);
-                    if (server.config.quiz.multiple_channels) {
+                    await DiscordServers_1.default.deleteGame(interaction.guildId, hostId);
+                    (0, cmd_1.error)(err?.message);
+                    await announcement.edit({
+                        content: "an error occured while starting the game :x:\nThe game is deleted",
+                    });
+                    if (!game.mainChannel) {
                         if (announcement) {
-                            await announcement.channel.delete();
+                            setTimeout(async () => {
+                                try {
+                                    await announcement.channel.delete();
+                                }
+                                catch (err) {
+                                    (0, cmd_1.warning)(`An error occured while deleting the game channel`);
+                                }
+                            }, 1000 * 10);
                         }
-                    }
-                    else {
-                        await announcement?.delete();
                     }
                 }
                 catch (err) {
-                    (0, cmd_1.warning)(err.message);
+                    (0, cmd_1.warning)(err?.message);
                 }
-                await DiscordServers_1.default.deleteGame(interaction.guildId, hostId);
-                (0, cmd_1.error)(err?.message);
             }
         }
     }
