@@ -117,8 +117,8 @@ client.on("interactionCreate",async(interaction)=>{
             error(err.message)
         }
     }else if(interaction.isCommand() && interaction.isChatInputCommand()){
-        // let check = Bot.checkRequest(interaction)
-        // if(!check) return
+        let check = Bot.checkRequest(interaction)
+        if(!check) return
         const command = interaction.client.commands.get(interaction.commandName)
         if(!command){
             console.log(`\x1b[33m`,`[warning]`,`Command /${interaction.commandName} is not found`);

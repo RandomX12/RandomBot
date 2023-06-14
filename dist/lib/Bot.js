@@ -35,7 +35,7 @@ class Bot {
      * Scan command and button folder and save the commands
      * @note also create / command for the new commands
      */
-    static scanCommands() {
+    static async scanCommands() {
         this.client.commands = new discord_js_1.Collection();
         const commandPath = path_1.default.join(__dirname + "/..", "commands");
         const commandFiles = fs_1.default.readdirSync(commandPath).filter(file => file.endsWith(".ts") || file.endsWith(".js"));
@@ -45,7 +45,7 @@ class Bot {
             if ("data" in command && "execute" in command) {
                 this.client.commands.set(command.data.name, command);
                 this.cmds.set(command.data.name, new Map());
-                this.client.application?.commands?.create(command.data);
+                await this.client.application?.commands?.create(command.data);
             }
             else {
                 console.log("\x1b[33m", "[warning] : ", "\x1b[37m", `The command at ${filePath} has a missing property.`);
@@ -55,8 +55,8 @@ class Bot {
     /**
      * Delete All the commands
      */
-    static clearCommands() {
-        this.client.application?.commands?.set([]);
+    static async clearCommands() {
+        await this.client.application?.commands?.set([]);
     }
     /**
      * You can use this function to protect the bot from the spam
@@ -75,12 +75,12 @@ class Bot {
         }
     }
     static get uptime() {
-        let sec = +(this.client.uptime / 1000).toFixed(0);
-        let min = +(sec / 60).toFixed(0);
-        let hours = +(min / 60).toFixed(0);
-        min = Math.abs(hours * 60 - min);
-        sec = Math.abs(min * 60 - sec);
-        return `${hours}h ${min}m ${sec}s`;
+        let uptime = this.client.uptime;
+        let days = toInt(uptime / (1000 * 60 * 60 * 24));
+        let hours = toInt((uptime / (1000 * 60 * 60)) - days * 24);
+        let min = toInt(uptime / (1000 * 60) - (hours * 60 + days * 24 * 60));
+        let sec = +(uptime / 1000 - (days * 24 * 60 * 60 + hours * 60 * 60 + min * 60)).toFixed(0);
+        return `${days}d ${hours}h ${min}m ${sec}s`;
     }
     static get stats() {
         const guildsSize = this.client.guilds.cache.size;
@@ -105,3 +105,6 @@ Bot.client = new discord_js_2.default.Client({
     ]
 });
 exports.Bot = Bot;
+function toInt(num) {
+    return +num.toString().split(".")[0];
+}

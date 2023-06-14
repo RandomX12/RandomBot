@@ -63,7 +63,7 @@ export abstract class Bot{
      * Scan command and button folder and save the commands
      * @note also create / command for the new commands
      */
-    static scanCommands(){
+    static async scanCommands(){
         this.client.commands = new Collection()
         const commandPath = path.join(__dirname+"/..","commands")
         const commandFiles = fs.readdirSync(commandPath).filter(file=>file.endsWith(".ts") || file.endsWith(".js"))
@@ -73,7 +73,7 @@ export abstract class Bot{
             if("data" in command && "execute" in command){
                 this.client.commands.set(command.data.name,command)
                 this.cmds.set(command.data.name,new Map<string,Member>())
-                this.client.application?.commands?.create(command.data)
+                await this.client.application?.commands?.create(command.data)
             }else{
                 console.log("\x1b[33m","[warning] : ","\x1b[37m",`The command at ${filePath} has a missing property.`)
             }
@@ -82,8 +82,8 @@ export abstract class Bot{
     /**
      * Delete All the commands
      */
-    static clearCommands(){
-        this.client.application?.commands?.set([])
+    static async clearCommands(){
+        await this.client.application?.commands?.set([])
     }
     /**
      * You can use this function to protect the bot from the spam
@@ -101,12 +101,12 @@ export abstract class Bot{
         }
     }
     static get uptime(){
-        let sec = +(this.client.uptime / 1000).toFixed(0)
-        let min = +(sec / 60).toFixed(0)
-        let hours = +(min / 60).toFixed(0)
-        min = Math.abs(hours * 60 - min)
-        sec  = Math.abs(min * 60 - sec)
-        return `${hours}h ${min}m ${sec}s`
+        let uptime = this.client.uptime
+        let days = toInt(uptime / (1000 * 60 * 60 * 24))
+        let hours = toInt((uptime / ( 1000 * 60 * 60)) - days * 24)
+        let min = toInt(uptime / (1000 * 60) - (hours * 60 + days * 24 * 60))
+        let sec = +(uptime / 1000 - (days * 24 * 60 * 60 + hours * 60 * 60 + min * 60)).toFixed(0)
+        return `${days}d ${hours}h ${min}m ${sec}s`
     }
     static get stats(){
         const guildsSize = this.client.guilds.cache.size
@@ -116,4 +116,8 @@ export abstract class Bot{
             members
         }
     }
+}
+
+function toInt(num : number){
+    return +num.toString().split(".")[0]
 }
