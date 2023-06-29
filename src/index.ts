@@ -2,7 +2,7 @@
 import Discord, {ActionRowBuilder, ActivityType, Application, AuditLogEvent, ButtonBuilder, ChannelType, Collection,EmbedBuilder,GatewayIntentBits } from "discord.js"
 import path from "path"
 import fs from "fs"
-import { TimeTampNow, error, log, warning } from "./lib/cmd"
+import { TimeTampNow, animateRotatingSlash, error, log, warning } from "./lib/cmd"
 import { connectDB } from "./lib/connectDB"
 import DiscordServers, { fetchServer, getServerByGuildId } from "./lib/DiscordServers"
 import discordServers, { Member } from "./model/discordServers"
@@ -41,9 +41,6 @@ export {client}
 // const commandPath = path.join(__dirname,"commands")
 // const commandFiles = fs.readdirSync(commandPath).filter(file=>file.endsWith(".ts") || file.endsWith(".js"))
 // let cmds = new Map<string,Map<string,Member>>()
-setTimeout(()=>{
-    Bot.scanCommands()
-},3000)
 
 
 client.buttons = new Collection()
@@ -401,11 +398,19 @@ client.on("channelCreate",async(c)=>{
     }
 })
 client.on("ready",async(c)=>{
-    console.clear();
-    console.log(`[${new Date().toLocaleTimeString()}] Discord bot connected as : ${c.user.username}`);
-    log({text : `connecting to the database`,textColor : "Magenta",timeColor : "Magenta"})
     try{
         const bDate = Date.now()
+        console.clear();
+        let scan = require("../config.json").scanSlashCommands
+        if(scan){
+            let ws = animateRotatingSlash("Scanning commands...")
+            await Bot.scanCommands()
+            clearInterval(ws)
+            console.log("\ncommands scanned successfully");
+        }
+        scan = null
+        console.log(`[${new Date().toLocaleTimeString()}] Discord bot connected as : ${c.user.username}`);
+        log({text : `connecting to the database`,textColor : "Magenta",timeColor : "Magenta"})
         await connectDB()
         log({text : `successfully connected to the database`,textColor : "Green",timeColor : "Green"})
         let guilds = await c.guilds.fetch()
@@ -430,9 +435,6 @@ client.on("ready",async(c)=>{
     catch(err : any){
         log({text : `There was an error while connecting to the database. \n ${err.message}`,textColor : "Red",timeColor : "Red"})
     }
-    setTimeout(()=>{
-        console.log(Bot.uptime);
-    },1000*60)
 })
 let tokenName = "TOKEN"
 const productionMode = require("../config.json").productionMode

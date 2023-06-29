@@ -9,6 +9,8 @@ exports.addSpecialWord = exports.addRuntimeCMD = exports.exe = void 0;
 const readline_1 = __importDefault(require("readline"));
 const Bot_1 = require("./Bot");
 const cmd_1 = require("./cmd");
+const discordServers_1 = __importDefault(require("../model/discordServers"));
+const DiscordServers_1 = __importDefault(require("./DiscordServers"));
 let commands = [];
 let rl = readline_1.default.createInterface({
     input: process.stdin,
@@ -116,4 +118,41 @@ addRuntimeCMD({
         console.clear();
     },
     type: "SYNC"
+});
+addRuntimeCMD({
+    input: "table",
+    type: "ASYNC",
+    loadingTxt: "Fetching Info...",
+    finishTxt: "table fetched",
+    async fn() {
+        const server = await discordServers_1.default.find();
+        const tableInfo = server.map((e) => {
+            return {
+                name: e.name,
+                membersLenght: e.members.length,
+                guildId: e.serverId,
+                id: e.id,
+                __v: e.__v
+            };
+        });
+        console.table(tableInfo);
+    },
+});
+addRuntimeCMD({
+    input: "shut-down",
+    type: "SYNC",
+    fn() {
+        console.log("Do you really want to shut down the bot");
+        process.stdout.write("This will make the bot offline and delete all the existing games and commands (y / n ) : ");
+        rl.once("line", async (input) => {
+            if (input !== "y")
+                return;
+            let wt = (0, cmd_1.animateRotatingSlash)("shutting down the bot...");
+            await DiscordServers_1.default.cleanGuilds();
+            await Bot_1.Bot.clearCommands();
+            clearInterval(wt);
+            (0, cmd_1.log)({ textColor: "Cyan", text: "\nserver offline" });
+            process.exit(0);
+        });
+    },
 });

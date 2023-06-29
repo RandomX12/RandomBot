@@ -29,7 +29,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Quiz = exports.QzGame = exports.Game = exports.maxGames = exports.maxPlayers = exports.amount = exports.deleteGameLog = exports.QuizCategoryImg = exports.categories = exports.regex = exports.rank = exports.getCategoryNumByName = exports.getCategoryByNum = exports.isQuizGame = void 0;
+exports.Quiz = exports.stop = exports.QzGame = exports.Game = exports.maxGames = exports.maxPlayers = exports.amount = exports.deleteGameLog = exports.QuizCategoryImg = exports.categories = exports.regex = exports.rank = exports.getCategoryNumByName = exports.getCategoryByNum = exports.isQuizGame = void 0;
 const DiscordServers_1 = __importStar(require("./DiscordServers"));
 const cmd_1 = require("./cmd");
 function isQuizGame(game) {
@@ -563,8 +563,25 @@ class QzGame extends Game {
         }
         throw new Error(`Game with id="${this.hostId}" is not found`);
     }
+    /**
+     * @returns Game Generator
+     */
+    *play() {
+        for (let i = 0; i < this.amount; i++) {
+            this.round = this.quiz[i];
+            yield this.quiz[i];
+        }
+    }
 }
 exports.QzGame = QzGame;
+/**
+ * Stop the execution of the code
+ * @param time timer
+ */
+async function stop(time) {
+    await new Promise((res) => setTimeout(res, time));
+}
+exports.stop = stop;
 /**
  * New Constructor of Quiz.
  */

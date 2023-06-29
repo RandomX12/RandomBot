@@ -1,4 +1,4 @@
-import { ApplicationCommandOptionType, CacheType, ChatInputCommandInteraction, Collection, GatewayIntentBits } from "discord.js";
+import { ActivityOptions, ActivityType, ApplicationCommandOptionType, CacheType, ChatInputCommandInteraction, Collection, GatewayIntentBits } from "discord.js";
 import Discord, {  ApplicationCommandDataResolvable } from "discord.js";
 import { Member } from "../model/discordServers";
 import path from "path" 
@@ -115,6 +115,12 @@ export abstract class Bot{
             guildsSize,
             members
         }
+    }
+    /**
+     * Set the activity of the bot
+     */
+    static setActivity({type,name} :ActivityOptions){
+        this.client.user.setActivity({type : type,name : name})
     }
 }
 

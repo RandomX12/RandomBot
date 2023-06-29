@@ -4,6 +4,9 @@
 import readline  from "readline"
 import { Bot } from "./Bot";
 import { animateRotatingSlash, error, log, warning } from "./cmd";
+import discordServers from "../model/discordServers";
+import { stop } from "./QuizGame";
+import DiscordServers from "./DiscordServers";
 
 interface RuntimeCMD{
     input : string,
@@ -120,4 +123,42 @@ addRuntimeCMD({
         console.clear()
     },
     type : "SYNC"
+})
+
+addRuntimeCMD({
+    input : "table",
+    type : "ASYNC",
+    loadingTxt : "Fetching Info...",
+    finishTxt : "table fetched",
+    async fn() {
+        const server = await discordServers.find()
+        const tableInfo = server.map((e)=>{
+            return{
+                name : e.name,
+                membersLenght : e.members.length,
+                guildId : e.serverId,
+                id : e.id,
+                __v : e.__v
+            }
+        })
+        console.table(tableInfo)
+    },
+})
+
+addRuntimeCMD({
+    input : "shut-down",
+    type : "SYNC",
+    fn() {
+        console.log("Do you really want to shut down the bot");
+        process.stdout.write("This will make the bot offline and delete all the existing games and commands (y / n ) : ")
+        rl.once("line",async(input)=>{
+            if(input !== "y") return
+            let wt = animateRotatingSlash("shutting down the bot...")
+            await DiscordServers.cleanGuilds()
+            await Bot.clearCommands()
+            clearInterval(wt)
+            log({textColor : "Cyan",text : "\nserver offline"})
+            process.exit(0)
+        })
+    },
 })

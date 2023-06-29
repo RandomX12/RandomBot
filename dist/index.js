@@ -60,9 +60,6 @@ exports.client = client;
 // const commandPath = path.join(__dirname,"commands")
 // const commandFiles = fs.readdirSync(commandPath).filter(file=>file.endsWith(".ts") || file.endsWith(".js"))
 // let cmds = new Map<string,Map<string,Member>>()
-setTimeout(() => {
-    Bot_1.Bot.scanCommands();
-}, 3000);
 client.buttons = new discord_js_1.Collection();
 const buttonsPath = path_1.default.join(__dirname, "./buttons");
 const buttonFolder = fs_1.default.readdirSync(buttonsPath).filter((file) => file.endsWith(".ts") || file.endsWith(".js"));
@@ -440,11 +437,19 @@ client.on("channelCreate", async (c) => {
     }
 });
 client.on("ready", async (c) => {
-    console.clear();
-    console.log(`[${new Date().toLocaleTimeString()}] Discord bot connected as : ${c.user.username}`);
-    (0, cmd_1.log)({ text: `connecting to the database`, textColor: "Magenta", timeColor: "Magenta" });
     try {
         const bDate = Date.now();
+        console.clear();
+        let scan = require("../config.json").scanSlashCommands;
+        if (scan) {
+            let ws = (0, cmd_1.animateRotatingSlash)("Scanning commands...");
+            await Bot_1.Bot.scanCommands();
+            clearInterval(ws);
+            console.log("\ncommands scanned successfully");
+        }
+        scan = null;
+        console.log(`[${new Date().toLocaleTimeString()}] Discord bot connected as : ${c.user.username}`);
+        (0, cmd_1.log)({ text: `connecting to the database`, textColor: "Magenta", timeColor: "Magenta" });
         await (0, connectDB_1.connectDB)();
         (0, cmd_1.log)({ text: `successfully connected to the database`, textColor: "Green", timeColor: "Green" });
         let guilds = await c.guilds.fetch();
@@ -469,9 +474,6 @@ client.on("ready", async (c) => {
     catch (err) {
         (0, cmd_1.log)({ text: `There was an error while connecting to the database. \n ${err.message}`, textColor: "Red", timeColor: "Red" });
     }
-    setTimeout(() => {
-        console.log(Bot_1.Bot.uptime);
-    }, 1000 * 60);
 });
 let tokenName = "TOKEN";
 const productionMode = require("../config.json").productionMode;

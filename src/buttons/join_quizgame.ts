@@ -1,9 +1,8 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, CacheType, ChannelType, ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
 import DiscordServers, { getServerByGuildId } from "../lib/DiscordServers";
-import QuizGame, { CategoriesNum, QuizCategoryImg, answerType, getCategoryByNum, isQuizGame, rank } from "../lib/QuizGame";
+import QuizGame, { CategoriesNum, QuizCategoryImg, QzGame, answerType, getCategoryByNum, isQuizGame, rank, stop } from "../lib/QuizGame";
 import { QuizGamePlayer, answers } from "../model/QuizGame";
 import { TimeTampNow, error, warning } from "../lib/cmd";
-import { numberEmojisStyled } from "../lib/spygame";
 
 module.exports = {
     data : {
@@ -55,7 +54,7 @@ module.exports = {
             }
             return
         }
-        const game = await DiscordServers.getGameByHostId(interaction.guildId,hostId)
+        const game = await QzGame.getGame(interaction.guildId,hostId)
         if(!isQuizGame(game)) return
         if(game.started) return
         const embed = new EmbedBuilder()
@@ -108,76 +107,148 @@ module.exports = {
                 if(!game.mainChannel){
                     await channel.edit({name : "started 🟢"}) 
                 }
-                for(let i = 0;i<game.amount;i++){
-                const startingEmbed = new EmbedBuilder()
-                .setAuthor({name : game.quiz[i].category})
-                .setTitle(game.quiz[i].question)
-                .setThumbnail(QuizCategoryImg[game.category])
-                .setFooter({text : `id : ${hostId}`})
-                const row :any  = new ActionRowBuilder()
-                let al : answers[] = ["A" , "B" ,"C","D"]
-                if(game.quiz[i].answers.length === 2){
-                    let ans : answers[] = ["A","B"]
-                    let trIndex = game.quiz[i].answers.indexOf("True") 
-                    let flIndex = game.quiz[i].answers.indexOf("False")
-                    row.addComponents(
+                const gameGenerator = game.play()
+                while(gameGenerator.next().done === false){
+                    try{
+                        const startingEmbed = new EmbedBuilder()
+                        .setAuthor({name : game.round.category})
+                        .setTitle(game.round.question)
+                        .setThumbnail(QuizCategoryImg[game.category])
+                        .setFooter({text : `id : ${hostId}`})
+                        const row :any  = new ActionRowBuilder()
+                        let al : answers[] = ["A" , "B" ,"C","D"]
+                        if(game.round.answers.length === 2){
+                            let ans : answers[] = ["A","B"]
+                            let trIndex = game.round.answers.indexOf("True") 
+                            let flIndex = game.round.answers.indexOf("False")
+                            row.addComponents(
+                                new ButtonBuilder()
+                                .setCustomId(`answer_${ans[trIndex]}_${hostId}`)
+                                .setLabel("True")
+                                .setStyle(1)
+                                ,
+                                new ButtonBuilder()
+                                .setCustomId(`answer_${ans[flIndex]}_${hostId}`)
+                                .setLabel("False")
+                                .setStyle(1)
+                            )
+                        }else{
+                            let ans = ""
+                            game.round.answers.map((e,j)=>{
+                            ans += al[j] + " : " + e + "\n"
+                            row.addComponents(
+                                new ButtonBuilder()
+                                .setCustomId(`answer_${al[j]}_${hostId}`)
+                                .setLabel(al[j])
+                                .setStyle(1)
+                            )
+                        })
+                        startingEmbed.addFields({name : "answers :",value : ans})
+                        }
+                        row.addComponents(
                         new ButtonBuilder()
-                        .setCustomId(`answer_${ans[trIndex]}_${hostId}`)
-                        .setLabel("True")
-                        .setStyle(1)
-                        ,
-                        new ButtonBuilder()
-                        .setCustomId(`answer_${ans[flIndex]}_${hostId}`)
-                        .setLabel("False")
-                        .setStyle(1)
+                        .setCustomId(`remove_ans`)
+                        .setLabel("remove answer")
+                        .setStyle(2)
                     )
-                }else{
-                    let ans = ""
-                game.quiz[i].answers.map((e,j)=>{
-                    ans += al[j] + " : " + e + "\n"
-                    row.addComponents(
-                        new ButtonBuilder()
-                        .setCustomId(`answer_${al[j]}_${hostId}`)
-                        .setLabel(al[j])
-                        .setStyle(1)
-                    )
-                })
-                startingEmbed.addFields({name : "answers :",value : ans})
-                }
-                row.addComponents(
-                    new ButtonBuilder()
-                    .setCustomId(`remove_ans`)
-                    .setLabel("remove answer")
-                    .setStyle(2)
-                )
-                await announcement.edit({
+                    await announcement.edit({
                     embeds : [startingEmbed],
                     components : [row],
                     content : TimeTampNow()
                 })
-                await new Promise((res,rej)=>{
-                    setTimeout(res,game.time || 30*1000)
-                })
-                let endAns = ""
-                game.quiz[i].answers.map((e,j)=>{
-                    if(j === game.quiz[i].correctIndex){
-                        endAns += "**" + al[j] + " : " + e + " ✅" +"**\n"
+                    await stop(game.time || 30*1000)
+                    let endAns = ""
+                    game.round.answers.map((e,j)=>{
+                        if(j === game.round.correctIndex){
+                            endAns += "**" + al[j] + " : " + e + " ✅" +"**\n"
 
-                    }else{
-                    endAns += al[j] + " : " + e +"\n"
+                        }else{
+                            endAns += al[j] + " : " + e +"\n"
+                        }
+                    })
+                    startingEmbed.setFields({name : "answers :",value : endAns})
+                    await announcement.edit({
+                        embeds : [startingEmbed],
+                        components : [],
+                        content : ""
+                    })
+                    await QuizGame.scanAns(interaction.guildId,hostId)
+                    await stop(5*1000)
+                        }
+                        catch(err : any){
+                            gameGenerator.return()
+                        }
                     }
-                })
-                startingEmbed.setFields({name : "answers :",value : endAns})
-                await announcement.edit({
-                    embeds : [startingEmbed],
-                    components : [],
-                    content : ""
-                })
-                await QuizGame.scanAns(interaction.guildId,hostId)
-                await new Promise((res,rej)=>{
-                    setTimeout(res,1000*5)
-                })
-            }
+            //     for(let i = 0;i<game.amount;i++){
+            //     const startingEmbed = new EmbedBuilder()
+            //     .setAuthor({name : game.quiz[i].category})
+            //     .setTitle(game.quiz[i].question)
+            //     .setThumbnail(QuizCategoryImg[game.category])
+            //     .setFooter({text : `id : ${hostId}`})
+            //     const row :any  = new ActionRowBuilder()
+            //     let al : answers[] = ["A" , "B" ,"C","D"]
+            //     if(game.quiz[i].answers.length === 2){
+            //         let ans : answers[] = ["A","B"]
+            //         let trIndex = game.quiz[i].answers.indexOf("True") 
+            //         let flIndex = game.quiz[i].answers.indexOf("False")
+            //         row.addComponents(
+            //             new ButtonBuilder()
+            //             .setCustomId(`answer_${ans[trIndex]}_${hostId}`)
+            //             .setLabel("True")
+            //             .setStyle(1)
+            //             ,
+            //             new ButtonBuilder()
+            //             .setCustomId(`answer_${ans[flIndex]}_${hostId}`)
+            //             .setLabel("False")
+            //             .setStyle(1)
+            //         )
+            //     }else{
+            //         let ans = ""
+            //     game.quiz[i].answers.map((e,j)=>{
+            //         ans += al[j] + " : " + e + "\n"
+            //         row.addComponents(
+            //             new ButtonBuilder()
+            //             .setCustomId(`answer_${al[j]}_${hostId}`)
+            //             .setLabel(al[j])
+            //             .setStyle(1)
+            //         )
+            //     })
+            //     startingEmbed.addFields({name : "answers :",value : ans})
+            //     }
+            //     row.addComponents(
+            //         new ButtonBuilder()
+            //         .setCustomId(`remove_ans`)
+            //         .setLabel("remove answer")
+            //         .setStyle(2)
+            //     )
+            //     await announcement.edit({
+            //         embeds : [startingEmbed],
+            //         components : [row],
+            //         content : TimeTampNow()
+            //     })
+            //     await new Promise((res,rej)=>{
+            //         setTimeout(res,game.time || 30*1000)
+            //     })
+            //     let endAns = ""
+            //     game.quiz[i].answers.map((e,j)=>{
+            //         if(j === game.quiz[i].correctIndex){
+            //             endAns += "**" + al[j] + " : " + e + " ✅" +"**\n"
+
+            //         }else{
+            //         endAns += al[j] + " : " + e +"\n"
+            //         }
+            //     })
+            //     startingEmbed.setFields({name : "answers :",value : endAns})
+            //     await announcement.edit({
+            //         embeds : [startingEmbed],
+            //         components : [],
+            //         content : ""
+            //     })
+            //     await QuizGame.scanAns(interaction.guildId,hostId)
+            //     await new Promise((res,rej)=>{
+            //         setTimeout(res,1000*5)
+            //     })
+            // }
             const gameUpdate = await QuizGame.getGameWithHostId(interaction.guildId,hostId)
             const endEmbed = new EmbedBuilder()
             .setTitle(`Quiz Game`)

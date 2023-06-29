@@ -9,12 +9,12 @@
 
 // update 1.0.0@beta3V
 
--|fix uptime runtime command
-add new slash command "/loop" create multiple games in the same time
-add methods to Bot constructor (setActivity ,....)
--|add new runtime commands
--|add code line in warning function (in Cmd.ts)
--|anable the cmds
+-fix uptime runtime command
+-change the system of quiz rounds to use functions generator
+-add methods to Bot constructor (setActivity ,....)
+-add new runtime commands
+-add code line in warning function (in Cmd.ts)
+-anable the cmds
 
 // update 1.0.0@beta4V
 
@@ -22,3 +22,4 @@ add warning when missing permission
 add server name to command log.
 add more option to function "addRuntimeCMD" (consoleCmd.ts)
 add "table" run time cmd to show table of guilds 
+add new slash command "/loop" create multiple games in the same time

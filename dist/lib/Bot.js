@@ -90,6 +90,12 @@ class Bot {
             members
         };
     }
+    /**
+     * Set the activity of the bot
+     */
+    static setActivity({ type, name }) {
+        this.client.user.setActivity({ type: type, name: name });
+    }
 }
 Bot.cmds = new Map();
 /**

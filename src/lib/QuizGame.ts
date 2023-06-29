@@ -456,6 +456,10 @@ export class QzGame extends Game implements QuizGameType{
     public time?: number;
     public mainChannel?: boolean = false;
     /**
+     * get the round body
+     */
+    public round : Qs | null
+    /**
      * Get all game data without the methods
      */
     get cache(){
@@ -552,6 +556,23 @@ export class QzGame extends Game implements QuizGameType{
         }
         throw new Error(`Game with id="${this.hostId}" is not found`)
     }
+    /**
+     * @returns Game Generator
+     */
+    *play(){
+        for(let i = 0;i<this.amount;i++){
+            this.round = this.quiz[i]
+            yield this.quiz[i]
+        }
+    }
+}
+ 
+/**
+ * Stop the execution of the code
+ * @param time timer
+ */
+export async function stop(time : number){
+    await new Promise((res)=>setTimeout(res,time))
 }
 
 interface QuizT{
