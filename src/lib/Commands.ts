@@ -20,7 +20,7 @@ export async function verify(interaction : ChatInputCommandInteraction<CacheType
        })
        await server.save()
        interaction.reply({
-        content : "This server is not saved in the database. try again",
+        content : "This server is not saved in our database. try again",
         ephemeral : true
        })
        return false
@@ -28,6 +28,20 @@ export async function verify(interaction : ChatInputCommandInteraction<CacheType
     if(!server.config){
         server.config = new Config().config
         await server.save()
+    }
+    if(!interaction.guild.members.me.permissions.has("Administrator")){
+        const msg = `🟡 warning : ${interaction.client.user.username} has not a "Administrator" permission.
+please can any one give me this permission`
+        if(interaction.replied || interaction.deferred){
+            interaction.editReply({
+                content : msg
+            })
+        }else{
+            interaction.reply({
+                content : msg
+            })
+        }
+        return false
     }
     for(let i = 0;i<server.config?.commands?.length;i++){
         if(server.config.commands[i].name === interaction.commandName){

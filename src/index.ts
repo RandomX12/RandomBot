@@ -1,5 +1,4 @@
-// importing the libs
-import Discord, {ActionRowBuilder, ActivityType, Application, AuditLogEvent, ButtonBuilder, ChannelType, Collection,EmbedBuilder,GatewayIntentBits } from "discord.js"
+import  {ActionRowBuilder, ActivityType, Application, AuditLogEvent, ButtonBuilder, ChannelType, Collection,EmbedBuilder,GatewayIntentBits } from "discord.js"
 import path from "path"
 import fs from "fs"
 import { TimeTampNow, animateRotatingSlash, error, log, warning } from "./lib/cmd"
@@ -21,26 +20,11 @@ declare module "discord.js" {
         buttons : Collection<unknown, any>
     }
     }
-// init the discord bot
-// const client = new Discord.Client({
-//     intents : [
-//         GatewayIntentBits.Guilds,
-// 		GatewayIntentBits.GuildMessages,
-// 		GatewayIntentBits.MessageContent,
-// 		GatewayIntentBits.GuildMembers,
-//         GatewayIntentBits.GuildMessageReactions
-// ]
-// })
-// export {client}
-const {client,cmds} = Bot
+
+const {client} = Bot
 export {client}
 // command handling
 
-
-// client.commands = new Collection()
-// const commandPath = path.join(__dirname,"commands")
-// const commandFiles = fs.readdirSync(commandPath).filter(file=>file.endsWith(".ts") || file.endsWith(".js"))
-// let cmds = new Map<string,Map<string,Member>>()
 
 
 client.buttons = new Collection()
@@ -133,7 +117,12 @@ client.on("interactionCreate",async(interaction)=>{
                     log({text : `command executed successfully /${interaction.commandName} by ${interaction.user.tag}. ${ping}ms`,textColor : "Green",timeColor : "Green"})
                     return
                 }
-                await command.execute(interaction)
+                try{
+                    await command.execute(interaction)
+                }
+                catch(err){
+                    error(`error when executing command ${interaction.commandName} : ${err.message}`)
+                }
                 const after = Date.now()
                 const ping = after - before
                 log({text : `command executed successfully /${interaction.commandName} by ${interaction.user.tag}. ${ping}ms`,textColor : "Green",timeColor : "Green"})
@@ -400,11 +389,11 @@ client.on("channelCreate",async(c)=>{
 client.on("ready",async(c)=>{
     try{
         const bDate = Date.now()
-        console.clear();
+        // console.clear();
         let scan = require("../config.json").scanSlashCommands
         if(scan){
             let ws = animateRotatingSlash("Scanning commands...")
-            await Bot.scanCommands()
+            Bot.scanCommands()
             clearInterval(ws)
             console.log("\ncommands scanned successfully");
         }
@@ -442,7 +431,6 @@ if(productionMode){
     log({textColor : "Yellow",text : "You are running The bot on production mode",timeColor : "Yellow"})
     tokenName = "TOKEN1"
 }
-// client.login(process.env[tokenName])
 Bot.lunch()
 
 // for express server :)

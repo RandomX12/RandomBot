@@ -1,4 +1,4 @@
-import { ActivityOptions, ActivityType, ApplicationCommandOptionType, CacheType, ChatInputCommandInteraction, Collection, GatewayIntentBits } from "discord.js";
+import { ActivityOptions, ApplicationCommandOptionType, CacheType, ChatInputCommandInteraction, Collection, GatewayIntentBits } from "discord.js";
 import Discord, {  ApplicationCommandDataResolvable } from "discord.js";
 import { Member } from "../model/discordServers";
 import path from "path" 
@@ -22,6 +22,11 @@ interface Command{
             minValue? : number
         }
     ]
+}
+
+type ScanCommandsOptions = {
+    sync? : boolean,
+    files? : string[],
 }
 
 export abstract class Bot{
@@ -63,20 +68,49 @@ export abstract class Bot{
      * Scan command and button folder and save the commands
      * @note also create / command for the new commands
      */
-    static async scanCommands(){
-        this.client.commands = new Collection()
-        const commandPath = path.join(__dirname+"/..","commands")
-        const commandFiles = fs.readdirSync(commandPath).filter(file=>file.endsWith(".ts") || file.endsWith(".js"))
-        for(const file of commandFiles){
-            const filePath = path.join(commandPath,file)
-            const command = require(filePath)
-            if("data" in command && "execute" in command){
-                this.client.commands.set(command.data.name,command)
-                this.cmds.set(command.data.name,new Map<string,Member>())
-                await this.client.application?.commands?.create(command.data)
-            }else{
-                console.log("\x1b[33m","[warning] : ","\x1b[37m",`The command at ${filePath} has a missing property.`)
+    static async scanCommands(options? : ScanCommandsOptions){
+        if(!options || !options.files){
+            this.client.commands = new Collection()
+            const commandPath = path.join(__dirname+"/..","commands")
+            const commandFiles = fs.readdirSync(commandPath).filter(file=>file.endsWith(".ts") || file.endsWith(".js"))
+            for(const file of commandFiles){
+                const filePath = path.join(commandPath,file)
+                const command = require(filePath)
+                if("data" in command && "execute" in command){
+                    this.client.commands.set(command.data.name,command)
+                    this.cmds.set(command.data.name,new Map<string,Member>())
+                    if(options?.sync){
+                        console.log(`\tscanning /${command?.data?.name}`);
+                        await this.client.application?.commands?.create(command.data)
+                    }else{
+                        this.client.application?.commands?.create(command.data)
+                    }
+                }else{
+                    console.log("\x1b[33m","[warning] : ","\x1b[37m",`The command at ${filePath} has a missing property.`)
+                }
             }
+        }else if(options.files){
+            if(options.files.length === 0) return
+                const commandPath = path.join(__dirname+"/..","commands")
+                const commandFiles = fs.readdirSync(commandPath).filter(file=>file.endsWith(".ts") || file.endsWith(".js"))
+                for(const file of commandFiles){
+                    if(options.files.indexOf(file.split(".")[0]) !== -1){
+                        const filePath = path.join(commandPath,file)
+                        const command = require(filePath)
+                        if("data" in command && "execute" in command){
+                            this.client.commands.set(command.data.name,command)
+                            this.cmds.set(command.data.name,new Map<string,Member>())
+                            if(options.sync){
+                                console.log(`\tscanning /${command?.data?.name}`);
+                                await this.client.application?.commands?.create(command.data)
+                            }else{
+                                this.client.application?.commands?.create(command.data)
+                            }
+                        }else{
+                            console.log("\x1b[33m","[warning] : ","\x1b[37m",`The command at ${filePath} has a missing property.`)
+                        }
+                    }
+                }
         }
     }
     /**

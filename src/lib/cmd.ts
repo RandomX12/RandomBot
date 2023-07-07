@@ -28,14 +28,17 @@ export function warning(text : string){
     console.log(`\x1b[33m`,"[WARNING] ",`${text}`,"\x1b[37m");
     logLineNumber()
 }
+
+// this function needs fix
 export function logLineNumber() {
     const error = new Error();
-    const lineNumber = error.stack.split('\n')[4].split(':')[2];
-    const fileName = error.stack.split('\n')[4].split(':')[1].split('/').pop();
+    const lineNumber = error.stack?.split('\n')[4]?.split(':')[2];
+    const fileName = error.stack?.split('\n')[4]?.split(':')[1]?.split('/')?.pop();
+    if(!lineNumber || !fileName) return
     let relativeFilePath = ""
     let st = false
     let rn= false
-    fileName.split("\\").map((e)=>{
+    fileName?.split("\\")?.map((e)=>{
         if(e === "RandomBot"){
             st = true
             if(!rn){
@@ -50,7 +53,7 @@ export function logLineNumber() {
         relativeFilePath += e + "/"
     })
     console.log(`File: ${relativeFilePath}, Line: ${lineNumber}`);
-  }
+}
 export function TimeTampNow(){
     return `<t:${Math.floor(Date.now() / 1000)}:R>`
 }

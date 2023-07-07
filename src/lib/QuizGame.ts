@@ -99,8 +99,7 @@ export function deleteGameLog(){
 export const amount = [3,10] 
 export const maxPlayers = [2,20]
 export const maxGames = 15
-export default class QuizGame{
-    
+export default class QuizGame{ 
     static async join(guildId : string,hostId : string,user : User){
         const server = await getServerByGuildId(guildId)
         let gameFound = false
@@ -569,7 +568,7 @@ export class QzGame extends Game implements QuizGameType{
  
 /**
  * Stop the execution of the code
- * @param time timer
+ * @param time timer ms
  */
 export async function stop(time : number){
     await new Promise((res)=>setTimeout(res,time))

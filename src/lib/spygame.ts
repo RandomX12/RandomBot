@@ -1,3 +1,6 @@
+/**
+ * DEAD CODE :( .
+ */
 import DiscordServers, { getServerByGuildId } from "./DiscordServers";
 import { error } from "./cmd";
 import { Game } from "../model/discordServers";

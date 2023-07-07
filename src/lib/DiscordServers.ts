@@ -1,4 +1,4 @@
-import { Guild, GuildMember, OAuth2Guild } from "discord.js"
+import { Guild, OAuth2Guild } from "discord.js"
 import ServersModel ,{DiscordServer, Game, Member} from "../model/discordServers"
 import Config, { ConfigT } from "./DiscordServersConfig"
 import { Collection } from "discord.js"
@@ -29,10 +29,20 @@ export async function  fetchServer(id : string) : Promise<Server>{
 }
 
 export default class DiscordServers{
+    /**
+     * Delete an existing guild
+     * @param id guild id
+     */
     static async deleteGuild(id : string){
         const server = await getServerByGuildId(id)
         server.deleteOne()
     }
+    /**
+     * Check if the user playing a game in a guild 
+     * @param guildId server id
+     * @param userId user id
+     * @returns boolean
+     */
     static async isInGame(guildId : string,userId : string) : Promise<boolean>{
         const server = await getServerByGuildId(guildId)
         let isIn = false
@@ -75,6 +85,11 @@ export default class DiscordServers{
         if(!user) throw new Error(`User not found`)
         return user
     }
+    /**
+     * Delete an existing game
+     * @param guildId server id
+     * @param hostId id of the game in this server
+     */
     @deleteGameLog()
     static async deleteGame(guildId : string,hostId : string){
         const server = await getServerByGuildId(guildId)
@@ -85,12 +100,21 @@ export default class DiscordServers{
         })
         await server.save()
     }
+    /**
+     * Check if the game is full
+     * @param guildId server id
+     * @param hostId id of the game in this server
+     * @returns boolean
+     */
     static async isGameFull(guildId : string,hostId : string){
         const game = await DiscordServers.getGameByHostId(guildId,hostId)
         if(!("maxPlayers" in game)) return
         if(game.players.length === game.maxPlayers) return true
         return false
     }
+    /**
+     * save unsaved servers in the database and delete servers from database the bot isn't in 
+     */
     static async scanGuilds(guilds : Collection<string, OAuth2Guild>) : Promise<void>{
         const server = await discordServers.find()
         guilds.map(async e=>{
@@ -138,6 +162,10 @@ export default class DiscordServers{
             }
         })
     }
+    /**
+     * Delete all the games from all the servers
+     * @note this function is used to run when the bot do a restart or when doing an update
+     */
     static async cleanGuilds() : Promise<void>{
         const server = await DiscordSv.find()
         server.map(async (e,i)=>{
@@ -153,6 +181,9 @@ export default class DiscordServers{
         })
     }
     constructor(public server : DiscordServer){}
+    /**
+     * save in the database
+     */
     async save(){
         const check =  await ServersModel.findOne({serverId : this.server.serverId})
         if(check) throw new Error(`This server is allready exist`)
