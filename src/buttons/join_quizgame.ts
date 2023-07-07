@@ -64,6 +64,15 @@ module.exports = {
         .setAuthor({name : `Waiting for the players... ${game.players.length} / ${game.maxPlayers}`})
         .setTimestamp(Date.now())
         .setFooter({text : `id : ${game.hostId}`})
+        if(game.players.length !== 0){
+            let players = ``
+            game.players.map((e)=>{
+                players += `${e.username}`
+            })
+            embed.addFields({name : "players",value : players})
+        }else{
+            embed.addFields({name : "players",value : `**NO PLAYER IN THE GAME**`})
+        }
         const announcement = interaction.channel.messages.cache.get(game.announcementId)
         if(announcement){
             await announcement.edit({

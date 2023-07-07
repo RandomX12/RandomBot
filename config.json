@@ -16,6 +16,9 @@
         "help" : true,
         "games" : true
     },
+    "quizGame" : {
+        "emptyWhenCreateNewGame" : false
+    },
     "info" : {
         "website" : "http://localhost:3000",
         "commands" : "http://localhost:3000/commands",

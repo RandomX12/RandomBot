@@ -180,7 +180,7 @@ module.exports = {
         let msg = await channel.send({
             content : "creating Quiz Game..."
         })
-
+        const empty = require("../../config.json").quizGame.emptyWhenCreateNewGame
         try{
             const game = new QuizGame(interaction.guildId,{
                 hostName : interaction.user.tag,
@@ -193,7 +193,7 @@ module.exports = {
                 amount : amount,
                 time : time || 30*1000,
                 mainChannel : mainChannel
-            },true)
+            },empty || false)
             
             await game.save()
         }
@@ -214,9 +214,12 @@ module.exports = {
         .setTitle(`Quiz Game`)
         .setThumbnail("https://hips.hearstapps.com/hmg-prod/images/quiz-questions-answers-1669651278.jpg")
         .addFields({name : `Info`,value : `Category : **${getCategoryByNum(+category as CategoriesNum || category as "any")}** \nAmount : **${amount}** \ntime : **${time / 1000 + " seconds" || "30 seconds"}** \nMax players : **${maxPlayers}**`})
-        .setAuthor({name : `Waiting for the players... 0 / ${maxPlayers}`})
+        .setAuthor({name : `Waiting for the players... ${empty ? "0" : "1"} / ${maxPlayers}`})
         .setTimestamp(Date.now())
         .setFooter({text : `id : ${hostId}`})
+        if(!empty){
+            embed.addFields({name : "players",value : `${interaction.user.username}`})
+        }
         const button = new ButtonBuilder()
         .setLabel("join")
         .setStyle(3)

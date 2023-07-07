@@ -114,7 +114,7 @@ client.on("interactionCreate",async(interaction)=>{
                 if(!pass){
                     const after = Date.now()
                     const ping = after - before
-                    log({text : `command executed successfully /${interaction.commandName} by ${interaction.user.tag}. ${ping}ms`,textColor : "Green",timeColor : "Green"})
+                    log({text : `command executed successfully /${interaction.commandName} by ${interaction.user.tag} in ${interaction.guild.name}<${interaction.guildId}>. ${ping}ms`,textColor : "Green",timeColor : "Green"})
                     return
                 }
                 try{
@@ -125,7 +125,7 @@ client.on("interactionCreate",async(interaction)=>{
                 }
                 const after = Date.now()
                 const ping = after - before
-                log({text : `command executed successfully /${interaction.commandName} by ${interaction.user.tag}. ${ping}ms`,textColor : "Green",timeColor : "Green"})
+                log({text : `command executed successfully /${interaction.commandName} by ${interaction.user.tag} in '${interaction.guild.name}'<${interaction.guildId}> ${ping}ms.`,textColor : "Green",timeColor : "Green"})
             }else{
                 await interaction.reply({
                     content : ":x: This command is disabled",
