@@ -8,6 +8,7 @@ import discordServers from "../model/discordServers";
 import DiscordServers from "./DiscordServers";
 import { Game } from "./QuizGame";
 import Ping from "./Ping";
+import {execFile} from "child_process"
 type CommandType = "SYNC" | "ASYNC"
 
 type ArgType = "str" | "int" | "float" | "bol" | "txt" | "arr"
@@ -63,9 +64,9 @@ let rl = readline.createInterface({
 })
 let specialWords : string[] = []
 
-export const inputRegex = /^\s*[\w-]+((\s+("[^"\\]*"|\[(("[^."\\]*"|true|false|\d*)\s*,?\s*)*\]|\w+|\d+(\.\d+)?)?)*)?$/g;
+export const inputRegex = /^\s*[\w-]+((\s+("[^"\\]*"|\[(("[^"\\]*"|true|false|\d*)\s*,?\s*)*\]|\w+|\d+(\.\d+)?)?)*)?$/g;
 
-export const arrDataRegex = /("[^."\\]*"|true|false|\d+\.\d+|\d*)/g;
+export const arrDataRegex = /("[^"\\]*"|true|false|\d+\.\d+|\d*)/g;
 
 export const inputSplitRegex = /(^[\w-]+|"[^"]*"|\d+(\.\d+)?|\w+|\[(.*)\])/g;
 
@@ -344,11 +345,11 @@ addRuntimeCMD({
 addRuntimeCMD({
     input : "scan-slash-cmd [:files]?:arr",
     async fn(args) {
-        await Bot.scanCommands({
-            sync : true,
-            files : args[0]?.value as string[]
-        })
-
+        try{
+            await Bot.addCommand(...args[0].value as string[])
+        }catch(err){
+            error(err.message)
+        }
     },
     type : "ASYNC",
     loadingTxt : "Scanning commands...",
@@ -471,3 +472,4 @@ addRuntimeCMD({
         console.table(history.reverse());
     },
 })
+

@@ -3,9 +3,10 @@ import DiscordServers, { Server, getServerByGuildId } from "../lib/DiscordServer
 import  QuizGame, { Game, isQuizGame } from "../lib/QuizGame";
 import Spygame, { isSpyGame } from "../lib/spygame";
 import { warning } from "../lib/cmd";
+import Command, { reply } from "../lib/Commands";
 
 
-module.exports = {
+module.exports = new Command({
     data : {
         name : "leave_quizgame",
         description : "Leave Quiz Game"
@@ -13,7 +14,7 @@ module.exports = {
     async execute(interaction : ChatInputCommandInteraction<CacheType>){
         const isIn = await DiscordServers.isInGame(interaction.guildId,interaction.user.id)
         if(!isIn) {
-            await interaction.reply({
+            await reply(interaction,{
                 content : "You are not in game :x:",
                 ephemeral : true
             })
@@ -33,7 +34,7 @@ module.exports = {
             return
         }
         await QuizGame.leave(interaction.guildId,game.hostId,interaction.user.id)
-        await interaction.reply({
+        await reply(interaction,{
             content : "You left the game",
             ephemeral : true
         })
@@ -80,7 +81,7 @@ module.exports = {
             if(gameUpdate.players.length !== 0){
                 let players = ``
                 gameUpdate.players.map((e)=>{
-                    players += `${e.username}`
+                    players += `${e.username}\n`
                 })
                 embed.addFields({name : "players",value : players})
             }else{
@@ -109,5 +110,6 @@ module.exports = {
 
             return
         }
-    }
-}
+    },
+    ephemeral : true
+})

@@ -3,26 +3,27 @@ import Discord, {  ApplicationCommandDataResolvable } from "discord.js";
 import { Member } from "../model/discordServers";
 import path from "path" 
 import fs from "fs"
-interface Command{
-    name : string,
-    description : string,
-    options : [
-        {
-            name : string,
-            description : string,
-            type : ApplicationCommandOptionType,
-            required? : boolean,
-            choices? : [
-                {
-                    name : string,
-                    value : any
-                }
-            ],
-            maxValue? : number
-            minValue? : number
-        }
-    ]
-}
+import Command, { CommandOptions } from "./Commands";
+// interface Command{
+//     name : string,
+//     description : string,
+//     options : [
+//         {
+//             name : string,
+//             description : string,
+//             type : ApplicationCommandOptionType,
+//             required? : boolean,
+//             choices? : [
+//                 {
+//                     name : string,
+//                     value : any
+//                 }
+//             ],
+//             maxValue? : number
+//             minValue? : number
+//         }
+//     ]
+// }
 
 type ScanCommandsOptions = {
     sync? : boolean,
@@ -33,10 +34,13 @@ export abstract class Bot{
     /**
      * Create a new slash Command
      */
-    static createCommand(command : Command){
-        this.client.application?.commands?.create(command as ApplicationCommandDataResolvable)
-        this.cmds.set(command.name,new Map<string,Member>())
-        this.client.commands.set(command.name,command)
+    static createCommand(command : CommandOptions){
+        this.client.application?.commands?.create(command.data)
+        // @ts-ignore
+        this.cmds.set(command.data.name,new Map<string,Member>())
+        
+        //@ts-ignore
+        this.client.commands.set(command.data.name,command)
     }
     static cmds = new Map<string,Map<string,Member>>()
     /**
@@ -68,8 +72,7 @@ export abstract class Bot{
      * Scan command and button folder and save the commands
      * @note also create / command for the new commands
      */
-    static async scanCommands(options? : ScanCommandsOptions){
-        if(!options || !options.files){
+    static async scanCommands(){
             this.client.commands = new Collection()
             const commandPath = path.join(__dirname+"/..","commands")
             const commandFiles = fs.readdirSync(commandPath).filter(file=>file.endsWith(".ts") || file.endsWith(".js"))
@@ -77,40 +80,24 @@ export abstract class Bot{
                 const filePath = path.join(commandPath,file)
                 const command = require(filePath)
                 if("data" in command && "execute" in command){
-                    this.client.commands.set(command.data.name,command)
+                    this.client.commands.set(command.data.name,command as Command)
                     this.cmds.set(command.data.name,new Map<string,Member>())
-                    if(options?.sync){
-                        console.log(`\tscanning /${command?.data?.name}`);
-                        await this.client.application?.commands?.create(command.data)
-                    }else{
                         this.client.application?.commands?.create(command.data)
-                    }
                 }else{
                     console.log("\x1b[33m","[warning] : ","\x1b[37m",`The command at ${filePath} has a missing property.`)
                 }
             }
-        }else if(options.files){
-            if(options.files.length === 0) return
-                const commandPath = path.join(__dirname+"/..","commands")
-                const commandFiles = fs.readdirSync(commandPath).filter(file=>file.endsWith(".ts") || file.endsWith(".js"))
-                for(const file of commandFiles){
-                    if(options.files.indexOf(file.split(".")[0]) !== -1){
-                        const filePath = path.join(commandPath,file)
-                        const command = require(filePath)
-                        if("data" in command && "execute" in command){
-                            this.client.commands.set(command.data.name,command)
-                            this.cmds.set(command.data.name,new Map<string,Member>())
-                            if(options.sync){
-                                console.log(`\tscanning /${command?.data?.name}`);
-                                await this.client.application?.commands?.create(command.data)
-                            }else{
-                                this.client.application?.commands?.create(command.data)
-                            }
-                        }else{
-                            console.log("\x1b[33m","[warning] : ","\x1b[37m",`The command at ${filePath} has a missing property.`)
-                        }
-                    }
-                }
+    }
+
+    static async addCommand(...files:string[]){
+        for(const fileName of files){
+            const filePath = path.join(__dirname+"/..","commands",fileName)
+            const command = require(filePath) as Command
+            if("data" in command && "execute" in command){
+                await command.save()
+            }else{
+                console.log("\x1b[33m","[warning] : ","\x1b[37m",`The command at ${filePath} has a missing property.`)
+            }
         }
     }
     /**

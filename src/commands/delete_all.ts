@@ -1,10 +1,11 @@
 import { ActionRowBuilder, ButtonBuilder, CacheType, ChannelType, ChatInputCommandInteraction, EmbedBuilder, Interaction, ModalBuilder, PermissionResolvable, TextInputBuilder } from "discord.js";
 import { getServerByGuildId } from "../lib/DiscordServers";
 import { isQuizGame } from "../lib/QuizGame";
+import Command, { reply } from "../lib/Commands";
 
 const permissions : PermissionResolvable[] = ["Administrator"]
 
-module.exports = {
+module.exports = new Command({
     data : {
         name : "delete_all",
         description : "Delete all the games"
@@ -13,7 +14,7 @@ module.exports = {
         if(!interaction.isChatInputCommand()) return
         const server = await getServerByGuildId(interaction.guildId)
         if(!server.games || server.games.length === 0) {
-            await interaction.reply({
+            await reply(interaction,{
                 content : "There is no game in this server",
                 ephemeral : true
             })
@@ -70,13 +71,11 @@ module.exports = {
                 await server.save()
                 await listen.reply({
                     content : "All games are deleted :white_check_mark:",
-                    ephemeral : true
                 })
                 return
             }
             await listen.reply({
                 content : "The deletion is cancelled",
-                ephemeral : true
             })
             return
         }
@@ -84,5 +83,7 @@ module.exports = {
             return
         }
     },
-    permissions : permissions
-}
+    permissions : permissions,
+    deferReply : false,
+    ephemeral : true
+})

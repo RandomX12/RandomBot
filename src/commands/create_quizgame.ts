@@ -3,6 +3,7 @@ import QuizGame , { categories, getCategoryByNum,CategoriesNum, maxGames } from 
 import DiscordServers, { getServerByGuildId } from "../lib/DiscordServers"
 import { TimeTampNow, error, warning } from "../lib/cmd"
 import { PermissionsBitField } from "discord.js"
+import Command, { reply } from "../lib/Commands"
 
 let choices = Object.keys(categories).map(e=>{
     return {
@@ -67,15 +68,12 @@ let cmdBody : ApplicationCommandDataResolvable = {
         }
     ]
 }
-module.exports = {
+module.exports = new Command({
     data : cmdBody,
     async execute(interaction : ChatInputCommandInteraction<CacheType>){
-        await interaction.deferReply({
-            ephemeral : true
-        })
         const isIn = await DiscordServers.isInGame(interaction.guildId,interaction.user.id)
         if(isIn) {
-            await interaction.editReply({
+            await reply(interaction,{
                 content : `You are already in game :x:`,
             })
             return
@@ -87,7 +85,7 @@ module.exports = {
         let time = interaction.options.getNumber("time")
         const server = await getServerByGuildId(interaction.guildId)
         if(server.games.length >= maxGames) {
-            await interaction.editReply({
+            await reply(interaction,{
                 content : `Cannot create the game :x:\nThis server has reached the maximum number of games ${maxGames}.`,
             })
             return
@@ -138,7 +136,7 @@ module.exports = {
                            permissionOverwrites : permissions
                         })
                     }else{
-                        await interaction.reply({
+                        await reply(interaction,{
                             content : "Cannot create category :x:",
                             ephemeral : true
                         })
@@ -163,7 +161,7 @@ module.exports = {
             }
             catch(err : any){
                 if(interaction.replied || interaction.deferred){
-                    await interaction.editReply({
+                    await reply(interaction,{
                         content  : "An error occurred while creating the channel :x:\n This may be from bad configurations, please check your configuration and make sure everything is OK."
                     })
                 }
@@ -199,7 +197,7 @@ module.exports = {
         }
         catch(err : any){
             await msg.delete()
-            await interaction.editReply({
+            await reply(interaction,{
                 content : "cannot create the game :x:",
                 
             })
@@ -240,7 +238,7 @@ module.exports = {
                 .setLabel("Delete")
                 .setStyle(4)
             )
-            await interaction.editReply({
+            await reply(interaction,{
                 content : "Game created :white_check_mark:",
                 components : [rowInte]
             })
@@ -251,11 +249,11 @@ module.exports = {
                 await channel.delete()
             }
             if(interaction.replied || interaction.deferred){
-                await interaction.editReply({
+                await reply(interaction,{
                     content : "Cannot create the game :x:"
                 })
             }else{
-                await interaction.editReply({
+                await reply(interaction,{
                     content : "cannot create the game :x:",
                     
                 })
@@ -286,5 +284,6 @@ module.exports = {
                 return
             }
         },1000*60*5)
-    }
-}
+    },
+    ephemeral : true
+})

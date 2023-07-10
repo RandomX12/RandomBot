@@ -80,7 +80,7 @@ module.exports = {
             if(gameUpdate.players.length !== 0){
                 let players = ``
                 gameUpdate.players.map((e)=>{
-                    players += `${e.username}`
+                    players += `${e.username}\n`
                 })
                 embed.addFields({name : "players",value : players})
             }else{

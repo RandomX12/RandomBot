@@ -5,7 +5,7 @@ import { TimeTampNow, animateRotatingSlash, error, log, warning } from "./lib/cm
 import { connectDB } from "./lib/connectDB"
 import DiscordServers, { fetchServer, getServerByGuildId } from "./lib/DiscordServers"
 import discordServers, { Member } from "./model/discordServers"
-import { verify } from "./lib/Commands"
+import Command, { verify } from "./lib/Commands"
 import QuizGame, { QuizCategory, categories ,amount as amountQs, maxPlayers, getCategoryByNum, CategoriesNum, maxGames} from "./lib/QuizGame"
 import { Bot } from "./lib/Bot"
 import  listenToCmdRunTime, { addRuntimeCMD } from "./lib/consoleCmd"
@@ -16,7 +16,7 @@ listenToCmdRunTime()
 require("dotenv").config()
 declare module "discord.js" {
     export interface Client {
-        commands: Collection<unknown, any>,
+        commands: Collection<unknown, Command>,
         buttons : Collection<unknown, any>
     }
     }
@@ -110,6 +110,11 @@ client.on("interactionCreate",async(interaction)=>{
             if(commandConfig){
                 const before = Date.now()
                 log({text : `Executing /${interaction.commandName} by ${interaction.user.tag}`})
+                if(command.deferReply){
+                    await interaction.deferReply({
+                        ephemeral : command.ephemeral || false,
+                    })
+                }
                 const pass = await verify(interaction)
                 if(!pass){
                     const after = Date.now()

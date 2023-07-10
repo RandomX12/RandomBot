@@ -1,8 +1,9 @@
 import { CacheType, ChatInputCommandInteraction, EmbedBuilder } from "discord.js"
 import { fetchServer } from "../lib/DiscordServers"
 import { QuizCategoryImg } from "../lib/QuizGame"
+import Command, { reply } from "../lib/Commands"
 // still under dev
-module.exports = {
+module.exports = new Command({
     data : {
         name : "games",
         description : "Liste all the games"
@@ -21,9 +22,10 @@ module.exports = {
         .addFields({name : "Games",value : v})
         .setThumbnail(QuizCategoryImg.Random)
         .setFooter({text : `${server.games.length} game`})
-        await interaction.reply({
+        await reply(interaction,{
             embeds : [embed],
             ephemeral : true
         })
-    }
-}
+    },
+    ephemeral : true,
+})
