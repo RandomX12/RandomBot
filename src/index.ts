@@ -1,11 +1,11 @@
-import  {ActionRowBuilder, ActivityType, Application, AuditLogEvent, ButtonBuilder, ChannelType, Collection,EmbedBuilder,GatewayIntentBits } from "discord.js"
+import  {ActionRowBuilder, ActivityType, AuditLogEvent, ButtonBuilder, ChannelType, Collection,DiscordAPIError,EmbedBuilder,GatewayIntentBits } from "discord.js"
 import path from "path"
 import fs from "fs"
 import { TimeTampNow, animateRotatingSlash, error, log, warning } from "./lib/cmd"
 import { connectDB } from "./lib/connectDB"
 import DiscordServers, { fetchServer, getServerByGuildId } from "./lib/DiscordServers"
 import discordServers, { Member } from "./model/discordServers"
-import Command, { verify } from "./lib/Commands"
+import Command, { reply, verify } from "./lib/Commands"
 import QuizGame, { QuizCategory, categories ,amount as amountQs, maxPlayers, getCategoryByNum, CategoriesNum, maxGames} from "./lib/QuizGame"
 import { Bot } from "./lib/Bot"
 import  listenToCmdRunTime, { addRuntimeCMD } from "./lib/consoleCmd"
@@ -138,12 +138,32 @@ client.on("interactionCreate",async(interaction)=>{
                 })
             }
         }
-        catch(err : any){
+        catch(err){
             log({text : `There was an error while executing the command \n ${err}`,textColor : "Red",timeColor : "Red"})
-            if(interaction.replied || interaction.deferred){
-                interaction.followUp({content : "There was an error while executing the command",ephemeral : true})
-            }else{
-                interaction.reply({content : "There was an error while executing the command",ephemeral : true})
+            try{
+                if(err instanceof DiscordAPIError){
+                    if(err.code === 50001){
+                        await reply(interaction,{
+                            content : `:x: Missing Access`,
+                            ephemeral : true
+                        })
+                        return
+                    }
+                    await reply(interaction,{
+                        content : `:x: There was an error while executing the command
+error code : DiscordAPIError_${err.code}
+message : ${err.message}`,
+                        ephemeral : true
+                    })
+                    return
+                }
+                if(interaction.replied || interaction.deferred){
+                    await interaction.followUp({content : "There was an error while executing the command",ephemeral : true})
+                }else{
+                    await interaction.reply({content : "There was an error while executing the command",ephemeral : true})
+                }
+            }catch(err : any){
+                error(err.message)
             }
         }
     }
@@ -359,6 +379,7 @@ client.on("channelCreate",async(c)=>{
         catch(err : any){
             await DiscordServers.deleteGame(c.guildId,hostId)
             await c.delete()
+            console.log(err);
             throw new Error(err?.message)
         }
         setTimeout(async()=>{
@@ -393,8 +414,8 @@ client.on("channelCreate",async(c)=>{
 })
 client.on("ready",async(c)=>{
     try{
+        console.clear();
         const bDate = Date.now()
-        // console.clear();
         let scan = require("../config.json").scanSlashCommands
         if(scan){
             let ws = animateRotatingSlash("Scanning commands...")
