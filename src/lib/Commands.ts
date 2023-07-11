@@ -1,5 +1,5 @@
 import { ApplicationCommandDataResolvable, CacheType, ChatInputCommandInteraction, GuildMember, InteractionEditReplyOptions, InteractionReplyOptions, MessagePayload, PermissionResolvable } from "discord.js";
-import DiscordServers, { getServerByGuildId } from "./DiscordServers";
+import DiscordServers from "./DiscordServers";
 import Config from "./DiscordServersConfig";
 import discordServers, { Member } from "../model/discordServers";
 import { Bot } from "./Bot";
@@ -44,12 +44,16 @@ export async function verify(interaction : ChatInputCommandInteraction<CacheType
         server.config = new Config().config
         await server.save()
     }
-    if(!interaction.guild.members.me.permissions.has("Administrator")){
-        const msg = `🟡 warning : ${interaction.client.user.username} has not a "Administrator" permission.
-please can any one give me this permission`
-        interaction.channel.send({
-            content : msg
-        })
+    let command = Bot.client.commands.get(interaction.commandName)
+    for(let permissions of command.access){
+        if(!interaction.guild.members.me.permissions.has(permissions)){
+            const msg = `🟡 warning : ${interaction.client.user.username} needs "**${command.access?.join(" , ") || ""}**" permission${command.access.length > 1 ? "s" : ""} to execute this command '**/${interaction.commandName}**'.
+    please can any one give me ${command.access.length > 1 ? "these" : "this"} permission${command.access.length > 1 ? "s" : ""}`
+            await interaction.channel.send({
+                content : msg
+            })
+            return false
+        }
     }
     for(let i = 0;i<server.config?.commands?.length;i++){
         if(server.config.commands[i].name === interaction.commandName){
@@ -107,13 +111,13 @@ export interface CommandOptions{
     execute : (interaction : ChatInputCommandInteraction<CacheType>)=> Promise<void>
     permissions? : PermissionResolvable[],
     ephemeral? : boolean,
-    deferReply? : boolean
+    deferReply? : boolean,
+    access? : PermissionResolvable[],
 }
 
-export type TCommand = {command :  CommandOptions}
 
 /**
- * New way to create a slash command command
+ * New way to create a slash command
  * @note still beta
  */
 export default class Command implements CommandOptions{
@@ -122,12 +126,14 @@ export default class Command implements CommandOptions{
     public permissions?: PermissionResolvable[];
     public ephemeral?: boolean;
     public deferReply?: boolean;
+    public access?: PermissionResolvable[];
     constructor(command : CommandOptions){
         this.data = command.data
         this.execute = command.execute
         this.permissions = command.permissions
         this.ephemeral = command.ephemeral
         this.deferReply = (command.deferReply === undefined ? true : command.deferReply)
+        this.access = (command.access ? command.access : [])
     }
     async save(){
         await Bot.client.application.commands.create(this.data)

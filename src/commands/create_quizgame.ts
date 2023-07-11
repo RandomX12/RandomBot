@@ -1,4 +1,4 @@
-import { ActionRowBuilder, ApplicationCommandDataResolvable, ApplicationCommandOptionType, ButtonBuilder, CacheType, ChannelType, ChatInputCommandInteraction, EmbedBuilder, GuildTextBasedChannel, OverwriteResolvable, PermissionOverwrites, TextChannel } from "discord.js"
+import { ActionRowBuilder, ApplicationCommandDataResolvable, ApplicationCommandOptionType, ButtonBuilder, CacheType, ChannelType, ChatInputCommandInteraction, DiscordAPIError, EmbedBuilder, GuildTextBasedChannel, OverwriteResolvable, PermissionOverwrites, TextChannel } from "discord.js"
 import QuizGame , { categories, getCategoryByNum,CategoriesNum, maxGames } from "../lib/QuizGame"
 import DiscordServers, { getServerByGuildId } from "../lib/DiscordServers"
 import { TimeTampNow, error, warning } from "../lib/cmd"
@@ -98,6 +98,11 @@ module.exports = new Command({
                 let permissions : OverwriteResolvable[] = [{
                     id : interaction.guild.roles.everyone.id,
                     deny : ["SendMessages"]
+                },
+                {
+                    id : interaction.client.user.id,
+                    allow : ["ManageMessages","SendMessages","ManageChannels"],
+                    deny : []
                 }]
                 if(server.config.quiz.private){
                     permissions[0].deny = [PermissionsBitField.Flags.ViewChannel]
@@ -161,8 +166,11 @@ module.exports = new Command({
             }
             catch(err : any){
                 if(interaction.replied || interaction.deferred){
+                    let errorCode = ""
+                    let msg = ""
+                    if(err instanceof DiscordAPIError) {errorCode = `DiscordAPIError_${err.code}`;msg = err.message}
                     await reply(interaction,{
-                        content  : "An error occurred while creating the channel :x:\n This may be from bad configurations, please check your configuration and make sure everything is OK."
+                        content  : "An error occurred while creating the channel :x:\n This may be from bad configurations, please check your configuration and make sure everything is OK.\n"+(errorCode ? `error code :${errorCode}\nmessage : ${msg}` : "")
                     })
                 }
                 warning(err.message)
@@ -285,5 +293,6 @@ module.exports = new Command({
             }
         },1000*60*5)
     },
-    ephemeral : true
+    ephemeral : true,
+    access : ["Administrator"]
 })

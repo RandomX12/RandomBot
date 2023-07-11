@@ -85,5 +85,6 @@ module.exports = new Command({
     },
     permissions : permissions,
     deferReply : false,
-    ephemeral : true
+    ephemeral : true,
+    access : ["ManageChannels"]
 })
