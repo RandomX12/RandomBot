@@ -379,7 +379,6 @@ client.on("channelCreate",async(c)=>{
         catch(err : any){
             await DiscordServers.deleteGame(c.guildId,hostId)
             await c.delete()
-            console.log(err);
             throw new Error(err?.message)
         }
         setTimeout(async()=>{
