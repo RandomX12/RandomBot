@@ -77,6 +77,15 @@ module.exports = {
             .setAuthor({name : `Waiting for the players... ${gameUpdate.players.length} / ${gameUpdate.maxPlayers}`})
             .setTimestamp(Date.now())
             .setFooter({text : `id : ${game.hostId}`})
+            if(gameUpdate.players.length !== 0){
+                let players = ``
+                gameUpdate.players.map((e)=>{
+                    players += `${e.username}\n`
+                })
+                embed.addFields({name : "players",value : players})
+            }else{
+                embed.addFields({name : "players",value : "**NO PLAYER IN THE GAME**"})
+            }
             await announcement.edit({
                 embeds: [embed]
             })

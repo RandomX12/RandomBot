@@ -1,8 +1,9 @@
-import { ActionRowBuilder, ApplicationCommandDataResolvable, ApplicationCommandOptionType, ButtonBuilder, CacheType, ChannelType, ChatInputCommandInteraction, EmbedBuilder, GuildTextBasedChannel, OverwriteResolvable, PermissionOverwrites, TextChannel } from "discord.js"
+import { ActionRowBuilder, ApplicationCommandDataResolvable, ApplicationCommandOptionType, ButtonBuilder, CacheType, ChannelType, ChatInputCommandInteraction, DiscordAPIError, EmbedBuilder, GuildTextBasedChannel, OverwriteResolvable, PermissionOverwrites, TextChannel } from "discord.js"
 import QuizGame , { categories, getCategoryByNum,CategoriesNum, maxGames } from "../lib/QuizGame"
 import DiscordServers, { getServerByGuildId } from "../lib/DiscordServers"
 import { TimeTampNow, error, warning } from "../lib/cmd"
 import { PermissionsBitField } from "discord.js"
+import Command, { reply } from "../lib/Commands"
 
 let choices = Object.keys(categories).map(e=>{
     return {
@@ -67,15 +68,12 @@ let cmdBody : ApplicationCommandDataResolvable = {
         }
     ]
 }
-module.exports = {
+module.exports = new Command({
     data : cmdBody,
     async execute(interaction : ChatInputCommandInteraction<CacheType>){
-        await interaction.deferReply({
-            ephemeral : true
-        })
         const isIn = await DiscordServers.isInGame(interaction.guildId,interaction.user.id)
         if(isIn) {
-            await interaction.editReply({
+            await reply(interaction,{
                 content : `You are already in game :x:`,
             })
             return
@@ -87,7 +85,7 @@ module.exports = {
         let time = interaction.options.getNumber("time")
         const server = await getServerByGuildId(interaction.guildId)
         if(server.games.length >= maxGames) {
-            await interaction.editReply({
+            await reply(interaction,{
                 content : `Cannot create the game :x:\nThis server has reached the maximum number of games ${maxGames}.`,
             })
             return
@@ -100,6 +98,11 @@ module.exports = {
                 let permissions : OverwriteResolvable[] = [{
                     id : interaction.guild.roles.everyone.id,
                     deny : ["SendMessages"]
+                },
+                {
+                    id : interaction.client.user.id,
+                    allow : ["ManageMessages","SendMessages","ManageChannels"],
+                    deny : []
                 }]
                 if(server.config.quiz.private){
                     permissions[0].deny = [PermissionsBitField.Flags.ViewChannel]
@@ -138,7 +141,7 @@ module.exports = {
                            permissionOverwrites : permissions
                         })
                     }else{
-                        await interaction.reply({
+                        await reply(interaction,{
                             content : "Cannot create category :x:",
                             ephemeral : true
                         })
@@ -163,8 +166,11 @@ module.exports = {
             }
             catch(err : any){
                 if(interaction.replied || interaction.deferred){
-                    await interaction.editReply({
-                        content  : "An error occurred while creating the channel :x:\n This may be from bad configurations, please check your configuration and make sure everything is OK."
+                    let errorCode = ""
+                    let msg = ""
+                    if(err instanceof DiscordAPIError) {errorCode = `DiscordAPIError_${err.code}`;msg = err.message}
+                    await reply(interaction,{
+                        content  : "An error occurred while creating the channel :x:\n This may be from bad configurations, please check your configuration and make sure everything is OK.\n"+(errorCode ? `error code :${errorCode}\nmessage : ${msg}` : "")
                     })
                 }
                 warning(err.message)
@@ -180,7 +186,7 @@ module.exports = {
         let msg = await channel.send({
             content : "creating Quiz Game..."
         })
-
+        const empty = require("../../config.json").quizGame.emptyWhenCreateNewGame
         try{
             const game = new QuizGame(interaction.guildId,{
                 hostName : interaction.user.tag,
@@ -193,13 +199,13 @@ module.exports = {
                 amount : amount,
                 time : time || 30*1000,
                 mainChannel : mainChannel
-            },true)
+            },empty || false)
             
             await game.save()
         }
         catch(err : any){
             await msg.delete()
-            await interaction.editReply({
+            await reply(interaction,{
                 content : "cannot create the game :x:",
                 
             })
@@ -214,9 +220,12 @@ module.exports = {
         .setTitle(`Quiz Game`)
         .setThumbnail("https://hips.hearstapps.com/hmg-prod/images/quiz-questions-answers-1669651278.jpg")
         .addFields({name : `Info`,value : `Category : **${getCategoryByNum(+category as CategoriesNum || category as "any")}** \nAmount : **${amount}** \ntime : **${time / 1000 + " seconds" || "30 seconds"}** \nMax players : **${maxPlayers}**`})
-        .setAuthor({name : `Waiting for the players... 0 / ${maxPlayers}`})
+        .setAuthor({name : `Waiting for the players... ${empty ? "0" : "1"} / ${maxPlayers}`})
         .setTimestamp(Date.now())
         .setFooter({text : `id : ${hostId}`})
+        if(!empty){
+            embed.addFields({name : "players",value : `${interaction.user.username}`})
+        }
         const button = new ButtonBuilder()
         .setLabel("join")
         .setStyle(3)
@@ -237,7 +246,7 @@ module.exports = {
                 .setLabel("Delete")
                 .setStyle(4)
             )
-            await interaction.editReply({
+            await reply(interaction,{
                 content : "Game created :white_check_mark:",
                 components : [rowInte]
             })
@@ -248,11 +257,11 @@ module.exports = {
                 await channel.delete()
             }
             if(interaction.replied || interaction.deferred){
-                await interaction.editReply({
+                await reply(interaction,{
                     content : "Cannot create the game :x:"
                 })
             }else{
-                await interaction.editReply({
+                await reply(interaction,{
                     content : "cannot create the game :x:",
                     
                 })
@@ -283,5 +292,7 @@ module.exports = {
                 return
             }
         },1000*60*5)
-    }
-}
+    },
+    ephemeral : true,
+    access : ["Administrator"]
+})

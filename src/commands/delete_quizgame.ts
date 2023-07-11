@@ -1,7 +1,8 @@
 import { ApplicationCommandDataResolvable, ApplicationCommandOptionType, CacheType, ChatInputCommandInteraction, EmbedBuilder, GuildMember, PermissionResolvable } from "discord.js";
 import QuizGame from "../lib/QuizGame";
-import DiscordServers, { getServerByGuildId } from "../lib/DiscordServers";
+import DiscordServers from "../lib/DiscordServers";
 import { error, warning } from "../lib/cmd";
+import Command, { reply } from "../lib/Commands";
 
 const cmdBody : ApplicationCommandDataResolvable = {
     name : "delete_quizgame",
@@ -18,7 +19,7 @@ const cmdBody : ApplicationCommandDataResolvable = {
     ]
 }
 const permissions : PermissionResolvable[] = ["Administrator"]
-module.exports = {
+module.exports = new Command({
     data : cmdBody,
     async execute(interaction : ChatInputCommandInteraction<CacheType>){
         try{
@@ -36,7 +37,7 @@ module.exports = {
                     components : [],
                     embeds : [deleteEmbed]
                 })
-                await interaction.reply({
+                await reply(interaction,{
                     content : "Game deleted :white_check_mark:",
                     ephemeral : true
                 })
@@ -54,12 +55,14 @@ module.exports = {
             }
         }
         catch(err : any){
-            await interaction.reply({
+            await reply(interaction,{
                 content : "Cannot delete the game :x:",
                 ephemeral : true
             })
             error(err.message)
         }
     },
-    permissions : permissions
-}
+    permissions : permissions,
+    ephemeral : true  ,
+    access : ["ManageChannels"]
+})
