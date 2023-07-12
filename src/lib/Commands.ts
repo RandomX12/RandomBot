@@ -1,4 +1,4 @@
-import { ApplicationCommandDataResolvable, CacheType, ChatInputCommandInteraction, GuildMember, InteractionEditReplyOptions, InteractionReplyOptions, MessagePayload, PermissionResolvable } from "discord.js";
+import { ApplicationCommandDataResolvable, ButtonInteraction, CacheType, ChatInputCommandInteraction, GuildMember, InteractionEditReplyOptions, InteractionReplyOptions, MessagePayload, PermissionResolvable } from "discord.js";
 import DiscordServers from "./DiscordServers";
 import Config from "./DiscordServersConfig";
 import discordServers, { Member } from "../model/discordServers";
@@ -10,7 +10,7 @@ import { Bot } from "./Bot";
  * @param interaction discord interaction
  * @param options message options and data
  */
-export async function reply(interaction : ChatInputCommandInteraction,options : string | MessagePayload | InteractionEditReplyOptions | InteractionReplyOptions){
+export async function reply(interaction : ChatInputCommandInteraction | ButtonInteraction<CacheType>,options : string | MessagePayload | InteractionEditReplyOptions | InteractionReplyOptions){
     if(interaction.deferred || interaction.replied){
         await interaction.editReply(options)
     }else{

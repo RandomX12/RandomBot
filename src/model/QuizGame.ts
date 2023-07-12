@@ -1,6 +1,7 @@
 import { Schema, model } from "mongoose";
 import { Game, Member } from "./discordServers";
 import { QuizCategory, answerType } from "../lib/QuizGame";
+import { TGameStart } from "../lib/DiscordServersConfig";
 
 export interface Qs{
     question : string,
@@ -9,10 +10,15 @@ export interface Qs{
     type : answerType,
     category : QuizCategory
 }
-export type answers = "A" | "B" | "C" | "D" | "N"
+export type answer = "A" | "B" | "C" | "D" | "N"
+export type AnswerBody = {
+    index : number,
+    answer : answer
+}
 export interface QuizGamePlayer extends Member{
-    answers? : answers[],
-    score? : number
+    answers? : AnswerBody[],
+    score? : number,
+    ready? : boolean
 }
 export interface QuizGame extends Game{
     players : QuizGamePlayer[],
@@ -26,7 +32,8 @@ export interface QuizGame extends Game{
     amount  : number,
     time? : number,
     hostUserId : string,
-    mainChannel? : boolean
+    mainChannel? : boolean,
+    gameStart? : TGameStart
 }
 export const QuizSchema = new Schema<QuizGame>({
     name :String,

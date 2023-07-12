@@ -56,14 +56,25 @@ const discordServer = new Schema<DiscordServer>({
                         required : false,
                         type : String
                     },
-                    private : Boolean,
+                    private : {
+                        required : false,
+                        default : false,
+                        type : Boolean
+                    },
                     category_name : {
                         type : String,
                         require : false
                     },
+                    //@ts-ignore
                     roles : {
                         required : false,
-                        type : [String]
+                        type : [String],
+                        default : []
+                    },
+                    gameStart : {
+                        required : true,
+                        type : Number,
+                        default : 0
                     }
                 },
                 required : true,
@@ -92,46 +103,29 @@ const discordServer = new Schema<DiscordServer>({
                 players : [{
                     username : String,
                     id : String,
-                    askId : {
-                        type : String,
-                        required : false
-                    },
-                    question : {
-                        required : false,
-                        type : String
-                    },
-                    answer : {
-                        required : false,
-                        type : String
-                    },
-                    vote : {
-                        required : false,
-                        type : String
-                    },
-                    votedCount : {
-                        type : Number,
-                        default : 0,
-                        required : false
-                    },
                     answers : {
                         required : false,
-                        type : [String],
+                        type : [{
+                            index : Number,
+                            answer : String
+                        }],
+                        default : []
                     },
                     score : {
                         required : false,
                         type : Number,
                         default : 0
+                    },
+                    ready : {
+                        required : false,
+                        type : Boolean,
+                        default : false
                     }
                 }],
                 word : String,
                 maxPlayers : Number,
                 channelId : String,
                 announcementId : String,
-                spy : {
-                    id : String,
-                    username: String,
-                    
-                },
                 started : {
                     required : false,
                     type : Boolean,
@@ -162,6 +156,11 @@ const discordServer = new Schema<DiscordServer>({
                     require : false,
                     type : Boolean,
                     default : true
+                },
+                gameStart : {
+                    required : false,
+                    type : Number,
+                    default : 0
                 }
             }
         ],

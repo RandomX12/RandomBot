@@ -1,9 +1,10 @@
 import { ActionRowBuilder, ApplicationCommandDataResolvable, ApplicationCommandOptionType, ButtonBuilder, CacheType, ChannelType, ChatInputCommandInteraction, DiscordAPIError, EmbedBuilder, GuildTextBasedChannel, OverwriteResolvable, PermissionOverwrites, TextChannel } from "discord.js"
-import QuizGame , { categories, getCategoryByNum,CategoriesNum, maxGames } from "../lib/QuizGame"
+import QuizGame , { categories, getCategoryByNum,CategoriesNum, maxGames, QzGame, QuizGameInfo } from "../lib/QuizGame"
 import DiscordServers, { getServerByGuildId } from "../lib/DiscordServers"
 import { TimeTampNow, error, warning } from "../lib/cmd"
 import { PermissionsBitField } from "discord.js"
 import Command, { reply } from "../lib/Commands"
+import { gameStartType } from "../lib/DiscordServersConfig"
 
 let choices = Object.keys(categories).map(e=>{
     return {
@@ -97,13 +98,21 @@ module.exports = new Command({
                 const category = interaction.guild.channels.cache.get(server.config.quiz?.channels_category)
                 let permissions : OverwriteResolvable[] = [{
                     id : interaction.guild.roles.everyone.id,
-                    deny : ["SendMessages"]
+                    deny : (server.config.quiz.private ? ["SendMessages","ViewChannel"] : ["SendMessages"])
                 },
                 {
                     id : interaction.client.user.id,
                     allow : ["ManageMessages","SendMessages","ManageChannels"],
                     deny : []
                 }]
+                if(server.config.quiz.private){
+                    server.config.quiz.roles.map((e)=>{
+                        permissions.push({
+                            id : e,
+                            deny : ["SendMessages"]
+                        })
+                    })
+                }
                 if(server.config.quiz.private){
                     permissions[0].deny = [PermissionsBitField.Flags.ViewChannel]
                     server.config.quiz.roles?.map((role)=>{
@@ -121,7 +130,8 @@ module.exports = new Command({
                         type : ChannelType.GuildText,
                         //@ts-ignore
                         parent : category,
-                        permissionOverwrites : permissions
+                        permissionOverwrites : permissions,
+                        
                     })
                     mainChannel = false
                 }else{
@@ -160,6 +170,7 @@ module.exports = new Command({
                     .setLabel("leave")
                     .setStyle(4),
                 )
+                
                 await channel.send({
                     components : [row]
                 })
@@ -187,19 +198,21 @@ module.exports = new Command({
             content : "creating Quiz Game..."
         })
         const empty = require("../../config.json").quizGame.emptyWhenCreateNewGame
+        let gameBody : QuizGameInfo = {
+            hostName : interaction.user.tag,
+            hostId : hostId,
+            hostUserId : interaction.user.id,
+            maxPlayers : maxPlayers,
+            channelId : channel.id,
+            announcementId : msg.id,
+            category : getCategoryByNum(+category as CategoriesNum || category as "any"),
+            amount : amount,
+            time : time || 30*1000,
+            mainChannel : mainChannel,
+            gameStart : server.config.quiz.gameStart || 0
+        }
         try{
-            const game = new QuizGame(interaction.guildId,{
-                hostName : interaction.user.tag,
-                hostId : hostId,
-                hostUserId : interaction.user.id,
-                maxPlayers : maxPlayers,
-                channelId : channel.id,
-                announcementId : msg.id,
-                category : getCategoryByNum(+category as CategoriesNum || category as "any"),
-                amount : amount,
-                time : time || 30*1000,
-                mainChannel : mainChannel
-            },empty || false)
+            const game = new QuizGame(interaction.guildId,gameBody,empty || false)
             
             await game.save()
         }
@@ -216,28 +229,32 @@ module.exports = new Command({
             }
             throw new Error(err?.message)
         }
-        const embed = new EmbedBuilder()
-        .setTitle(`Quiz Game`)
-        .setThumbnail("https://hips.hearstapps.com/hmg-prod/images/quiz-questions-answers-1669651278.jpg")
-        .addFields({name : `Info`,value : `Category : **${getCategoryByNum(+category as CategoriesNum || category as "any")}** \nAmount : **${amount}** \ntime : **${time / 1000 + " seconds" || "30 seconds"}** \nMax players : **${maxPlayers}**`})
-        .setAuthor({name : `Waiting for the players... ${empty ? "0" : "1"} / ${maxPlayers}`})
-        .setTimestamp(Date.now())
-        .setFooter({text : `id : ${hostId}`})
+        const game = new QzGame(interaction.guildId,hostId)
+        game.applyData(gameBody)
+        game.players = []
         if(!empty){
-            embed.addFields({name : "players",value : `${interaction.user.username}`})
+            game.players.push({
+                id : hostId,
+                username : interaction.user.username
+            })
         }
-        const button = new ButtonBuilder()
-        .setLabel("join")
-        .setStyle(3)
-        .setCustomId(`join_quizgame_${hostId}`)
-        const row : any = new ActionRowBuilder()
-        .addComponents(button)
+        const embed = game.generateEmbed()
+        const content = `@everyone new Quiz Game created by <@${interaction.user.id}> ${TimeTampNow()}`
+        const row : any = game.generateRow(server.config.quiz.gameStart)
+        if(game.mainChannel){
+            row.addComponents(
+                new ButtonBuilder()
+                        .setCustomId(`join_quizgame_${hostId}`)
+                        .setLabel("Join")
+                        .setStyle(3)
+            )
+        }
         try{
             if(!msg) throw new Error(`Cannot create the game`)
             await msg.edit({
                 embeds : [embed],
                 components : [row],
-                content : `@everyone new Quiz Game created by <@${interaction.user.id}> ${TimeTampNow()}`
+                content : content
             })
             const rowInte : any = new ActionRowBuilder()
             .addComponents(

@@ -13,7 +13,7 @@ export interface CommandsConfig{
 
 export interface ConfigT{
     commands : CommandsConfig[],
-    quiz? : QuizGameConfig<true | false,true | false>
+    quiz? : QuizGameConfig<boolean,boolean>
 }
 
 export interface command{
@@ -28,22 +28,47 @@ type MlChannels<Private extends boolean> = Private extends true
     channels_category : string
     private: Private,
     roles : string[]
-    category_name :string
+    category_name :string,
+    gameStart : typeof gameStartType[keyof typeof gameStartType]
 }
 :
 {
     multiple_channels : boolean,
     channels_category : string
     private: Private,
-    category_name :string 
+    category_name :string ,
+    gameStart : typeof gameStartType[keyof typeof gameStartType]
 }
-type DefaultQuizConfig = QuizGameConfig<false,false>
 
 export type QuizGameConfig<Multiple extends boolean,Private extends boolean>  = Multiple extends true 
 ? MlChannels<Private>
-: {multiple_channels : false}
+: {
+    multiple_channels : false,
+    gameStart : typeof gameStartType[keyof typeof gameStartType]
+}
 
 
+
+export const gameStartType = {
+    /**
+     * Automatically start when the game is full 
+     */
+    AUTO : 0,
+    /**
+     * Start When Everyone is ready
+     */
+    READY : 1,
+    /**
+     * Start When Everyone is ready and the game is full.
+     */
+    FULL_READY : 2,
+    /**
+     * Wait for the moderator to start the game
+     */
+    ADMIN : 3
+} as const
+
+export type TGameStart = typeof gameStartType[keyof typeof gameStartType]
 
 export default class Config{
     constructor(public config? : ConfigT){
@@ -51,12 +76,18 @@ export default class Config{
         if(!this.config){
             this.config = {
                 commands : [],
-                quiz : {multiple_channels : false}
+                quiz : {
+                    multiple_channels : false,
+                    gameStart : 0
+                }
             }
         }
         if(this.config.quiz.multiple_channels){
             if(!this.config.quiz.category_name || !this.config.quiz.channels_category){
                 throw new Error(`category props are required when "multiple_channels" is set to "true"`)
+            }
+            if(!this.config.quiz.gameStart){
+                this.config.quiz.gameStart = gameStartType.AUTO
             }
         }
         let commands : command[] = []

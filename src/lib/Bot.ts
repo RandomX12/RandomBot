@@ -60,12 +60,12 @@ export abstract class Bot{
      * 
      * @note set the productionMode in config.json to false if you are testing the bot.
      */
-    static lunch(){
+    static async lunch(){
         const productionMode = require("../../config.json").productionMode
         if(productionMode){
-            this.client.login(process.env.TOKEN1)
+            await this.client.login(process.env.TOKEN1)
         }else{
-            this.client.login(process.env.TOKEN)
+            await this.client.login(process.env.TOKEN)
         }
     }
     /**

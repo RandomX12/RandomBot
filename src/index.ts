@@ -6,10 +6,10 @@ import { connectDB } from "./lib/connectDB"
 import DiscordServers, { fetchServer, getServerByGuildId } from "./lib/DiscordServers"
 import discordServers, { Member } from "./model/discordServers"
 import Command, { reply, verify } from "./lib/Commands"
-import QuizGame, { QuizCategory, categories ,amount as amountQs, maxPlayers, getCategoryByNum, CategoriesNum, maxGames} from "./lib/QuizGame"
+import QuizGame, { QuizCategory, categories ,amount as amountQs, maxPlayers, getCategoryByNum, CategoriesNum, maxGames, QuizGameInfo, QzGame, isQuizGame} from "./lib/QuizGame"
 import { Bot } from "./lib/Bot"
 import  listenToCmdRunTime, { addRuntimeCMD } from "./lib/consoleCmd"
-
+import { QuizGame as QuizGameT } from "./model/QuizGame"
 
 // 
 listenToCmdRunTime()
@@ -81,6 +81,12 @@ client.on("interactionCreate",async(interaction)=>{
             command = interaction.client.buttons.get("answer_[:ans]_[:id]")
         }else if(interaction.customId.startsWith("delete_quiz")){
             command = interaction.client.buttons.get("delete_quiz_[:id]")
+        }else if(interaction.customId.startsWith("quizgame_ready")){
+            command = interaction.client.buttons.get(`quizgame_ready_[:id]`)
+        }else if(interaction.customId.startsWith("quizgame_notready")){
+            command = interaction.client.buttons.get(`quizgame_notready_[:id]`)
+        }else if(interaction.customId.startsWith("remove_ans")){
+            command = interaction.client.buttons.get(`remove_ans_[:id]`)
         }
         if(!command){
             console.log(`\x1b[33m`,`[warning]`,`Command Button ${interaction.customId} is not found`);
@@ -332,19 +338,21 @@ client.on("channelCreate",async(c)=>{
             name : "waiting 🟡",
             permissionOverwrites : permissions.cache
         })
+        const gameBody : QuizGameInfo = {
+            hostName : creator.tag,
+            hostId : hostId,
+            hostUserId : creator.id,
+            maxPlayers : maxPl,
+            channelId : channel.id,
+            announcementId : msg.id,
+            category : category,
+            amount : amount,
+            time : time || 30*1000,
+            mainChannel : false,
+            gameStart : server.config.quiz.gameStart || 0
+        }
         try{
-            const game = new QuizGame(channel.guildId,{
-                hostName : creator.tag,
-                hostId : hostId,
-                hostUserId : creator.id,
-                maxPlayers : maxPl,
-                channelId : channel.id,
-                announcementId : msg.id,
-                category : category,
-                amount : amount,
-                time : time || 30*1000,
-                mainChannel : false
-            },true)
+            const game = new QuizGame(channel.guildId,gameBody,true)
             await game.save()
         }
         catch(err : any){
@@ -354,24 +362,16 @@ client.on("channelCreate",async(c)=>{
             await c.delete()
             throw new Error(err?.message)
         }
-        const embed = new EmbedBuilder() 
-        .setTitle(`Quiz Game`)
-        .setThumbnail("https://hips.hearstapps.com/hmg-prod/images/quiz-questions-answers-1669651278.jpg")
-        .addFields({name : `Info`,value : `Category : **${category}** \nAmount : **${amount}** \ntime : **${time / 1000 + " seconds" || "30 seconds"}** \nMax players : **${maxPl}**`})
-        .setAuthor({name : `Waiting for the players... 0 / ${maxPl}`})
-        .setTimestamp(Date.now())
-        .setFooter({text : `id : ${hostId}`})
-        const button = new ButtonBuilder()
-        .setLabel("join")
-        .setStyle(3)
-        .setCustomId(`join_quizgame_${hostId}`)
-        const roww : any = new ActionRowBuilder()
-        .addComponents(button)
+        const game = new QzGame(channel.guildId,hostId)
+        game.applyData(gameBody)
+        game.players = []
+        const embed = game.generateEmbed()
+        const row : any = game.generateRow(game.gameStart || 0)
         try{
             if(!msg) throw new Error(`Cannot create the game`)
             await msg.edit({
                 embeds : [embed],
-                components : [roww],
+                components : (row.data.components ? [row] : []),
                 content : `@everyone new Quiz Game created by <@${creator.id}> ${TimeTampNow()}`
             })
             
@@ -411,6 +411,24 @@ client.on("channelCreate",async(c)=>{
         warning(err.message)
     }
 })
+
+client.on("channelDelete",async(channel)=>{
+    try{
+        if(channel.type !== ChannelType.GuildText) return
+        if(!channel.guild) return
+        const server = await fetchServer(channel.guildId)
+        for(let i = 0;i<server.games.length;i++){
+            if(server.games[i].channelId === channel.id){
+                server.games.splice(i,1)
+                await server.update()   
+                return         
+            }
+        }
+    }catch(err){
+        warning(err.message)
+    }
+})
+
 client.on("ready",async(c)=>{
     try{
         console.clear();
