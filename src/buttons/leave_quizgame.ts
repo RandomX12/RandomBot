@@ -1,6 +1,6 @@
 import { ButtonInteraction, CacheType, EmbedBuilder } from "discord.js";
 import DiscordServers, { getServerByGuildId } from "../lib/DiscordServers";
-import QuizGame, { isQuizGame } from "../lib/QuizGame";
+import QuizGame, { QzGame, isQuizGame } from "../lib/QuizGame";
 import { error, warning } from "../lib/cmd";
 
 
@@ -26,25 +26,17 @@ module.exports = {
             })
             return
         }
-        const game = await QuizGame.getGameWithHostId(interaction.guildId,hostId)
-        if(!isQuizGame(game)){
-            let tryTxt = ""
-            await interaction.reply({
-                content : "You are not in Quiz Game, "+tryTxt,
-                ephemeral : true
-            })
-            return
-        }
-        await QuizGame.leave(interaction.guildId,game.hostId,interaction.user.id)
+        const game = await QzGame.getGame(interaction.guildId,hostId)
+        game.removePlayer(interaction.user.id)
+        await game.update()
         await interaction.reply({
-            content : "You left the game",
+            content : "You left the game :white_check_mark:",
             ephemeral : true
         })
-        const gameUpdate = await QuizGame.getGameWithHostId(interaction.guildId,game.hostId)
-        const announcement = interaction.channel.messages.cache.get(gameUpdate.announcementId)
+        const announcement = interaction.channel.messages.cache.get(game.announcementId)
         if(game.started) {
-            if(gameUpdate.players.length === 0){
-                await DiscordServers.deleteGame(interaction.guildId,gameUpdate.hostId)
+            if(game.players.length === 0){
+                await DiscordServers.deleteGame(interaction.guildId,game.hostId)
                 if(announcement){
                     const deleteEmbed = new EmbedBuilder()
                     .setTitle("No one else in the game ❌")
@@ -65,34 +57,27 @@ module.exports = {
                             warning(err.message)
                         }
                     },1000*10)
+                    return
                 }
+                setTimeout(async()=>{
+                    try{
+                        await announcement?.delete()
+                    }catch(err){
+                        warning(err.message)
+                    }
+                },5000)
             }
         return
         }
         if(announcement){
-            const embed = new EmbedBuilder()
-            .setTitle(`Quiz Game`)
-            .setThumbnail("https://hips.hearstapps.com/hmg-prod/images/quiz-questions-answers-1669651278.jpg")
-            .addFields({name : `Info`,value : `Category : **${gameUpdate.category}** \nAmount : **${gameUpdate.amount}** \ntime : **${game.time / 1000 + " seconds" || "30 seconds"} ** \nMax players : **${gameUpdate.maxPlayers}**`})
-            .setAuthor({name : `Waiting for the players... ${gameUpdate.players.length} / ${gameUpdate.maxPlayers}`})
-            .setTimestamp(Date.now())
-            .setFooter({text : `id : ${game.hostId}`})
-            if(gameUpdate.players.length !== 0){
-                let players = ``
-                gameUpdate.players.map((e)=>{
-                    players += `${e.username}\n`
-                })
-                embed.addFields({name : "players",value : players})
-            }else{
-                embed.addFields({name : "players",value : "**NO PLAYER IN THE GAME**"})
-            }
+            const embed = game.generateEmbed()
             await announcement.edit({
                 embeds: [embed]
             })
             return
         }else{
             const channel = await QuizGame.getChannel(interaction,hostId)
-            await DiscordServers.deleteGame(interaction.guildId,gameUpdate.hostId)
+            await DiscordServers.deleteGame(interaction.guildId,game.hostId)
             const embed = new EmbedBuilder()
             .setAuthor({name : "Quiz Game"})
             .setTitle("It looks like someone deleted the game announcement ❌")
@@ -100,8 +85,7 @@ module.exports = {
             await interaction.channel.send({
                 embeds : [embed],
             })
-            const server = await getServerByGuildId(interaction.guildId)
-            if(server.config.quiz.multiple_channels){
+            if(!game.mainChannel){
                 if(!channel) return
                 setTimeout(async()=>{
                     try{
@@ -111,7 +95,7 @@ module.exports = {
                         warning(err.message)
                     }
 
-                })
+                },10*1000)
             }
             return
         }    

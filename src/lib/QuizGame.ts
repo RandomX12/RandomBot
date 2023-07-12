@@ -1,8 +1,9 @@
-import { ButtonInteraction, CacheType, ChatInputCommandInteraction, GuildTextBasedChannel, Message, User } from "discord.js";
+import { ActionRowBuilder, AnyComponentBuilder, ButtonBuilder, ButtonInteraction, CacheType, ChannelType, ChatInputCommandInteraction, EmbedBuilder, GuildTextBasedChannel, Interaction, Message, User } from "discord.js";
 import { Game as GameT, Member } from "../model/discordServers"
-import { answers, Qs, QuizGamePlayer, QuizGame as QuizGameType } from "../model/QuizGame"
-import DiscordServers, { getServerByGuildId } from "./DiscordServers";
-import { log, warning } from "./cmd";
+import { answer , Qs, QuizGamePlayer, QuizGame as QuizGameType } from "../model/QuizGame"
+import DiscordServers, { fetchServer, getServerByGuildId } from "./DiscordServers";
+import { TimeTampNow, error, log, warning } from "./cmd";
+import { TGameStart, gameStartType } from "./DiscordServersConfig";
 export function isQuizGame(game : GameT) : game is QuizGameType{
     if(game.name === "Quiz Game"){
         return true
@@ -63,7 +64,7 @@ export const QuizCategoryImg : Record<QuizCategory,string> = {
     Animals : "https://cdn-icons-png.flaticon.com/512/616/616408.png",
     Vehicles : "https://cdni.iconscout.com/illustration/premium/thumb/car-2953450-2451640.png",
 }
-interface QuizGameInfo{
+export interface QuizGameInfo{
     hostId : string,
     hostName : string,
     hostUserId : string,
@@ -73,7 +74,8 @@ interface QuizGameInfo{
     category : QuizCategory,
     amount : number,
     time? : number,
-    mainChannel? : boolean
+    mainChannel? : boolean,
+    gameStart? : TGameStart
 }
 
 function createGameLog(){
@@ -193,70 +195,77 @@ export default class QuizGame{
         if(!isGame)throw new Error(`Quiz Game not found`)
         await server.save()
     }
-    static async setAns(guildId : string,hostId : string,userId : string,ans : answers){
-        const server = await getServerByGuildId(guildId)
-        let isGame : boolean = false
+    static async setAns(guildId : string,hostId : string,userId : string,ans : answer,index : number){
+        const game = await QzGame.getGame(guildId,hostId)
         let isUser : boolean = false
-        server.games.map((e,i)=>{
-            if(e.hostId === hostId){
-                if(!isQuizGame(e)) return
-                isGame = true
-                e.players.map((ele,index)=>{
-                    if(ele.id === userId){
-                        if(!(server.games[i] as QuizGameType).players[index].answers){
-                            (server.games[i] as QuizGameType).players[index].answers = [ans]
-                        }else{
-                            (server.games[i] as QuizGameType).players[index].answers[e.index] = ans
-                        }
+                for(let i = 0 ;i<game.players.length;i++){
+                    if(game.players[i].id === userId){
                         isUser = true
-                    }
-                })
-            }
-        }) 
-        if(!isGame) throw new Error(`Game not found !!`)
-        if(!isUser) throw new Error(`User not found !!`);
-        await server.save()
-    }
-    static async scanAns(guildId : string,hostId : string){
-        const server = await getServerByGuildId(guildId)
-        let isGame : boolean = false
-        let ans : answers[] = ["A","B","C","D"]
-        let gameIndex : number
-        server.games.map((e,i)=>{
-            if(e.hostId === hostId){
-                if(!isQuizGame(e)) return
-                isGame = true;
-                gameIndex = i
-                e.players.map((ele,index)=>{
-                    if(!ele.answers[e.index]){
-                        (server.games[i] as QuizGameType).players[index].answers.push("N")
-                        return
-                    }
-                    if(ele.answers[e.index] === ans[e.quiz[e.index].correctIndex]){
-                        if((server.games[i] as QuizGameType).players[index].score){
-                            (server.games[i] as QuizGameType).players[index].score++
+                        if(!game.players[i].answers){
+                            game.players[i].answers = [{
+                                index : index,
+                                answer : ans
+                            }]
                         }else{
-                            (server.games[i] as QuizGameType).players[index].score = 1
+                            for(let j =0;j<game.players[i].answers.length;j++){
+                                if(game.players[i].answers[j].index === index){
+                                    game.players[i].answers[j].answer = ans
+                                    await game.update()
+                                    return
+                                }
+                            }
+                            game.players[i].answers.push({
+                                index : index,
+                                answer : ans
+                            })
                         }
+                        break
                     }
-                })
-            }
-        })
-        if(!isGame) throw new Error(`game not found`);
-        (server.games[gameIndex] as QuizGameType).index++
-        await server.save()
+                }
+        if(!isUser) throw new Error(`User not found !!`);
+        await game.update()
     }
-    static async removeAns(guildId : string,userId : string){
-        const server = await getServerByGuildId(guildId)
-        server.games.map((e,i)=>{
-            if(!isQuizGame(e)) return
-            e.players.map((ele,j)=>{
+    // static async scanAns(guildId : string,hostId : string){
+    //     const server = await getServerByGuildId(guildId)
+    //     let isGame : boolean = false
+    //     let ans : answer[] = ["A","B","C","D"]
+    //     let gameIndex : number
+    //     server.games.map((e,i)=>{
+    //         if(e.hostId === hostId){
+    //             if(!isQuizGame(e)) return
+    //             isGame = true;
+    //             gameIndex = i
+    //             e.players.map((ele,index)=>{
+    //                 if(!ele.answers[e.index]){
+    //                     (server.games[i] as QuizGameType).players[index].answers.push("N")
+    //                     return
+    //                 }
+    //                 if(ele.answers[e.index] === ans[e.quiz[e.index].correctIndex]){
+    //                     if((server.games[i] as QuizGameType).players[index].score){
+    //                         (server.games[i] as QuizGameType).players[index].score++
+    //                     }else{
+    //                         (server.games[i] as QuizGameType).players[index].score = 1
+    //                     }
+    //                 }
+    //             })
+    //         }
+    //     })
+    //     if(!isGame) throw new Error(`game not found`);
+    //     (server.games[gameIndex] as QuizGameType).index++
+    //     await server.save()
+    // }
+    static async removeAns(guildId : string,hostId : string,userId : string,index : number){
+        const game = await QzGame.getGame(guildId,hostId)
+            game.players.map((ele,j)=>{
                 if(ele.id === userId){
-                    (server.games[i] as QuizGameType).players[j].answers[e.index] = "N"
+                    game.players[j].answers.map((e,i)=>{
+                        if(e.index === index) {
+                            game.players[j].answers.splice(i,1)
+                        }
+                    })
                 }
             })
-        })
-        await server.save()
+        await game.update()
     }
     static async getQuizGamewithHostUserId(guildId : string,hostUserId : string){
         const server = await getServerByGuildId(guildId)
@@ -274,19 +283,19 @@ export default class QuizGame{
         for(let i = 0;i<server.games.length;i++){
             if(server.games[i].hostId === hostId){
                 if(!isQuizGame(server.games[i])) throw new Error(`This game is not a Quiz Game`)
-                const channel : any = await interaction.guild.channels.cache.get(server.games[i].channelId).fetch()
-                const announcement : Message<true> = channel.messages.cache.get((server.games[i] as QuizGameType).announcementId)
+                const channel : any = await interaction.guild.channels.cache.get(server.games[i].channelId)?.fetch()
+                const announcement : Message<true> = channel?.messages?.cache?.get((server.games[i] as QuizGameType).announcementId)
                 return announcement
             }
         }
         throw new Error(`announcement not found`)
     }
-    static async getChannel(interaction : ChatInputCommandInteraction<CacheType> | ButtonInteraction<CacheType>,hostId : string){
+    static async getChannel(interaction : Interaction<CacheType> | ButtonInteraction<CacheType>,hostId : string){
         const server = await getServerByGuildId(interaction.guildId)
         for(let i = 0 ;i<server.games.length;i++){
             if(server.games[i].hostId === hostId){
                 if(!isQuizGame(server.games[i])) throw new Error(`This game is not quiz game`)
-                const channel : any = await interaction.guild.channels.cache.get((server.games[i] as QuizGameType).channelId).fetch()
+                const channel : any = await interaction.guild.channels.cache.get((server.games[i] as QuizGameType)?.channelId)?.fetch()
                 return channel as GuildTextBasedChannel
             }
         }
@@ -349,6 +358,7 @@ export default class QuizGame{
             time : this.info.time || 15*1000,
             hostId : this.info.hostId,
             hostUserId : this.info.hostUserId,
+            gameStart : this.info.gameStart || 0
         } as QuizGameType)
         await server.save()
     }
@@ -421,7 +431,19 @@ export class QzGame extends Game implements QuizGameType{
         throw new Error(`Game with id="${hostId}" not found`)
     }
     
-    
+    static async getGameWithUserId(guildId: string, userId: string): Promise<QzGame> {
+       const server = await fetchServer(guildId)
+       for(let i = 0;i<server.games.length;i++){
+         for(let j = 0;j<server.games[i].players.length;j++){
+            if(server.games[i].players[j].id === userId){
+                const game = new QzGame(server.serverId,server.games[i].hostId)
+                game.applyData(server.games[i])
+                return game
+            }
+         }
+       } 
+       throw new Error(`Game not found`)
+    }
     
     public hostName: string;
     public name: "Spy Game" | "Quiz Game";
@@ -469,6 +491,10 @@ export class QzGame extends Game implements QuizGameType{
         delete cache.update
         return cache as QuizGameType
     }
+    /**
+     * Game start code
+     */
+    public gameStart?: TGameStart;
     constructor(
     /**
      * Server id 
@@ -484,7 +510,7 @@ export class QzGame extends Game implements QuizGameType{
     applyData(game : Partial<QuizGameType>){
         this.name = game.name || this.name
         this.hostName = game.hostName || this.hostName
-        this.players = game.players ||this.players
+        this.players = game.players || this.players
         this.channelId = game.channelId||this.channelId
         this.index = game.index || this.index
         this.maxPlayers = game.maxPlayers||this.maxPlayers
@@ -496,6 +522,7 @@ export class QzGame extends Game implements QuizGameType{
         this.category = game.category||this.category
         this.time = game.time||this.time
         this.mainChannel = game.mainChannel ||this.mainChannel
+        this.gameStart = game.gameStart || 0
     }
     /**
      * Fetch the game data from the database and update the local props
@@ -561,7 +588,268 @@ export class QzGame extends Game implements QuizGameType{
     *play(){
         for(let i = 0;i<this.amount;i++){
             this.round = this.quiz[i]
+            this.index = i
             yield this.quiz[i]
+        }
+    }
+    setPlayerReady(id : string,ready? : boolean){
+        for(let i = 0;i<this.players.length;i++){
+            if(this.players[i].id === id){
+                this.players[i].ready = (ready === undefined ? true : ready)
+                break
+            }
+        }
+    }
+    /**
+     * Generate a discord Embed For this game
+     */
+    generateEmbed() : EmbedBuilder{
+        const embed = new EmbedBuilder()
+        .setTitle(`Quiz Game`)
+        .setThumbnail("https://hips.hearstapps.com/hmg-prod/images/quiz-questions-answers-1669651278.jpg")
+        .addFields({name : `Info`,value : `Category : **${this.category}** \nAmount : **${this.amount}** \ntime : **${this.time / 1000 + " seconds" || "30 seconds"}** \nMax players : **${this.maxPlayers}**`})
+        .setAuthor({name : `Waiting for the players... ${this.players.length} / ${this.maxPlayers}`})
+        .setTimestamp(Date.now())
+        .setFooter({text : `id : ${this.hostId}`})
+        if(this.players.length !== 0){
+            let players = ``
+            this.players.map((e)=>{
+                players += "```\n"+`${e.username} ${(this.gameStart === gameStartType.FULL_READY || this.gameStart === gameStartType.READY) ?(e.ready ? "✅ READY" : "🔴 NOT READY") : ""}` + "```"
+            })
+            embed.addFields({name : "players",value : players})
+        }else{
+            embed.addFields({name : "players",value : `**NO PLAYER IN THE GAME**`})
+        }
+        return embed
+    }
+    generateRow(gameStart : typeof gameStartType[keyof typeof gameStartType]) : ActionRowBuilder<AnyComponentBuilder>{
+        const row = new ActionRowBuilder()
+        if(gameStart === gameStartType.AUTO){
+            const button = new ButtonBuilder()
+            .setLabel("Leave")
+            .setCustomId("leave_quizgame_"+this.hostId)
+            .setStyle(4)
+            row.setComponents(button)
+            return row
+        }else if(gameStart === gameStartType.READY || gameStart === gameStartType.FULL_READY){
+            row.addComponents(
+                new ButtonBuilder()
+                .setCustomId(`quizgame_ready_${this.hostId}`)
+                .setLabel("Ready")
+                .setStyle(1)
+                ,
+                new ButtonBuilder()
+                .setCustomId(`quizgame_notready_${this.hostId}`)
+                .setStyle(4)
+                .setLabel(`Not Ready`)
+            )
+            return row
+        }
+        return row
+    }
+    generateContent(){
+        return `@everyone new Quiz Game created by <@${this.hostId}> ${TimeTampNow()}`
+    }
+    generateRoundEmbed(){
+        if(!this.round)return
+        const embed = new EmbedBuilder()
+        .setAuthor({name : this.round.category})
+        .setTitle(this.round.question)
+        .setThumbnail(QuizCategoryImg[this.category])
+        .setFooter({text : `id : ${this.hostId}`})
+        if(this.round.answers.length === 2){
+            embed.addFields({name : "answers :",value :`True\nFalse`})
+        }else{
+            let answers = ``
+            let indexs : answer[] = ["A","B","C","D"]
+            this.round.answers.map((e,i)=>{
+                answers += `${indexs[i]} : ${e}\n`
+            })
+            embed.addFields({name : "answers : ",value : answers})
+        }
+        return embed
+    }
+    generateRoundRow(){
+        if(!this.round) return
+        const row :any  = new ActionRowBuilder()
+        if(this.round.type === "boolean"){
+            let ans : answer[] = ["A","B"]
+            let trIndex = this.round.answers.indexOf("True") 
+            let flIndex = this.round.answers.indexOf("False")
+            row.addComponents(
+            new ButtonBuilder()
+            .setCustomId(`answer_${ans[trIndex]}_${this.hostId}_${this.index}`)
+            .setLabel("True")
+            .setStyle(1)
+            ,
+            new ButtonBuilder()
+            .setCustomId(`answer_${ans[flIndex]}_${this.hostId}_${this.index}`)
+            .setLabel("False")
+            .setStyle(1)
+            )
+        }else{
+            let al : answer[] = ["A" , "B" ,"C","D"]
+            this.round.answers.map((e,j)=>{
+            row.addComponents(
+                new ButtonBuilder()
+                .setCustomId(`answer_${al[j]}_${this.hostId}_${this.index}`)
+                .setLabel(al[j])
+                .setStyle(1)
+                )
+            })
+        }
+        row.addComponents(
+            new ButtonBuilder()
+            .setCustomId(`remove_ans_${this.hostId}_${this.index}`)
+            .setLabel("remove answer")
+            .setStyle(2)
+        )
+        return row
+    }
+    isReady(id : string){
+        for(let i = 0;i<this.players.length;i++){
+            if(this.players[i].ready && id === this.players[i].id){
+                return true
+            }
+        }
+        return false
+    }
+    removePlayer(id : string){
+        this.players = this.players.filter((e)=> e.id !== id)
+    }
+    setPlayersScore() : void{
+        let ansIndex : answer[] = ["A","B","C","D"]
+        if(!this.round || !this.started) return
+        for(let i = 0;i<this.players.length;i++){
+            if(!this.players[i].answers) this.players[i].answers = []
+            for(let j = 0;j<this.players[i].answers.length;j++){
+                let correctIndex = this.quiz[this.players[i].answers[j].index].correctIndex
+                if(ansIndex[correctIndex] === this.players[i].answers[j].answer){
+                    this.players[i].score++
+                }
+            }
+        }
+    }
+    get rankedPlayers() : QuizGamePlayer[]{
+        let rankedPlayers : QuizGamePlayer[] = []
+        let players = this.players
+        let playersLen = this.players.length
+        for(let i = 0;i<playersLen;i++){
+            let player = players.reduce((pe,ce,i)=>{
+                return pe.score <= ce.score ? ce : pe
+            })
+            for(let j = 0;j<players.length;j++){
+                if(players[j].id === player.id){
+                    players.splice(j,1)
+                    break
+                }
+            }
+            rankedPlayers.push(player)
+        }
+        return rankedPlayers
+    }
+    async executeGame(interaction : Interaction<CacheType>,announcement : Message<true>){
+        try{
+            const embed = this.generateEmbed()
+            embed.setAuthor({name : "Starting the game... 🟢"})
+                    await announcement.edit({
+                        content : "",
+                        embeds : [embed],
+                        components : []
+                    })
+                    const channel = announcement.channel   
+                    await this.start()
+                    if(!this.mainChannel){
+                        await channel.edit({name : "started 🟢"}) 
+                    }
+                    const gameGenerator = this.play()
+                    while(gameGenerator.next().done === false){
+                        try{
+                            const embed = this.generateRoundEmbed()
+                            const row = this.generateRoundRow()
+                            await announcement.edit({
+                            embeds : [embed],
+                            components : [row],
+                            content : TimeTampNow()
+                            })
+                            await stop(this.time || 30*1000)
+                            let endAns = ""
+                            let al : answer[] = ["A","B","C","D"]
+                            this.round.answers.map((e,j)=>{
+                                if(j === this.round.correctIndex){
+                                    endAns += "**" + al[j] + " : " + e + " ✅" +"**\n"
+                                }else{
+                                    endAns += al[j] + " : " + e +"\n"
+                                }
+                            })
+                            embed.setFields({name : "answers :",value : endAns})
+                            await announcement.edit({
+                                embeds : [embed],
+                                components : [],
+                                content : ""
+                            })
+                            // await QuizGame.scanAns(interaction.guildId,this.hostId)
+                            await stop(5*1000)
+                            }
+                            catch(err : any){
+                                gameGenerator.return()
+                            }
+                        }
+                await this.fetch()
+                this.setPlayersScore()
+                const endEmbed = new EmbedBuilder()
+                .setTitle(`Quiz Game`)
+                .setAuthor({name : "Game end 🔴"})
+                let playersScore = ""
+                let rankedPlayers = this.rankedPlayers
+                // let players = gameUpdate.players
+                // let rankedPlayers = []
+                // const length = gameUpdate.players.length
+                // for(let i = 0;i<length;i++){
+                //     let b = players.reduce((pe,ce)=>{
+                //         if(players.length === 1){
+                //             return ce
+                //         }
+                //         return ce.score <= pe.score ? pe : ce
+                //     })
+                //     players.map((e,j)=>{
+                //         if(b.id === e.id){
+                //             players.splice(j,1)
+                //         }
+                //     })
+                //     rankedPlayers.push(b)
+                // }
+                rankedPlayers.map((e,i)=>{
+                    playersScore += rank[i] + " - " + e.username + "\ \ \ \ **" + e.score + "**\n"
+                })
+                endEmbed.addFields({name : "players score ",value : playersScore})
+                endEmbed.setTimestamp(Date.now())
+                await announcement.edit({
+                    content : "",
+                    components : [],
+                    embeds : [endEmbed]
+                })
+    
+                await DiscordServers.deleteGame(interaction.guildId,this.hostId)
+                if(this.mainChannel) return
+                if(channel){
+                    setTimeout(async()=>{
+                        try{
+                            await channel.delete()
+                        }
+                        catch(err : any){
+                            warning(err.message)
+                        }
+                    },20*1000)
+                    await channel.edit({name : "game end 🔴",type : ChannelType.GuildText,permissionOverwrites : [{
+                        id : interaction.guild.roles.everyone,
+                        deny : []
+                    }]}) 
+                    
+                }
+        }   
+        catch(err : any){
+            error(err)
         }
     }
 }
