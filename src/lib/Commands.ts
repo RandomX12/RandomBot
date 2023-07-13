@@ -3,6 +3,7 @@ import DiscordServers from "./DiscordServers";
 import Config from "./DiscordServersConfig";
 import discordServers, { Member } from "../model/discordServers";
 import { Bot } from "./Bot";
+import DiscordServersError from "./errors/DiscordServers";
 /**
  * Reply to a message dynamically
  * If the interaction is replied or deferred it will edit the message
@@ -20,30 +21,8 @@ export async function reply(interaction : ChatInputCommandInteraction | ButtonIn
 
 export async function verify(interaction : ChatInputCommandInteraction<CacheType>) : Promise<boolean>{
     let server : any = await discordServers.findOne({serverId : interaction.guildId})
-    if(!server){
-        const members : Member[] = interaction.guild.members.cache.map((e)=>{
-            return {
-                username : e.user.tag,
-                id : e.user.id
-            }
-        })
-        server = new DiscordServers({
-            name : interaction.guild.name,
-            members : members,
-            serverId : interaction.guildId,
-            games : []
-       })
-       await server.save()
-       await reply(interaction,{
-            content : "This server is not saved in our database. try again",
-            ephemeral : true
-       })
-       return false
-    }
-    if(!server.config){
-        server.config = new Config().config
-        await server.save()
-    }
+    if(!server) throw new DiscordServersError("404",`server not found with id="${interaction.guildId}"`)
+    if(!server.config)throw new DiscordServersError("402","no config in this server")
     let command = Bot.client.commands.get(interaction.commandName)
     for(let permissions of command.access){
         if(!interaction.guild.members.me.permissions.has(permissions)){
@@ -103,7 +82,7 @@ export async function verify(interaction : ChatInputCommandInteraction<CacheType
             return false
         }
     }
-    return true
+    throw new DiscordServersError("401",`Command '/${interaction.commandName}' has no config in '${interaction.guild.name}'<${interaction.guildId}>`)
 }
 
 export interface CommandOptions{

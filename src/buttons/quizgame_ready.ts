@@ -11,7 +11,6 @@ module.exports = new ButtonCommand({
         description : "ready"
     },
     async execute(interaction : ButtonInteraction<CacheType>){
-        try{
             await interaction.deferReply({ephemeral : true})
             const hostId = interaction.customId?.split("_")[1]
             if(!hostId){
@@ -55,12 +54,5 @@ module.exports = new ButtonCommand({
                 ){
                 await game.executeGame(interaction,announcement)
             }
-        }catch(err : any){
-            await reply(interaction,{
-                content : handleError(err) + " :x:",
-                ephemeral : true
-            })
-            error(err.message)
-        }
     }
 })

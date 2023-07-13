@@ -3,27 +3,7 @@ import Discord, {  ApplicationCommandDataResolvable } from "discord.js";
 import { Member } from "../model/discordServers";
 import path from "path" 
 import fs from "fs"
-import Command, { CommandOptions } from "./Commands";
-// interface Command{
-//     name : string,
-//     description : string,
-//     options : [
-//         {
-//             name : string,
-//             description : string,
-//             type : ApplicationCommandOptionType,
-//             required? : boolean,
-//             choices? : [
-//                 {
-//                     name : string,
-//                     value : any
-//                 }
-//             ],
-//             maxValue? : number
-//             minValue? : number
-//         }
-//     ]
-// }
+import Command, { ButtonCommand, CommandOptions } from "./Commands";
 
 type ScanCommandsOptions = {
     sync? : boolean,
@@ -82,13 +62,26 @@ export abstract class Bot{
                 if("data" in command && "execute" in command){
                     this.client.commands.set(command.data.name,command as Command)
                     this.cmds.set(command.data.name,new Map<string,Member>())
-                        this.client.application?.commands?.create(command.data)
+                    this.client.application?.commands?.create(command.data)
                 }else{
                     console.log("\x1b[33m","[warning] : ","\x1b[37m",`The command at ${filePath} has a missing property.`)
                 }
             }
     }
-
+    static scanButtons(){
+        this.client.buttons = new Collection()
+        const buttonsPath = path.join(__dirname+"/..","buttons")
+        const buttonFolder = fs.readdirSync(buttonsPath).filter((file)=> file.endsWith(".ts") || file.endsWith(".js"))
+        for(let file of buttonFolder){
+            const filePath = path.join(buttonsPath,file)
+            const button = require(filePath) as ButtonCommand
+            if("data" in button || "execute" in button){
+                this.client.buttons.set(button.data.name,button)
+            }else{
+                console.log("\x1b[33m","[warning] : ","\x1b[37m",`The command at ${filePath} has a missing property.`)
+            }
+        }   
+    }
     static async addCommand(...files:string[]){
         for(const fileName of files){
             const filePath = path.join(__dirname+"/..","commands",fileName)

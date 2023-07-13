@@ -16,7 +16,6 @@ module.exports = new Command({
         }]
     },
     async execute(interaction){
-        try{
             const hostId = `${interaction.options.getNumber("id")}`
             const game = await QzGame.getGame(interaction.guildId,hostId)
             if(game.players.length === 0) {
@@ -36,12 +35,6 @@ module.exports = new Command({
                 content : "game started :white_check_mark:"
             })
             await game.executeGame(interaction,announcement)
-        }
-        catch(err){
-            await reply(interaction,{
-                content : "Unknown Error occurred while starting the game"
-            })
-        }
     },
     permissions : ["Administrator"],
     ephemeral : true

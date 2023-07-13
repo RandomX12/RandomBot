@@ -408,10 +408,10 @@ addRuntimeCMD({
 // get games
 
 addRuntimeCMD({
-    input : "game-info [:guildId]:int [:gameId]:int",
+    input : "game-info [:guildId]:str [:gameId]:str",
     type : "ASYNC",
     async fn(args) {
-        console.log(args);
+        try{
         const game = await Game.getGame(`${args[0].value}`,`${args[1].value}`)
         console.table({
             hostId : game.hostId,
@@ -419,6 +419,10 @@ addRuntimeCMD({
             type : game.name,
             players : game.players.length
         })
+        }
+        catch(err){
+            error(err.message)
+        }
     },
     loadingTxt : "Fetching game",
 })
@@ -472,4 +476,16 @@ addRuntimeCMD({
         console.table(history.reverse());
     },
 })
-
+addRuntimeCMD({
+    input : "start",
+    type : "ASYNC",
+    async fn(args) {
+        if(Bot.client.isReady()) {
+            error(`The bot is already logged in`)
+            return
+        }
+        await Bot.lunch()   
+    },
+    loadingTxt : "logging in...",
+    finishTxt : "logged in"
+})

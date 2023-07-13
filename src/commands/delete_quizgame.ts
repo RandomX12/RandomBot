@@ -22,7 +22,6 @@ const permissions : PermissionResolvable[] = ["Administrator"]
 module.exports = new Command({
     data : cmdBody,
     async execute(interaction : ChatInputCommandInteraction<CacheType>){
-        try{
             const hostId = interaction.options.getString("id")
             const game = await QuizGame.getGameWithHostId(interaction.guildId,hostId)
             const announcement = await QuizGame.getAnnouncement(interaction,interaction.guildId,game.hostId)
@@ -53,14 +52,6 @@ module.exports = new Command({
                     },1000*10)
                 }
             }
-        }
-        catch(err : any){
-            await reply(interaction,{
-                content : "Cannot delete the game :x:",
-                ephemeral : true
-            })
-            error(err.message)
-        }
     },
     permissions : permissions,
     ephemeral : true  ,

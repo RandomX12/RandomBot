@@ -15,7 +15,6 @@ module.exports = {
             })
             return
         }
-        try{
             const hostId = interaction.customId.split("_")[2]
             const ans : answer = interaction.customId.split("_")[1] as answer
             const index : number = +interaction.customId.split("_")[3]
@@ -24,12 +23,5 @@ module.exports = {
                 ephemeral : true
             })
             await inte.delete()
-        }
-        catch(err : any){
-            await interaction.reply({
-                content : "Cannot answer :x:",
-                ephemeral : true
-            })
-        }
     }
 }

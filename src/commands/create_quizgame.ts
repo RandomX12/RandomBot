@@ -259,7 +259,7 @@ module.exports = new Command({
             const rowInte : any = new ActionRowBuilder()
             .addComponents(
                 new ButtonBuilder()
-                .setCustomId(`delete_quiz_${interaction.user.id}`)
+                .setCustomId(`deletequiz_${interaction.user.id}`)
                 .setLabel("Delete")
                 .setStyle(4)
             )

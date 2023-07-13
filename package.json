@@ -15,10 +15,15 @@
   "dependencies": {
     "discord.js": "^14.9.0",
     "dotenv": "^16.0.3",
+    "figlet": "^1.6.0",
+    "gradient-string": "^2.0.2",
     "mongoose": "^7.0.4"
   },
   "devDependencies": {
+    "@types/chalk-animation": "^1.6.1",
     "@types/deepai": "^1.0.0",
+    "@types/figlet": "^1.5.6",
+    "@types/gradient-string": "^1.1.2",
     "@types/jest": "^29.5.3",
     "jest": "^29.6.1",
     "nodemon": "^3.0.1",

@@ -2,6 +2,8 @@ import { ActionRowBuilder, ButtonBuilder, CacheType, ChannelType, ChatInputComma
 import { getServerByGuildId } from "../lib/DiscordServers";
 import { isQuizGame } from "../lib/QuizGame";
 import Command, { reply } from "../lib/Commands";
+import { error } from "../lib/cmd";
+import handleError from "../lib/errors/handler";
 
 const permissions : PermissionResolvable[] = ["Administrator"]
 
@@ -80,7 +82,11 @@ module.exports = new Command({
             return
         }
         catch(err : any){
-            return
+            error(err.message)
+            await reply(interaction,{
+                content : handleError(err) +  " :x:",
+                ephemeral : true
+            })
         }
     },
     permissions : permissions,

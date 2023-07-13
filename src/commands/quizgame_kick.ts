@@ -16,7 +16,6 @@ module.exports = new Command({
         }]
     },
     async execute(interaction) {
-        try{
             const user = interaction.options.getUser("player")
             const game = await QzGame.getGameWithUserId(interaction.guildId,user.id)
             game.removePlayer(user.id)
@@ -59,13 +58,6 @@ module.exports = new Command({
             await user.send({
                 content : `You are kicked from a quiz game in <#${game.channelId}>`
             })
-        }
-        catch(err){
-            error(err.message)
-            await reply(interaction,{
-                content : "unknown error occurred when kicking the player"
-            })
-        }
     },
     ephemeral : true,
     permissions : ["Administrator"]

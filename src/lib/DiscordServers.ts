@@ -6,7 +6,9 @@ import discordServers from "../model/discordServers"
 import { error, warning } from "./cmd"
 import  DiscordSv  from "../model/discordServers"
 import { deleteGameLog } from "./QuizGame"
-import { client } from ".."
+import { Bot } from "./Bot"
+import QzGameError from "./errors/QuizGame"
+import DiscordServersError from "./errors/DiscordServers"
 /**
  * Get the server document from the data base
  * @param id server id
@@ -14,11 +16,11 @@ import { client } from ".."
  */
 export async function getServerByGuildId(id : string){
     const server =  await ServersModel.findOne({serverId : id})
-    if(!server) throw new Error(`Server not found. id=${id}`)
+    if(!server) throw new DiscordServersError("404",`Server not found. id=${id}`)
     return server
 }
 /**
- * Get discord server
+ * Get discord server from the DB
  * @param id server id 
  * @returns new Server()
  */
@@ -71,7 +73,7 @@ export default class DiscordServers{
                 game = e
             }
         })
-        if(!game) throw new Error(`Game not found`)
+        if(!game) throw new QzGameError("404",`Game with id=${id} is not found`)
         return game
     }
     static async getUser(guildId:string,userId : string){
@@ -82,7 +84,7 @@ export default class DiscordServers{
                 user = e
             }
         })
-        if(!user) throw new Error(`User not found`)
+        if(!user) throw new DiscordServersError("403",`User not found`)
         return user
     }
     /**
@@ -278,12 +280,12 @@ export class Server implements DiscordServer{
      */
     async getOnlineMembersNumber() : Promise<number>{
         let server : Guild
-        client.guilds.cache.map(async(e)=>{
+        Bot.client.guilds.cache.map(async(e)=>{
             if(e.id === this.serverId){
                 server = e
             }
         })
-        if(!server) throw new Error(`server not found`)
+        if(!server) throw new DiscordServersError("404",`server not found`)
         const sv = await server.fetch()
         return sv.approximatePresenceCount
     }

@@ -10,6 +10,7 @@ import  listenToCmdRunTime from "./lib/consoleCmd"
 import figlet from "figlet"
 import gradient from "gradient-string"
 import handleError from "./lib/errors/handler"
+import troubleshoot from "./lib/errors/troubleshoot"
 
 listenToCmdRunTime()
 require("dotenv").config()
@@ -86,10 +87,17 @@ client.on("interactionCreate",async(interaction)=>{
             log({text : `Button command executed successfully ${interaction.customId} by ${interaction.user.tag}. ${ping}ms`,textColor : "Green",timeColor : "Green"})
         }
         catch(err : any){
-            await reply(interaction,{
-                content : handleError(err) + " :x:",
-                ephemeral : true
-            })
+            try{
+                await troubleshoot(err,interaction,command)
+                await command.execute(interaction)
+            }
+            catch(error){
+                await reply(interaction,{
+                    content : handleError(error) + " :x:"
+                })
+                warning(error.message)
+            }
+
             error(err.message)
         }
     }else if(interaction.isCommand() && interaction.isChatInputCommand()){
@@ -110,20 +118,28 @@ client.on("interactionCreate",async(interaction)=>{
                         ephemeral : command.ephemeral || false,
                     })
                 }
-                const pass = await verify(interaction)
-                if(!pass){
-                    const after = Date.now()
-                    const ping = after - before
-                    log({text : `command executed successfully /${interaction.commandName} by ${interaction.user.tag} in ${interaction.guild.name}<${interaction.guildId}>. ${ping}ms`,textColor : "Green",timeColor : "Green"})
-                    return
-                }
                 try{
+                    const pass = await verify(interaction)
+                    if(!pass){
+                        const after = Date.now()
+                        const ping = after - before
+                        log({text : `command executed successfully /${interaction.commandName} by ${interaction.user.tag} in ${interaction.guild.name}<${interaction.guildId}>. ${ping}ms`,textColor : "Green",timeColor : "Green"})
+                        return
+                    }
                     await command.execute(interaction)
                 }
                 catch(err){
-                    await reply(interaction,{
-                        content : handleError(err) + " :x:"
-                    })
+                    try{
+                        await troubleshoot(err,interaction,command)
+                        await command.execute(interaction)
+                    }
+                    catch(error){
+                        await reply(interaction,{
+                            content : handleError(error) + " :x:"
+                        })
+                        warning(error.message)
+                    }
+
                     error(`error when executing command ${interaction.commandName} : ${err.message}`)
                 }
                 const after = Date.now()

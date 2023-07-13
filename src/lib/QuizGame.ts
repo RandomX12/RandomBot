@@ -4,6 +4,7 @@ import { answer , Qs, QuizGamePlayer, QuizGame as QuizGameType } from "../model/
 import DiscordServers, { fetchServer, getServerByGuildId } from "./DiscordServers";
 import { TimeTampNow, error, log, warning } from "./cmd";
 import { TGameStart, gameStartType } from "./DiscordServersConfig";
+import QzGameError from "./errors/QuizGame";
 export function isQuizGame(game : GameT) : game is QuizGameType{
     if(game.name === "Quiz Game"){
         return true
@@ -107,16 +108,16 @@ export default class QuizGame{
         let gameFound = false
         for(let i = 0;i<server.games.length;i++){
             if(server.games[i].hostId === hostId){
-                if(!isQuizGame(server.games[i])) throw new Error(`This game is not Quiz Game`)
+                if(!isQuizGame(server.games[i])) throw new QzGameError("303",`This game is not a Quiz Game`)
                 gameFound = true
                 const isIn = await DiscordServers.isInGame(guildId,user.id)
-                if(isIn) throw new Error(`User id="${user.id} is already in the game"`)
+                if(isIn) throw new QzGameError("202",`User id="${user.id} is already in the game"`)
                 server.games[i].players.push({username  :user.tag,id : user.id})
                 await server.save()
                 break
             }
         }
-        if(!gameFound) throw new Error(`Cannot join the game : Game not found`)
+        if(!gameFound) throw new QzGameError("404",`Cannot join the game : Game not found`)
     }
     static async leave(guildId : string,hostId : string,userId : string){
         const server = await getServerByGuildId(guildId)
@@ -134,8 +135,8 @@ export default class QuizGame{
                 })
             }
         })
-        if(!isGame) throw new Error(`Game not found`)
-        if(!isIn) throw new Error(`This user is not in game`)
+        if(!isGame) throw new QzGameError("404",`Game not found`)
+        if(!isIn) throw new QzGameError("201",`User with id=${userId} is not in the game with id=${hostId}`)
         await server.save()
     }
     /**
@@ -145,7 +146,7 @@ export default class QuizGame{
         warning(`This function will no longer be supported in the futur versions of RandomBot`)
         const game = new QzGame(guildId,hostId)
         await game.fetch()
-        if(!isQuizGame(game)) throw new Error(`Game With hostId="${hostId}" is not a Quiz Game`)
+        if(!isQuizGame(game)) throw new QzGameError("303",`Game With hostId="${hostId}" is not a Quiz Game`)
         return game
     }
     static async isIn(guildId : string,hostId : string,userId : string) : Promise<boolean>{
@@ -163,8 +164,8 @@ export default class QuizGame{
             }
         })
 
-        if(!game) throw new Error(`Game not found`)
-        if(!isQuizGame(game)) throw new Error(`This is not a quiz game`)
+        if(!game) throw new QzGameError("404",`Game with id=${hostId} is not found`)
+        if(!isQuizGame(game)) throw new QzGameError("303",`Game With hostId="${hostId}" is not a Quiz Game`)
         if(!player) return false
         return true
     }
@@ -178,7 +179,7 @@ export default class QuizGame{
                 (server.games[i] as QuizGameType).index++
             }
         })
-        if(!isGame) throw new Error(`Quiz Game not found`)
+        if(!isGame) throw new QzGameError("404",`Game with id=${hostId} is not found`)
         await server.save()
     }
     static async start(guildId : string,hostId : string){
@@ -192,7 +193,7 @@ export default class QuizGame{
             }
             
         })
-        if(!isGame)throw new Error(`Quiz Game not found`)
+        if(!isGame)throw new QzGameError("404",`Game with id=${hostId} is not found`)
         await server.save()
     }
     static async setAns(guildId : string,hostId : string,userId : string,ans : answer,index : number){
@@ -222,38 +223,9 @@ export default class QuizGame{
                         break
                     }
                 }
-        if(!isUser) throw new Error(`User not found !!`);
+        if(!isUser) throw new QzGameError("201",`User with id=${userId} is not in the game`)
         await game.update()
     }
-    // static async scanAns(guildId : string,hostId : string){
-    //     const server = await getServerByGuildId(guildId)
-    //     let isGame : boolean = false
-    //     let ans : answer[] = ["A","B","C","D"]
-    //     let gameIndex : number
-    //     server.games.map((e,i)=>{
-    //         if(e.hostId === hostId){
-    //             if(!isQuizGame(e)) return
-    //             isGame = true;
-    //             gameIndex = i
-    //             e.players.map((ele,index)=>{
-    //                 if(!ele.answers[e.index]){
-    //                     (server.games[i] as QuizGameType).players[index].answers.push("N")
-    //                     return
-    //                 }
-    //                 if(ele.answers[e.index] === ans[e.quiz[e.index].correctIndex]){
-    //                     if((server.games[i] as QuizGameType).players[index].score){
-    //                         (server.games[i] as QuizGameType).players[index].score++
-    //                     }else{
-    //                         (server.games[i] as QuizGameType).players[index].score = 1
-    //                     }
-    //                 }
-    //             })
-    //         }
-    //     })
-    //     if(!isGame) throw new Error(`game not found`);
-    //     (server.games[gameIndex] as QuizGameType).index++
-    //     await server.save()
-    // }
     static async removeAns(guildId : string,hostId : string,userId : string,index : number){
         const game = await QzGame.getGame(guildId,hostId)
             game.players.map((ele,j)=>{
@@ -276,30 +248,30 @@ export default class QuizGame{
                 }
             }
         }
-        throw new Error(`Game not found`)
+        throw new QzGameError("404",`Game with hostUserId=${hostUserId} is not found`)
     }
     static async getAnnouncement(interaction : ChatInputCommandInteraction<CacheType> | ButtonInteraction<CacheType>,guildId: string,hostId : string){
         const server = await getServerByGuildId(guildId)
         for(let i = 0;i<server.games.length;i++){
             if(server.games[i].hostId === hostId){
-                if(!isQuizGame(server.games[i])) throw new Error(`This game is not a Quiz Game`)
+                if(!isQuizGame(server.games[i])) throw new QzGameError("303",`This game is not a Quiz Game`)
                 const channel : any = await interaction.guild.channels.cache.get(server.games[i].channelId)?.fetch()
                 const announcement : Message<true> = channel?.messages?.cache?.get((server.games[i] as QuizGameType).announcementId)
                 return announcement
             }
         }
-        throw new Error(`announcement not found`)
+        throw new QzGameError("406",`announcement not found`)
     }
     static async getChannel(interaction : Interaction<CacheType> | ButtonInteraction<CacheType>,hostId : string){
         const server = await getServerByGuildId(interaction.guildId)
         for(let i = 0 ;i<server.games.length;i++){
             if(server.games[i].hostId === hostId){
-                if(!isQuizGame(server.games[i])) throw new Error(`This game is not quiz game`)
+                if(!isQuizGame(server.games[i])) throw new QzGameError("303",`This game is not a Quiz Game`)
                 const channel : any = await interaction.guild.channels.cache.get((server.games[i] as QuizGameType)?.channelId)?.fetch()
                 return channel as GuildTextBasedChannel
             }
         }
-        throw new Error(`Game with id="${hostId}" not found`)
+        throw new QzGameError("404",`Game with id="${hostId}" not found`)
     }
     static async getGameWithUserId(guildId : string,userId :string){
         const server  = await getServerByGuildId(guildId)
@@ -313,17 +285,17 @@ export default class QuizGame{
                         g.applyData(server.games[i])
                         return g
                     }else{
-                        throw new Error(`This is not a quiz game`)
+                        throw new QzGameError("303",`This is not a quiz game`)
                     }
                 }
             }
             if(isIn) return
         }
-        throw new Error(`Game not found`)
+        throw new QzGameError("404",`Game with userId=${userId} is not found`)
     }
 
     constructor(public serverId : string,public info : QuizGameInfo,public empty? : boolean){
-        if(info.amount < amount[0] || info.amount > amount[1]) throw new Error(`Amount must be between 3 and 10`)
+        if(info.amount < amount[0] || info.amount > amount[1]) throw new QzGameError("301",`Amount must be between 3 and 10`)
     }
     @createGameLog()
     async save(){
@@ -422,13 +394,13 @@ export class QzGame extends Game implements QuizGameType{
         const server = await getServerByGuildId(guildId)
         for(let i = 0;server.games.length;i++){
             if(server.games[i].hostId  === hostId){
-                if(!isQuizGame(server.games[i])) throw new Error(`This is not a quiz game`)
+                if(!isQuizGame(server.games[i])) throw new QzGameError("303",`This is not a quiz game`)
                 const game = new QzGame(server.serverId,server.games[i].hostId)
                 game.applyData(server.games[i])
                 return game
             }
         }
-        throw new Error(`Game with id="${hostId}" not found`)
+        throw new QzGameError("404",`Game with id=${hostId} is not found`)
     }
     
     static async getGameWithUserId(guildId: string, userId: string): Promise<QzGame> {
@@ -442,7 +414,7 @@ export class QzGame extends Game implements QuizGameType{
             }
          }
        } 
-       throw new Error(`Game not found`)
+       throw new QzGameError("404",`Game not found`)
     }
     
     public hostName: string;
@@ -529,7 +501,7 @@ export class QzGame extends Game implements QuizGameType{
      */
     async fetch() : Promise<void>{
         const game = await Game.getGame(this.guildId,this.hostId)
-        if(!isQuizGame(game)) throw new Error("This game is not a quiz game")
+        if(!isQuizGame(game)) throw new QzGameError("303","This game is not a quiz game")
         this.applyData(game)
     }
     /**
@@ -541,8 +513,10 @@ export class QzGame extends Game implements QuizGameType{
             if(server.games[i].hostId === this.hostId){
                 server.games[i] = this.cache
                 await server.save()
+                return
             }
         }
+        throw new QzGameError("404",`Game with id=${this.hostId} is not found`)
     }
     /**
      * Delete the game from the database
@@ -557,14 +531,14 @@ export class QzGame extends Game implements QuizGameType{
         const server = await getServerByGuildId(this.guildId)
         for(let i = 0;i<server.games.length;i++){
             if(server.games[i].hostId === this.hostId){
-                if(!isQuizGame(server.games[i])) throw new Error(`This game is not Quiz Game`);
+                if(!isQuizGame(server.games[i])) throw new QzGameError("303",`This game is not a Quiz Game`);
                 (server.games[i] as QuizGameType).started = true
                 await server.save()
                 this.started = true
                 return
             }
         }
-        throw new Error(`Game with id="${this.hostId}" is not found`)
+        throw new QzGameError("404",`Game with id=${this.hostId} is not found`)
     }
     /**
      * set the property end to true and save it in the database
@@ -573,14 +547,14 @@ export class QzGame extends Game implements QuizGameType{
         const server = await getServerByGuildId(this.guildId)
         for(let i = 0;i<server.games.length;i++){
             if(server.games[i].hostId === this.hostId){
-                if(!isQuizGame(server.games[i])) throw new Error(`This is not a Quiz Game`);
+                if(!isQuizGame(server.games[i])) throw new QzGameError("303",`This is not a Quiz Game`);
                 (server.games[i] as QuizGameType).end = true
                 await server.save()
                 this.end = true
                 return
             }
         }
-        throw new Error(`Game with id="${this.hostId}" is not found`)
+        throw new QzGameError("404",`Game with id=${this.hostId} is not found`)
     }
     /**
      * @returns Game Generator
@@ -634,12 +608,12 @@ export class QzGame extends Game implements QuizGameType{
         }else if(gameStart === gameStartType.READY || gameStart === gameStartType.FULL_READY){
             row.addComponents(
                 new ButtonBuilder()
-                .setCustomId(`quizgame_ready_${this.hostId}`)
+                .setCustomId(`ready_${this.hostId}`)
                 .setLabel("Ready")
                 .setStyle(1)
                 ,
                 new ButtonBuilder()
-                .setCustomId(`quizgame_notready_${this.hostId}`)
+                .setCustomId(`notready_${this.hostId}`)
                 .setStyle(4)
                 .setLabel(`Not Ready`)
             )
@@ -700,7 +674,7 @@ export class QzGame extends Game implements QuizGameType{
         }
         row.addComponents(
             new ButtonBuilder()
-            .setCustomId(`remove_ans_${this.hostId}_${this.index}`)
+            .setCustomId(`removeans_${this.hostId}_${this.index}`)
             .setLabel("remove answer")
             .setStyle(2)
         )
@@ -802,23 +776,6 @@ export class QzGame extends Game implements QuizGameType{
                 .setAuthor({name : "Game end 🔴"})
                 let playersScore = ""
                 let rankedPlayers = this.rankedPlayers
-                // let players = gameUpdate.players
-                // let rankedPlayers = []
-                // const length = gameUpdate.players.length
-                // for(let i = 0;i<length;i++){
-                //     let b = players.reduce((pe,ce)=>{
-                //         if(players.length === 1){
-                //             return ce
-                //         }
-                //         return ce.score <= pe.score ? pe : ce
-                //     })
-                //     players.map((e,j)=>{
-                //         if(b.id === e.id){
-                //             players.splice(j,1)
-                //         }
-                //     })
-                //     rankedPlayers.push(b)
-                // }
                 rankedPlayers.map((e,i)=>{
                     playersScore += rank[i] + " - " + e.username + "\ \ \ \ **" + e.score + "**\n"
                 })
@@ -895,30 +852,35 @@ export class Quiz<CategoryT extends QuizCategory> implements QuizT{
      * Fetch the quiz from the API
      */
     async fetch() : Promise<void> {
-        let catUrl = `&category=${this.categoryNum}`
-        if(this.categoryNum === "any"){
-            catUrl = ""
-        }
-        const req = await fetch(`https://opentdb.com/api.php?amount=${this.amount}&difficulty=easy${catUrl}`)
-        const res : APIresponse = await req.json()
-        this.quiz = res.results.map((e)=>{
-            let q = e.question.replace(regex,' ')
-            let c = e.correct_answer.replace(regex,' ')
-            let ans = e.incorrect_answers.map(ele=>{
-                return ele.replace(regex,' ')
-            })
-            let num = Math.floor(Math.random() * ans.length)
-            let an = ans[num]
-            ans[num] = c
-            ans.push(an)
-            let t = e.type
-            return {
-                question : q,
-                answers : ans,
-                correctIndex : num,
-                type : t,
-                category : e.category as QuizCategory
+        try{
+            let catUrl = `&category=${this.categoryNum}`
+            if(this.categoryNum === "any"){
+                catUrl = ""
             }
-        })
+            const req = await fetch(`https://opentdb.com/api.php?amount=${this.amount}&difficulty=easy${catUrl}`)
+            const res : APIresponse = await req.json()
+            this.quiz = res.results.map((e)=>{
+                let q = e.question.replace(regex,' ')
+                let c = e.correct_answer.replace(regex,' ')
+                let ans = e.incorrect_answers.map(ele=>{
+                return ele.replace(regex,' ')
+                })
+                let num = Math.floor(Math.random() * ans.length)
+                let an = ans[num]
+                ans[num] = c
+                ans.push(an)
+                let t = e.type
+                return {
+                    question : q,
+                    answers : ans,
+                    correctIndex : num,
+                    type : t,
+                    category : e.category as QuizCategory
+                }
+            })
+        }
+        catch(err){
+            throw new QzGameError("505",err.message)
+        }
     }
 }
