@@ -1,13 +1,13 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, CacheType, ChannelType, ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
-import DiscordServers, { getServerByGuildId } from "../lib/DiscordServers";
-import QuizGame, { CategoriesNum, QuizCategoryImg, QzGame, answerType, getCategoryByNum, isQuizGame, rank, stop } from "../lib/QuizGame";
-import { QuizGamePlayer } from "../model/QuizGame";
-import { TimeTampNow, error, warning } from "../lib/cmd";
+import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, CacheType,  EmbedBuilder } from "discord.js";
+import DiscordServers from "../lib/DiscordServers";
+import QuizGame, { QzGame } from "../lib/QuizGame";
+import { error, warning } from "../lib/cmd";
 import { gameStartType } from "../lib/DiscordServersConfig";
+import { ButtonCommand } from "../lib/Commands";
 
-module.exports = {
+module.exports = new ButtonCommand({
     data : {
-        name : "join_quizgame_[:id]",
+        name : "join",
         description : "Join a Quiz Game"
     },
     async execute(interaction : ButtonInteraction<CacheType>){
@@ -138,5 +138,6 @@ module.exports = {
                 }
             }
         }
-    }
-}
+    },
+    ephemeral : true
+})

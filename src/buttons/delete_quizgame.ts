@@ -1,53 +1,51 @@
-import { ButtonInteraction, CacheType, CategoryChannel, ChannelType, GuildTextBasedChannel } from "discord.js";
+import { ButtonInteraction, CacheType } from "discord.js";
 import QuizGame from "../lib/QuizGame";
-import DiscordServers, { getServerByGuildId } from "../lib/DiscordServers";
+import DiscordServers from "../lib/DiscordServers";
+import { ButtonCommand, reply } from "../lib/Commands";
+import { error, warning } from "../lib/cmd";
 
 
-module.exports = {
+module.exports = new ButtonCommand({
     data : {
-        name : "delete_quiz_[:id]",
+        name : "deletequiz",
         description : "Delete a quiz game"
     },
 
     async execute(interaction : ButtonInteraction<CacheType>){
-        if(!interaction?.customId?.startsWith("delete_quiz")){
+        if(!interaction?.customId?.startsWith("deletequiz")){
             await interaction.reply({
                 content : "Invalid request :x:",
                 ephemeral : true
             })
             return
         }
-        const hostUserId = interaction.customId.split("_")[2]
-        try{
+        const hostUserId = interaction.customId.split("_")[1]
             const msg = await interaction.deferReply({ephemeral : true})
             const game = await QuizGame.getQuizGamewithHostUserId(interaction.guildId,hostUserId)
-            if(game.started) throw new Error(`Game started`)
-            await DiscordServers.deleteGame(interaction.guildId,game.hostId)
-            const channel : any = await interaction.guild.channels.cache.get(game.channelId)?.fetch()
-            const announcement : GuildTextBasedChannel = channel.messages.cache.get(game.announcementId)
-            if(game.mainChannel){
-                await msg.delete()
-                await announcement.delete()
-                return 
-            }
-            if(announcement){
-                await announcement.delete()
-            }
-            await channel.delete()
-            await msg.delete()
-            return
-        }
-        catch(err : any){
-            if(interaction.deferred || interaction.replied){
-                await interaction.editReply({
-                    content : "You can't delete this game 🙄",
-                }) 
-            }else{
-                await interaction.reply({
-                    content : "You can't delete this game 🙄",
-                    ephemeral : true
+            if(game.started) {
+                await reply(interaction,{
+                    content : "The game is started :x:"
                 })
+                return
+            }
+            const announcement = await QuizGame.getAnnouncement(interaction,interaction.guildId,game.hostId)
+            await DiscordServers.deleteGame(interaction.guildId,game.hostId)
+            await msg.delete()
+            await announcement.edit({
+                content : `The creator of this game <@${game.hostUserId}> deleted the game`,
+                embeds : [],
+                components : []
+            })
+            if(!game.mainChannel){
+                setTimeout(async()=>{
+                    try{
+                        await announcement.channel.delete()
+                    }
+                    catch(err){
+                        warning(err.message)
+                    }
+                },10*1000)
             }
         }
-    }
-}
+    
+})

@@ -1,47 +1,35 @@
-import  {ActionRowBuilder, ActivityType, AuditLogEvent, ButtonBuilder, ChannelType, Collection,DiscordAPIError,EmbedBuilder,GatewayIntentBits } from "discord.js"
-import path from "path"
-import fs from "fs"
+import  {ActionRowBuilder, ActivityType, AuditLogEvent, ButtonBuilder, ChannelType, Collection,DiscordAPIError,EmbedBuilder, GuildMember } from "discord.js"
 import { TimeTampNow, animateRotatingSlash, error, log, warning } from "./lib/cmd"
 import { connectDB } from "./lib/connectDB"
 import DiscordServers, { fetchServer, getServerByGuildId } from "./lib/DiscordServers"
-import discordServers, { Member } from "./model/discordServers"
-import Command, { reply, verify } from "./lib/Commands"
-import QuizGame, { QuizCategory, categories ,amount as amountQs, maxPlayers, getCategoryByNum, CategoriesNum, maxGames, QuizGameInfo, QzGame, isQuizGame} from "./lib/QuizGame"
+import  { Member } from "./model/discordServers"
+import Command, { ButtonCommand, reply, verify } from "./lib/Commands"
+import QuizGame, { QuizCategory, categories ,amount as amountQs, maxPlayers,  maxGames, QuizGameInfo, QzGame} from "./lib/QuizGame"
 import { Bot } from "./lib/Bot"
-import  listenToCmdRunTime, { addRuntimeCMD } from "./lib/consoleCmd"
-import { QuizGame as QuizGameT } from "./model/QuizGame"
+import  listenToCmdRunTime from "./lib/consoleCmd"
+import figlet from "figlet"
+import gradient from "gradient-string"
+import handleError from "./lib/errors/handler"
 
-// 
 listenToCmdRunTime()
 require("dotenv").config()
 declare module "discord.js" {
     export interface Client {
-        commands: Collection<unknown, Command>,
-        buttons : Collection<unknown, any>
+        commands: Collection<string, Command>,
+        buttons : Collection<string, ButtonCommand>
     }
-    }
+}
 
 const {client} = Bot
-export {client}
 // command handling
 
 
 
-client.buttons = new Collection()
-const buttonsPath = path.join(__dirname,"./buttons")
-const buttonFolder = fs.readdirSync(buttonsPath).filter((file)=> file.endsWith(".ts") || file.endsWith(".js"))
-for(let file of buttonFolder){
-    const filePath = path.join(buttonsPath,file)
-    const button = require(filePath)
-    if("data" in button || "execute" in button){
-        client.buttons.set(button.data.name,button)
-    }else{
-        console.log("\x1b[33m","[warning] : ","\x1b[37m",`The command at ${filePath} has a missing property.`)
-    }
-}
+
 // execute commands
 let msgs = new Map()
 client.on("interactionCreate",async(interaction)=>{
+    try{
     // if(!interaction.isChatInputCommand()) return
     if(!interaction.guild) return
     const user =  msgs.get(interaction.user.id)
@@ -68,25 +56,22 @@ client.on("interactionCreate",async(interaction)=>{
         msgs.delete(interaction.user.id)
     },1000*30)
     if(interaction.isButton()){
-        let command = interaction.client.buttons.get(interaction.customId)
-        if(interaction.customId.startsWith("join_spygame")){
-            command = interaction.client.buttons.get("join_spygame_[:id]")
-        }else if(interaction.customId.startsWith("leave_spygame")){
-            command = interaction.client.buttons.get("leave_spygame_[:id]")
-        }else if(interaction.customId.startsWith("join_quizgame")){
-            command = interaction.client.buttons.get("join_quizgame_[:id]")
-        }else if(interaction.customId.startsWith("leave_quizgame")){
-            command = interaction.client.buttons.get("leave_quizgame_[:id]")
-        }else if(interaction.customId.startsWith("answer")){
-            command = interaction.client.buttons.get("answer_[:ans]_[:id]")
-        }else if(interaction.customId.startsWith("delete_quiz")){
-            command = interaction.client.buttons.get("delete_quiz_[:id]")
-        }else if(interaction.customId.startsWith("quizgame_ready")){
-            command = interaction.client.buttons.get(`quizgame_ready_[:id]`)
-        }else if(interaction.customId.startsWith("quizgame_notready")){
-            command = interaction.client.buttons.get(`quizgame_notready_[:id]`)
-        }else if(interaction.customId.startsWith("remove_ans")){
-            command = interaction.client.buttons.get(`remove_ans_[:id]`)
+        let buttonName = interaction.customId.split("_")[0]
+        let command = interaction.client.buttons.get(buttonName)
+        let hasPermission = false
+        if(command.permissions){
+            const member = interaction.member as GuildMember
+            for(let i = 0;i<command.permissions.length;i++){
+                if(member.permissions.has(command.permissions[i])) hasPermission = true
+            }
+        }else{
+            hasPermission = true
+        }
+        if(!hasPermission) {
+            await reply(interaction,{
+                content : ":x: You don't have permission",
+                ephemeral : true
+            })
         }
         if(!command){
             console.log(`\x1b[33m`,`[warning]`,`Command Button ${interaction.customId} is not found`);
@@ -101,6 +86,10 @@ client.on("interactionCreate",async(interaction)=>{
             log({text : `Button command executed successfully ${interaction.customId} by ${interaction.user.tag}. ${ping}ms`,textColor : "Green",timeColor : "Green"})
         }
         catch(err : any){
+            await reply(interaction,{
+                content : handleError(err) + " :x:",
+                ephemeral : true
+            })
             error(err.message)
         }
     }else if(interaction.isCommand() && interaction.isChatInputCommand()){
@@ -132,6 +121,9 @@ client.on("interactionCreate",async(interaction)=>{
                     await command.execute(interaction)
                 }
                 catch(err){
+                    await reply(interaction,{
+                        content : handleError(err) + " :x:"
+                    })
                     error(`error when executing command ${interaction.commandName} : ${err.message}`)
                 }
                 const after = Date.now()
@@ -172,6 +164,10 @@ message : ${err.message}`,
                 error(err.message)
             }
         }
+    }
+    }
+    catch(err){
+        error(err)
     }
     
 })
@@ -383,7 +379,7 @@ client.on("channelCreate",async(c)=>{
         }
         setTimeout(async()=>{
             try{
-                const game = await QuizGame.getGameWithHostId(c.guildId,hostId)
+                const game = await QzGame.getGame(c.guildId,hostId)
                 if(game.started) return
                 await DiscordServers.deleteGame(channel.guildId,hostId)
                 const announcement = channel.messages.cache.get(game.announcementId)
@@ -440,6 +436,7 @@ client.on("ready",async(c)=>{
             clearInterval(ws)
             console.log("\ncommands scanned successfully");
         }
+        Bot.scanButtons()
         scan = null
         console.log(`[${new Date().toLocaleTimeString()}] Discord bot connected as : ${c.user.username}`);
         log({text : `connecting to the database`,textColor : "Magenta",timeColor : "Magenta"})
@@ -451,18 +448,11 @@ client.on("ready",async(c)=>{
         const aDate = Date.now()
         const ping = aDate - bDate
         log({text : "Bot started "+ping+"ms",textColor : "Cyan"})
-        const DcServers = await discordServers.find()
-        let svs = DcServers.map(e=>{
-            return {
-                name : e.name,
-                membersLength : e.members.length,
-                "guild id" : e.serverId,
-                id : e.id,
-                __v : e.__v
-            }
-        })
-        console.table(svs)
         client.user.setActivity({type : ActivityType.Watching,name : "/create_quizgame"})
+        figlet(`RANDOM \tBOT`,(err,data)=>{
+            console.log(gradient("#6dfe84","#6dfe84")(data))
+        })
+        console.log(gradient.pastel.multiline(`v${require("../package.json")?.version}`)) 
     }
     catch(err : any){
         log({text : `There was an error while connecting to the database. \n ${err.message}`,textColor : "Red",timeColor : "Red"})
@@ -474,7 +464,11 @@ if(productionMode){
     log({textColor : "Yellow",text : "You are running The bot on production mode",timeColor : "Yellow"})
     tokenName = "TOKEN1"
 }
-Bot.lunch()
+
+const {bot} = require("../config.json")
+if(bot?.loginAutomatically){
+    Bot.lunch()
+}
 
 // for express server :)
 try{

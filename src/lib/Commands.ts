@@ -143,3 +143,36 @@ export default class Command implements CommandOptions{
         Bot.cmds.set(this.data.name,new Map<string,Member>())
     }
 }
+type ButtonData = {
+    name : string,
+    description : string,
+}
+
+interface ButtonCommandOptions{
+    data : ButtonData
+    execute : (interaction : ButtonInteraction<CacheType>)=>Promise<void>,
+    permissions? : PermissionResolvable[],
+    ephemeral? : boolean,
+    deferReply? : boolean,
+    access? : PermissionResolvable[],
+}
+
+/**
+ * Create a button command
+ */
+export class ButtonCommand implements ButtonCommandOptions{
+    data : ButtonData;
+    execute: (interaction: ButtonInteraction<CacheType>) => Promise<void>;
+    permissions?: PermissionResolvable[];
+    ephemeral?: boolean;
+    deferReply?: boolean;
+    access?: PermissionResolvable[];
+    constructor(command : ButtonCommandOptions){
+        this.data = command.data
+        this.execute = command.execute
+        this.permissions = command.permissions
+        this.ephemeral = command.ephemeral
+        this.deferReply = (command.deferReply === undefined ? true : command.deferReply)
+        this.access = (command.access ? command.access : [])
+    }
+}

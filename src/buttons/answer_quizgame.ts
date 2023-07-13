@@ -4,7 +4,7 @@ import { answer } from "../model/QuizGame";
 
 module.exports = {
     data : {
-        name : "answer_[:ans]_[:id]",
+        name : "answer",
         description : "Choose an answer"
     },
     async execute(interaction : ButtonInteraction<CacheType>){

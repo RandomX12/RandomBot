@@ -1,17 +1,19 @@
 import {ButtonInteraction, CacheType} from "discord.js"
 import QuizGame, { QzGame } from "../lib/QuizGame"
-import { reply } from "../lib/Commands"
+import { ButtonCommand, reply } from "../lib/Commands"
 import { gameStartType } from "../lib/DiscordServersConfig"
+import { error } from "../lib/cmd"
+import handleError from "../lib/errors/handler"
 
-module.exports = {
+module.exports = new ButtonCommand({
     data : {
-        name : "quizgame_ready_[:id]",
+        name : "ready",
         description : "ready"
     },
     async execute(interaction : ButtonInteraction<CacheType>){
         try{
             await interaction.deferReply({ephemeral : true})
-            const hostId = interaction.customId?.split("_")[2]
+            const hostId = interaction.customId?.split("_")[1]
             if(!hostId){
                 await reply(interaction,{
                     content : "unknown game id",
@@ -55,9 +57,10 @@ module.exports = {
             }
         }catch(err : any){
             await reply(interaction,{
-                content : "An error occurred while executing this command",
+                content : handleError(err) + " :x:",
                 ephemeral : true
             })
+            error(err.message)
         }
     }
-}
+})

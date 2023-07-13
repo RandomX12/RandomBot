@@ -1,12 +1,13 @@
 import { ButtonInteraction, CacheType, EmbedBuilder } from "discord.js";
 import DiscordServers, { getServerByGuildId } from "../lib/DiscordServers";
 import QuizGame, { QzGame, isQuizGame } from "../lib/QuizGame";
-import { error, warning } from "../lib/cmd";
+import { warning } from "../lib/cmd";
+import { ButtonCommand } from "../lib/Commands";
 
 
-module.exports = {
+module.exports = new ButtonCommand({
     data : {
-        name : "leave_quizgame_[:id]",
+        name : "leave",
         description : "Leave a Quiz Game"
     },
     async execute(interaction : ButtonInteraction<CacheType>){
@@ -101,4 +102,4 @@ module.exports = {
         }    
     }
     
-}
+})
