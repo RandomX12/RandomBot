@@ -1,7 +1,6 @@
-import { ApplicationCommandOptionType } from "discord.js";
+import { ApplicationCommandOptionType, EmbedBuilder } from "discord.js";
 import Command, { reply } from "../lib/Commands";
-import { error } from "../lib/cmd";
-import QuizGame, { QzGame } from "../lib/QuizGame";
+import { QzGame } from "../lib/QuizGame";
 
 
 module.exports = new Command({
@@ -11,13 +10,13 @@ module.exports = new Command({
         options : [{
             name : "id",
             description : "game id",
-            type : ApplicationCommandOptionType.Number,
+            type : ApplicationCommandOptionType.String,
             required : true
         }]
     },
     async execute(interaction){
-            const hostId = `${interaction.options.getNumber("id")}`
-            const game = await QzGame.getGame(interaction.guildId,hostId)
+            const hostId = `${interaction.options.getString("id")}`
+            const game = await QzGame.getGame(hostId)
             if(game.players.length === 0) {
                 await reply(interaction,{
                     content : ":x: cannot start the game : the game is empty"
@@ -30,11 +29,26 @@ module.exports = new Command({
                 })
                 return
             }
-            const announcement = await QuizGame.getAnnouncement(interaction,interaction.guildId,hostId)
+            const announcement = await QzGame.getAnnouncement(interaction,hostId)
             await reply(interaction,{
                 content : "game started :white_check_mark:"
             })
-            await game.executeGame(interaction,announcement)
+            if(!announcement){
+                game.delete()
+                const embed = new EmbedBuilder()
+                .setAuthor({name : "Quiz Game"})
+                .setTitle("It looks like someone deleted the game announcement ❌")
+                .setFooter({text : "Game deleted"})
+                await interaction.channel.send({
+                embeds : [embed],
+                })
+            }
+            try{
+                await game.executeGame(interaction,announcement)
+            }
+            catch(err){
+                game.delete()
+            }
     },
     permissions : ["Administrator"],
     ephemeral : true

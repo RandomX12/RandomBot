@@ -6,9 +6,9 @@ import { Bot } from "./Bot";
 import { animateRotatingSlash, error, log, warning } from "./cmd";
 import discordServers from "../model/discordServers";
 import DiscordServers from "./DiscordServers";
-import { Game } from "./QuizGame";
+import {  QzGame } from "./QuizGame";
 import Ping from "./Ping";
-import {execFile} from "child_process"
+import { games } from "..";
 type CommandType = "SYNC" | "ASYNC"
 
 type ArgType = "str" | "int" | "float" | "bol" | "txt" | "arr"
@@ -222,7 +222,12 @@ export default function listenToCmdRunTime(){
                         let counter = new Ping()
                         counter.start()
                         let wt = animateRotatingSlash(e.loadingTxt)
-                        await e.fn(argsBody)
+                        try{
+                            await e.fn(argsBody)
+                        }
+                        catch(err){
+                            error(err.message)
+                        }
                         clearInterval(wt)
                         counter.end()
                         process.stdout.write('\r' + `\x1b[32m ${e.finishTxt + `\t${counter.ping}ms` || ""  + `\t${counter.ping}ms`} \x1b[37m\n`);
@@ -343,7 +348,7 @@ addRuntimeCMD({
 })
 
 addRuntimeCMD({
-    input : "scan-slash-cmd [:files]?:arr",
+    input : "scan-slash-cmd [:files]:arr",
     async fn(args) {
         try{
             await Bot.addCommand(...args[0].value as string[])
@@ -408,15 +413,14 @@ addRuntimeCMD({
 // get games
 
 addRuntimeCMD({
-    input : "game-info [:guildId]:str [:gameId]:str",
+    input : "game-info [:gameId]:str",
     type : "ASYNC",
     async fn(args) {
         try{
-        const game = await Game.getGame(`${args[0].value}`,`${args[1].value}`)
+        const game = await QzGame.getGame(`${args[0].value}`)
         console.table({
             hostId : game.hostId,
             hostName : game.hostName,
-            type : game.name,
             players : game.players.length
         })
         }
@@ -437,13 +441,6 @@ addRuntimeCMD({
     finishTxt : "sent"
 })
 
-addRuntimeCMD({
-    input : "test [:id]?:str",
-    type: "SYNC",
-    fn(args){
-        console.log(args[0]);
-    },
-})
 
 
 addRuntimeCMD({
@@ -488,4 +485,43 @@ addRuntimeCMD({
     },
     loadingTxt : "logging in...",
     finishTxt : "logged in"
+})
+
+addRuntimeCMD({
+    input : "games [:server]?:str",
+    fn(args) {
+        if(args[0]){
+            const qzGames = games.select({guildId : args[0].value as string})
+            if(qzGames.length === 0){
+                console.log(`no quiz games found in server id='${args[0].value}'`);
+                return
+            }
+            const table = qzGames.map(game=>{
+                return {
+                    hostId : game.hostId,
+                    guildId : game.guildId,
+                    players : game.players.length,
+                    category : game.category,
+                    amount : game.amount
+                }
+            });
+            console.table(table);
+            return
+        }
+        const allGames = games.cache
+        if(allGames.length ===0){
+            console.log(`No game created`);
+            return
+        }
+        const table = allGames.map(game=>{
+            return {
+                hostId : game.hostId,
+                guildId : game.guildId,
+                players : game.players.length,
+                category : game.category,
+                amount : game.amount
+            }
+        });
+        console.table(table);
+    },
 })

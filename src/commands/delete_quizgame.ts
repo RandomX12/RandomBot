@@ -1,7 +1,7 @@
 import { ApplicationCommandDataResolvable, ApplicationCommandOptionType, CacheType, ChatInputCommandInteraction, EmbedBuilder, GuildMember, PermissionResolvable } from "discord.js";
-import QuizGame from "../lib/QuizGame";
+import  { QzGame } from "../lib/QuizGame";
 import DiscordServers from "../lib/DiscordServers";
-import { error, warning } from "../lib/cmd";
+import {  warning } from "../lib/cmd";
 import Command, { reply } from "../lib/Commands";
 
 const cmdBody : ApplicationCommandDataResolvable = {
@@ -13,8 +13,6 @@ const cmdBody : ApplicationCommandDataResolvable = {
             description : "Game id",
             type : ApplicationCommandOptionType.String,
             required : true,
-            maxLength : 15,
-            minLength : 13
         }
     ]
 }
@@ -23,9 +21,9 @@ module.exports = new Command({
     data : cmdBody,
     async execute(interaction : ChatInputCommandInteraction<CacheType>){
             const hostId = interaction.options.getString("id")
-            const game = await QuizGame.getGameWithHostId(interaction.guildId,hostId)
-            const announcement = await QuizGame.getAnnouncement(interaction,interaction.guildId,game.hostId)
-            await DiscordServers.deleteGame(interaction.guildId,game.hostId)
+            const game = await QzGame.getGame(hostId)
+            const announcement = await QzGame.getAnnouncement(interaction,game.hostId)
+            DiscordServers.deleteGame(game.hostId)
             if(announcement){
                 const deleteEmbed = new EmbedBuilder()
                 .setTitle(`${interaction.user.tag} deleted the game`)

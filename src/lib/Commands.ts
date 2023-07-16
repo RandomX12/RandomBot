@@ -150,7 +150,7 @@ export class ButtonCommand implements ButtonCommandOptions{
         this.data = command.data
         this.execute = command.execute
         this.permissions = command.permissions
-        this.ephemeral = command.ephemeral
+        this.ephemeral = command.ephemeral || false
         this.deferReply = (command.deferReply === undefined ? true : command.deferReply)
         this.access = (command.access ? command.access : [])
     }

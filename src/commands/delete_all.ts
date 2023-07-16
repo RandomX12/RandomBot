@@ -1,9 +1,9 @@
 import { ActionRowBuilder, ButtonBuilder, CacheType, ChannelType, ChatInputCommandInteraction, EmbedBuilder, Interaction, ModalBuilder, PermissionResolvable, TextInputBuilder } from "discord.js";
 import { getServerByGuildId } from "../lib/DiscordServers";
-import { isQuizGame } from "../lib/QuizGame";
 import Command, { reply } from "../lib/Commands";
 import { error } from "../lib/cmd";
 import handleError from "../lib/errors/handler";
+import { QzGame } from "../lib/QuizGame";
 
 const permissions : PermissionResolvable[] = ["Administrator"]
 
@@ -14,8 +14,8 @@ module.exports = new Command({
     },
     async execute(interaction : Interaction<CacheType>){
         if(!interaction.isChatInputCommand()) return
-        const server = await getServerByGuildId(interaction.guildId)
-        if(!server.games || server.games.length === 0) {
+        const games = QzGame.getServerGames(interaction.guildId)
+        if(!games || games.length === 0) {
             await reply(interaction,{
                 content : "There is no game in this server",
                 ephemeral : true
@@ -37,9 +37,8 @@ module.exports = new Command({
             const listen = await interaction.awaitModalSubmit({filter :(id)=>id.customId === "deleteall",time : 15*1000})
             const res = listen.fields.getTextInputValue("yes_deleteall")
             if(res === "yes"){
-                server.games?.map(async e=>{
+                games?.map(async e=>{
                     try{
-                        if(!isQuizGame(e)) return
                         if(e.mainChannel) {
                             const channel = interaction.guild.channels.cache.get(e.channelId)
                             if(channel){
@@ -69,8 +68,7 @@ module.exports = new Command({
                         return
                     }
                 })
-                server.games = []
-                await server.save()
+                QzGame.clearServerGames(interaction.guildId)
                 await listen.reply({
                     content : "All games are deleted :white_check_mark:",
                 })

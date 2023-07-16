@@ -41,15 +41,10 @@ export abstract class Bot{
      * @note set the productionMode in config.json to false if you are testing the bot.
      */
     static async lunch(){
-        const productionMode = require("../../config.json").productionMode
-        if(productionMode){
-            await this.client.login(process.env.TOKEN1)
-        }else{
-            await this.client.login(process.env.TOKEN)
-        }
+        await this.client.login(process.env.TOKEN)
     }
     /**
-     * Scan command and button folder and save the commands
+     * Scan command folder and save the commands
      * @note also create / command for the new commands
      */
     static async scanCommands(){
@@ -68,6 +63,9 @@ export abstract class Bot{
                 }
             }
     }
+    /**
+     * Scan button folder and save the commands
+     */
     static scanButtons(){
         this.client.buttons = new Collection()
         const buttonsPath = path.join(__dirname+"/..","buttons")

@@ -1,3 +1,7 @@
+/**
+ * this file will be deleted in the stable version of random bot 1.0.0
+ */
+
 import { Schema, model } from "mongoose";
 import { Game, Member } from "./discordServers";
 import { QuizCategory, answerType } from "../lib/QuizGame";
@@ -33,10 +37,10 @@ export interface QuizGame extends Game{
     time? : number,
     hostUserId : string,
     mainChannel? : boolean,
-    gameStart? : TGameStart
+    gameStart? : TGameStart,
+    guildId : string
 }
 export const QuizSchema = new Schema<QuizGame>({
-    name :String,
                 hostId : String,
                 hostName : String,
                 index : {

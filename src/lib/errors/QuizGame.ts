@@ -1,4 +1,3 @@
-import { amount } from "../QuizGame"
 export const QzErrors = {
     "201" : {
         name : "USER_NOT_IN_QUIZGAME",
@@ -11,6 +10,10 @@ export const QzErrors = {
     "203" : {
         name : "MAX_GAMES",
         message : "The server has reached the maximum number of games"
+    },
+    "204" : {
+        name : "GAME_EXIST",
+        message : "this game already exist"
     },
     "301" : {
         name : "INVALID_AMOUNT",

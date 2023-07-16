@@ -4,9 +4,7 @@ export interface Member{
     username: string, // with tag
     id : string
 }
-type GameName = "Spy Game" | "Quiz Game"
 export interface Game{
-    name : GameName
     hostId : string,
     hostName : string,
     players? : Member[]
@@ -85,87 +83,6 @@ const discordServer = new Schema<DiscordServer>({
             }
         }
     },
-    // @ts-ignore
-    games : {
-        required : false,
-        type : [
-            {
-                //@ts-ignore
-                name :String,
-                hostId : String,
-                hostName : String,
-                hostUserId : String,
-                index : {
-                    type : Number,
-                    required : false,
-                    default : 0
-                },
-                players : [{
-                    username : String,
-                    id : String,
-                    answers : {
-                        required : false,
-                        type : [{
-                            index : Number,
-                            answer : String
-                        }],
-                        default : []
-                    },
-                    score : {
-                        required : false,
-                        type : Number,
-                        default : 0
-                    },
-                    ready : {
-                        required : false,
-                        type : Boolean,
-                        default : false
-                    }
-                }],
-                word : String,
-                maxPlayers : Number,
-                channelId : String,
-                announcementId : String,
-                started : {
-                    required : false,
-                    type : Boolean,
-                    default : false
-                },
-                end : {
-                    required : false,
-                    type : Boolean,
-                    default : false
-                },
-                quiz :{
-                    required : false,
-                    type : []
-                },
-                amount : {
-                    type : Number,
-                    required : false,
-                },
-                category : {
-                    type : String,
-                    required : false
-                },
-                time : {
-                    require : false,
-                    type : Number
-                },
-                mainChannel : {
-                    require : false,
-                    type : Boolean,
-                    default : true
-                },
-                gameStart : {
-                    required : false,
-                    type : Number,
-                    default : 0
-                }
-            }
-        ],
-        default : []
-    }
 })
 
 

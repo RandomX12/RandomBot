@@ -1,8 +1,9 @@
 import { ButtonInteraction, CacheType } from "discord.js";
-import QuizGame from "../lib/QuizGame";
+import { QzGame } from "../lib/QuizGame";
 import { answer } from "../model/QuizGame";
+import { ButtonCommand } from "../lib/Commands";
 
-module.exports = {
+module.exports = new ButtonCommand({
     data : {
         name : "answer",
         description : "Choose an answer"
@@ -18,10 +19,8 @@ module.exports = {
             const hostId = interaction.customId.split("_")[2]
             const ans : answer = interaction.customId.split("_")[1] as answer
             const index : number = +interaction.customId.split("_")[3]
-            await QuizGame.setAns(interaction.guildId,hostId,interaction.user.id,ans,index)
-            const inte =  await interaction.deferReply({
-                ephemeral : true
-            })
-            await inte.delete()
-    }
-}
+            await QzGame.setAns(hostId,interaction.user.id,ans,index)
+            await interaction.deleteReply()
+    },
+    ephemeral : true,    
+})

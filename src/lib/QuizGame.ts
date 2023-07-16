@@ -1,16 +1,14 @@
 import { ActionRowBuilder, AnyComponentBuilder, ButtonBuilder, ButtonInteraction, CacheType, ChannelType, ChatInputCommandInteraction, EmbedBuilder, GuildTextBasedChannel, Interaction, Message, User } from "discord.js";
 import { Game as GameT, Member } from "../model/discordServers"
 import { answer , Qs, QuizGamePlayer, QuizGame as QuizGameType } from "../model/QuizGame"
-import DiscordServers, { fetchServer, getServerByGuildId } from "./DiscordServers";
 import { TimeTampNow, error, log, warning } from "./cmd";
 import { TGameStart, gameStartType } from "./DiscordServersConfig";
 import QzGameError from "./errors/QuizGame";
-export function isQuizGame(game : GameT) : game is QuizGameType{
-    if(game.name === "Quiz Game"){
-        return true
-    }
-}
-export function getCategoryByNum<T extends CategoriesNum | "any">(num :T){
+import { games } from "..";
+import { decode } from "html-entities";
+import axios from "axios"
+
+export function getCategoryByNum<T extends CategoriesNum | "any",R extends typeof categories>(num :T){
     if(num === "any") return "Random"
     let names : QuizCategory[] = Object.keys(categories) as QuizCategory[]
     let category : QuizCategory
@@ -31,15 +29,14 @@ export function getCategoryNumByName<T extends QuizCategory,R extends typeof cat
     })
     return catName
 }
-
 interface APIresponse{
     results : {category : string,type : answerType,difficulty :"easy",question : string,correct_answer : string,incorrect_answers : string[]}[]
 }
     
 export const rank = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟", "1️⃣1️⃣", "1️⃣2️⃣", "1️⃣3️⃣", "1️⃣4️⃣", "1️⃣5️⃣", "1️⃣6️⃣", "1️⃣7️⃣", "1️⃣8️⃣", "1️⃣9️⃣", "2️⃣0️⃣"];
-export type CategoriesNum = 9 | 15 | 21 | 23 | 22 | 19 | 18 | 27 | 28
+export type CategoriesNum = typeof categories[keyof typeof categories]
 export type answerType = "multiple" | "boolean"
-export const regex = /&quot;|&amp;|&#039;|&eacute;|&#039;|&amp;|&quot;|&shy;|&ldquo;|&rdquo;|&#039;|;|&/g 
+// export const regex = /&quot;|&amp;|&#039;|&eacute;|&#039;|&amp;|&quot;|&shy;|&ldquo;|&rdquo;|&#039;|;|&/g 
 export const categories  = {
     Random : "any",
     GeneralKnowledge : 9,
@@ -51,6 +48,7 @@ export const categories  = {
     Computers : 18,
     Animals : 27,
     Vehicles : 28,
+    Films : 11,
 } as const
 export type QuizCategory = keyof typeof categories;
 export const QuizCategoryImg : Record<QuizCategory,string> = {
@@ -64,6 +62,7 @@ export const QuizCategoryImg : Record<QuizCategory,string> = {
     Computers : "https://cdn-icons-png.flaticon.com/512/4703/4703650.png",
     Animals : "https://cdn-icons-png.flaticon.com/512/616/616408.png",
     Vehicles : "https://cdni.iconscout.com/illustration/premium/thumb/car-2953450-2451640.png",
+    Films : "https://banner2.cleanpng.com/20190730/shy/kisspng-photographic-film-movie-camera-cinema-website-and-mobile-application-development-service-5d3fc924ce3b33.8538265315644613488447.jpg"
 }
 export interface QuizGameInfo{
     hostId : string,
@@ -102,102 +101,230 @@ export function deleteGameLog(){
 export const amount = [3,10] 
 export const maxPlayers = [2,20]
 export const maxGames = 15
-export default class QuizGame{ 
-    static async join(guildId : string,hostId : string,user : User){
-        const server = await getServerByGuildId(guildId)
-        let gameFound = false
-        for(let i = 0;i<server.games.length;i++){
-            if(server.games[i].hostId === hostId){
-                if(!isQuizGame(server.games[i])) throw new QzGameError("303",`This game is not a Quiz Game`)
-                gameFound = true
-                const isIn = await DiscordServers.isInGame(guildId,user.id)
-                if(isIn) throw new QzGameError("202",`User id="${user.id} is already in the game"`)
-                server.games[i].players.push({username  :user.tag,id : user.id})
-                await server.save()
-                break
+// export default class QuizGame{ 
+//     static async join(guildId : string,hostId : string,user : User){
+//         warning(`this function will be deleted in the 1.0.0 stable version`)
+//         const server = await getServerByGuildId(guildId)
+//         let gameFound = false
+//         for(let i = 0;i<server.games.length;i++){
+//             if(server.games[i].hostId === hostId){
+//                 gameFound = true
+//                 const isIn = await DiscordServers.isInGame(guildId,user.id)
+//                 if(isIn) throw new QzGameError("202",`User id="${user.id} is already in the game"`)
+//                 server.games[i].players.push({username  :user.tag,id : user.id})
+//                 await server.save()
+//                 break
+//             }
+//         }
+//         if(!gameFound) throw new QzGameError("404",`Cannot join the game : Game not found`)
+//     }
+//     static async leave(guildId : string,hostId : string,userId : string){
+//         warning(`this function will be deleted in the 1.0.0 stable version`)
+//         const server = await getServerByGuildId(guildId)
+//         let isGame = false
+//         let isIn = false
+//         server.games.map((e,i)=>{
+//             if(e.hostId === hostId){
+//                 isGame = true
+//                 e.players.map((ele,j)=>{
+//                     if(ele.id === userId){
+//                         isIn = true
+//                         server.games[i].players.splice(j,1)
+//                     }
+//                 })
+//             }
+//         })
+//         if(!isGame) throw new QzGameError("404",`Game not found`)
+//         if(!isIn) throw new QzGameError("201",`User with id=${userId} is not in the game with id=${hostId}`)
+//         await server.save()
+//     }
+//     /**
+//      * This function will no longer be supported in the futur versions of RandomBot
+//      */
+//     static async getGameWithHostId(guildId : string,hostId : string){
+//         warning(`this function will be deleted in the 1.0.0 stable version`)
+//         const game = new QzGame(guildId,hostId)
+//         await game.fetch()
+//         return game
+//     }
+//     static async isIn(hostId : string,userId : string) : Promise<boolean>{
+//         const game = await QzGame.getGame(hostId)
+        
+//         for(let i = 0 ;i<game.players.length;i++){
+//             if(game.players[i].id === userId){
+//                 return true
+//             }
+//         }
+        
+//         return false
+//     }
+//     static async setAns(hostId : string,userId : string,ans : answer,index : number){
+//         const game = await QzGame.getGame(hostId)
+//         let isUser : boolean = false
+//                 for(let i = 0 ;i<game.players.length;i++){
+//                     if(game.players[i].id === userId){
+//                         isUser = true
+//                         if(!game.players[i].answers){
+//                             game.players[i].answers = [{
+//                                 index : index,
+//                                 answer : ans
+//                             }]
+//                         }else{
+//                             for(let j =0;j<game.players[i].answers.length;j++){
+//                                 if(game.players[i].answers[j].index === index){
+//                                     game.players[i].answers[j].answer = ans
+//                                     await game.update()
+//                                     return
+//                                 }
+//                             }
+//                             game.players[i].answers.push({
+//                                 index : index,
+//                                 answer : ans
+//                             })
+//                         }
+//                         break
+//                     }
+//                 }
+//         if(!isUser) throw new QzGameError("201",`User with id=${userId} is not in the game`)
+//         await game.update()
+//     }
+//     static async removeAns(hostId : string,userId : string,index : number){
+//         const game = await QzGame.getGame(hostId)
+//             game.players.map((ele,j)=>{
+//                 if(ele.id === userId){
+//                     game.players[j].answers.map((e,i)=>{
+//                         if(e.index === index) {
+//                             game.players[j].answers.splice(i,1)
+//                         }
+//                     })
+//                 }
+//             })
+//         await game.update()
+//     }
+//     static async getAnnouncement(interaction : ChatInputCommandInteraction<CacheType> | ButtonInteraction<CacheType>,hostId : string){
+//         const game = await QzGame.getGame(hostId)
+//         const channel : any = await interaction.guild.channels.cache.get(game.channelId)?.fetch()
+//         const announcement : Message<true> = channel?.messages?.cache?.get((game as QuizGameType).announcementId)
+//         return announcement
+//     }
+//     static async getChannel(interaction : Interaction<CacheType> | ButtonInteraction<CacheType>,hostId : string){
+//         const game = await QzGame.getGame(hostId)
+//         const channel : any = await interaction.guild.channels.cache.get(game?.channelId)?.fetch()
+//         return channel as GuildTextBasedChannel
+//     }
+//     static async getGameWithUserId(guildId : string,userId :string){
+//         const qzGames  = games.select({guildId})
+//         for(let i = 0;i<qzGames.length;i++){
+//             let isIn = false
+//             for(let j = 0;j< qzGames[i].players.length;j++){
+//                 if(qzGames[i].players[j].id === userId){
+//                     isIn = true
+//                         const g = new QzGame(guildId,qzGames[i].hostId)
+//                         g.applyData(qzGames[i])
+//                         return g
+//                 }
+//             }
+//             if(isIn) return
+//         }
+//         throw new QzGameError("404",`Game with userId=${userId} is not found`)
+//     }
+
+//     constructor(public serverId : string,public info : QuizGameInfo,public empty? : boolean){
+//         if(info.amount < amount[0] || info.amount > amount[1]) throw new QzGameError("301",`Amount must be between 3 and 10`)
+//     }
+//     @createGameLog()
+//     async save(){
+//         const server = await getServerByGuildId(this.serverId)
+//         let hasGame = false
+//         server.games.map(e=>{
+//             if(e.hostId === this.info.hostId){
+//                 hasGame = true
+//             }
+//         })
+//         if(hasGame) throw new Error(`This user already has a game`)
+//         const QuizCatNum = categories[this.info.category]
+//         let catUrl = `&category=${QuizCatNum}`
+//         if(QuizCatNum === "any"){
+//             catUrl = ""
+//         }
+//         let qz = new Quiz(this.info.category,this.info.amount)
+//         await qz.fetch()
+//         const quiz = qz.quiz
+//         let players = [{username : this.info.hostName,id : this.info.hostUserId}]
+//         if(this.empty){
+//             players = []
+//         }
+//         server.games.push({
+//             ...this.info,
+//             index : 0,
+//             players : players,
+//             quiz : quiz,
+//             category : this.info.category,
+//             amount : this.info.amount,
+//             time : this.info.time || 15*1000,
+//             hostId : this.info.hostId,
+//             hostUserId : this.info.hostUserId,
+//             gameStart : this.info.gameStart || 0
+//         } as QuizGameType)
+//         await server.save()
+//     }
+// }
+
+
+export abstract class Game implements GameT{
+    
+    abstract hostName: string;
+    abstract players?: Member[];
+    abstract channelId: string;
+    abstract hostId: string;
+    abstract guildId : string
+
+    abstract update() :void
+    abstract delete(reason? : string) : void
+}
+
+/**
+ * The New Constructor for Quiz Game
+ */
+export class QzGame extends Game implements QuizGameType{
+    /**
+     * New Get game Function
+     * @param guildId Server id
+     * @param hostId game id
+     * @returns new QzGame()
+     */
+    static async getGame(hostId: string): Promise<QzGame> {
+        const game = games.get(hostId)
+        if(!game) throw new QzGameError("404",`Game with id=${hostId} is not found`)
+        return new QzGame(game.hostId).applyData(game)
+    }
+    
+    static async getGameWithUserId(guildId: string, userId: string): Promise<QzGame> {
+        const qzGames = QzGame.getServerGames(guildId)
+        for(let i = 0;i<qzGames.length;i++){
+            for(let j = 0;j<qzGames[i].players.length;j++){
+                if(qzGames[i].players[j].id === userId){
+                    const game = new QzGame(qzGames[i].hostId).applyData(qzGames[i])
+                    return game
+                }
             }
         }
-        if(!gameFound) throw new QzGameError("404",`Cannot join the game : Game not found`)
+        throw new QzGameError("201","This user is not in game")
     }
-    static async leave(guildId : string,hostId : string,userId : string){
-        const server = await getServerByGuildId(guildId)
-        let isGame = false
-        let isIn = false
-        server.games.map((e,i)=>{
-            if(e.hostId === hostId){
-                if(!isQuizGame(e)) return
-                isGame = true
-                e.players.map((ele,j)=>{
-                    if(ele.id === userId){
-                        isIn = true
-                        server.games[i].players.splice(j,1)
-                    }
-                })
-            }
-        })
-        if(!isGame) throw new QzGameError("404",`Game not found`)
-        if(!isIn) throw new QzGameError("201",`User with id=${userId} is not in the game with id=${hostId}`)
-        await server.save()
+    
+    static getServerGames(guildId : string){
+        return games.select({guildId})
     }
-    /**
-     * This function will no longer be supported in the futur versions of RandomBot
-     */
-    static async getGameWithHostId(guildId : string,hostId : string){
-        warning(`This function will no longer be supported in the futur versions of RandomBot`)
-        const game = new QzGame(guildId,hostId)
-        await game.fetch()
-        if(!isQuizGame(game)) throw new QzGameError("303",`Game With hostId="${hostId}" is not a Quiz Game`)
-        return game
-    }
-    static async isIn(guildId : string,hostId : string,userId : string) : Promise<boolean>{
-        const server = await getServerByGuildId(guildId)
-        let game : GameT
-        let player : Member
-        server.games.map(e=>{
-            if(e.hostId === hostId){
-                game = e
-                e.players.map(ele=>{
-                    if(ele.id === userId){
-                        player = ele
-                    }
-                })
-            }
-        })
 
-        if(!game) throw new QzGameError("404",`Game with id=${hostId} is not found`)
-        if(!isQuizGame(game)) throw new QzGameError("303",`Game With hostId="${hostId}" is not a Quiz Game`)
-        if(!player) return false
-        return true
-    }
-    static async next(guildId : string,hostId : string){
-        const server = await getServerByGuildId(guildId)
-        let isGame = false
-        server.games.map((e,i)=>{
-            if(e.hostId === hostId){
-                if(!isQuizGame(e)) return
-                isGame = true;
-                (server.games[i] as QuizGameType).index++
-            }
+    static clearServerGames(guildId : string){
+        const gms = games.select({guildId})
+        gms.map((game)=>{
+            games.delete(game.hostId)
         })
-        if(!isGame) throw new QzGameError("404",`Game with id=${hostId} is not found`)
-        await server.save()
     }
-    static async start(guildId : string,hostId : string){
-        const server = await getServerByGuildId(guildId)
-        let isGame = false
-        server.games.map((e,i)=>{
-            if(e.hostId === hostId){
-                if(!isQuizGame(e)) return
-                isGame = true;
-                (server.games[i] as QuizGameType).started = true
-            }
-            
-        })
-        if(!isGame)throw new QzGameError("404",`Game with id=${hostId} is not found`)
-        await server.save()
-    }
-    static async setAns(guildId : string,hostId : string,userId : string,ans : answer,index : number){
-        const game = await QzGame.getGame(guildId,hostId)
+    
+    static async setAns(hostId : string,userId : string,ans : answer,index : number){
+        const game = await QzGame.getGame(hostId)
         let isUser : boolean = false
                 for(let i = 0 ;i<game.players.length;i++){
                     if(game.players[i].id === userId){
@@ -226,199 +353,50 @@ export default class QuizGame{
         if(!isUser) throw new QzGameError("201",`User with id=${userId} is not in the game`)
         await game.update()
     }
-    static async removeAns(guildId : string,hostId : string,userId : string,index : number){
-        const game = await QzGame.getGame(guildId,hostId)
-            game.players.map((ele,j)=>{
+    
+    static async isIn(hostId : string,userId : string) : Promise<boolean>{
+        const game = await QzGame.getGame(hostId)
+        
+        for(let i = 0 ;i<game.players.length;i++){
+            if(game.players[i].id === userId){
+                return true
+            }
+        }
+        
+        return false
+    }
+
+    static async getAnnouncement(interaction : ChatInputCommandInteraction<CacheType> | ButtonInteraction<CacheType>,hostId : string){
+        const game = await QzGame.getGame(hostId)
+        const channel : any = await interaction.guild.channels.cache.get(game.channelId)?.fetch()
+        const announcement : Message<true> = channel?.messages?.cache?.get((game as QuizGameType).announcementId)
+        return announcement
+    }
+
+        static async getChannel(interaction : Interaction<CacheType> | ButtonInteraction<CacheType>,hostId : string){
+        const game = await QzGame.getGame(hostId)
+        const channel : any = await interaction.guild.channels.cache.get(game?.channelId)?.fetch()
+        return channel as GuildTextBasedChannel
+    }
+
+    static async removeAns(hostId : string,userId : string,index : number){
+        const game = await QzGame.getGame(hostId)
+            game.players?.map((ele,j)=>{
                 if(ele.id === userId){
-                    game.players[j].answers.map((e,i)=>{
+                    game.players[j].answers?.map((e,i)=>{
                         if(e.index === index) {
-                            game.players[j].answers.splice(i,1)
+                            game.players[j].answers?.splice(i,1)
                         }
                     })
                 }
             })
         await game.update()
     }
-    static async getQuizGamewithHostUserId(guildId : string,hostUserId : string){
-        const server = await getServerByGuildId(guildId)
-        for(let i = 0;i<server.games.length;i++){
-            if(isQuizGame(server.games[i])) {
-                if((server.games[i]as QuizGameType ).hostUserId === hostUserId){
-                    return server.games[i] as QuizGameType
-                }
-            }
-        }
-        throw new QzGameError("404",`Game with hostUserId=${hostUserId} is not found`)
-    }
-    static async getAnnouncement(interaction : ChatInputCommandInteraction<CacheType> | ButtonInteraction<CacheType>,guildId: string,hostId : string){
-        const server = await getServerByGuildId(guildId)
-        for(let i = 0;i<server.games.length;i++){
-            if(server.games[i].hostId === hostId){
-                if(!isQuizGame(server.games[i])) throw new QzGameError("303",`This game is not a Quiz Game`)
-                const channel : any = await interaction.guild.channels.cache.get(server.games[i].channelId)?.fetch()
-                const announcement : Message<true> = channel?.messages?.cache?.get((server.games[i] as QuizGameType).announcementId)
-                return announcement
-            }
-        }
-        throw new QzGameError("406",`announcement not found`)
-    }
-    static async getChannel(interaction : Interaction<CacheType> | ButtonInteraction<CacheType>,hostId : string){
-        const server = await getServerByGuildId(interaction.guildId)
-        for(let i = 0 ;i<server.games.length;i++){
-            if(server.games[i].hostId === hostId){
-                if(!isQuizGame(server.games[i])) throw new QzGameError("303",`This game is not a Quiz Game`)
-                const channel : any = await interaction.guild.channels.cache.get((server.games[i] as QuizGameType)?.channelId)?.fetch()
-                return channel as GuildTextBasedChannel
-            }
-        }
-        throw new QzGameError("404",`Game with id="${hostId}" not found`)
-    }
-    static async getGameWithUserId(guildId : string,userId :string){
-        const server  = await getServerByGuildId(guildId)
-        for(let i = 0;i<server.games.length;i++){
-            let isIn = false
-            for(let j = 0;j< server.games[i].players.length;j++){
-                if(server.games[i].players[j].id === userId){
-                    isIn = true
-                    if(server.games[i].name === "Quiz Game"){
-                        const g = new QzGame(guildId,server.games[i].hostId)
-                        g.applyData(server.games[i])
-                        return g
-                    }else{
-                        throw new QzGameError("303",`This is not a quiz game`)
-                    }
-                }
-            }
-            if(isIn) return
-        }
-        throw new QzGameError("404",`Game with userId=${userId} is not found`)
-    }
-
-    constructor(public serverId : string,public info : QuizGameInfo,public empty? : boolean){
-        if(info.amount < amount[0] || info.amount > amount[1]) throw new QzGameError("301",`Amount must be between 3 and 10`)
-    }
-    @createGameLog()
-    async save(){
-        const server = await getServerByGuildId(this.serverId)
-        let hasGame = false
-        server.games.map(e=>{
-            if(e.hostId === this.info.hostId){
-                hasGame = true
-            }
-        })
-        if(hasGame) throw new Error(`This user already has a game`)
-        const QuizCatNum = categories[this.info.category]
-        let catUrl = `&category=${QuizCatNum}`
-        if(QuizCatNum === "any"){
-            catUrl = ""
-        }
-        let qz = new Quiz(this.info.category,this.info.amount)
-        await qz.fetch()
-        const quiz = qz.quiz
-        let players = [{username : this.info.hostName,id : this.info.hostUserId}]
-        if(this.empty){
-            players = []
-        }
-        server.games.push({
-            ...this.info,
-            name : "Quiz Game",
-            index : 0,
-            players : players,
-            quiz : quiz,
-            category : this.info.category,
-            amount : this.info.amount,
-            time : this.info.time || 15*1000,
-            hostId : this.info.hostId,
-            hostUserId : this.info.hostUserId,
-            gameStart : this.info.gameStart || 0
-        } as QuizGameType)
-        await server.save()
-    }
-}
-
-
-export abstract class Game implements GameT{
-    
-    static async getGame(guildId : string,hostId : string){
-        const server = await getServerByGuildId(guildId)
-        for(let i = 0;i<server.games.length;i++){
-            if(server.games[i].hostId === hostId){
-                return server.games[i]
-            }
-        }
-        throw new Error(`Game not found with id="${hostId}"`)
-    }
-    static async getGameWithUserId(guildId : string,userId : string){
-        const server  = await getServerByGuildId(guildId)
-        for(let i = 0;i<server.games.length;i++){
-            let isIn = false
-            for(let j = 0;j< server.games[i].players.length;j++){
-                if(server.games[i].players[j].id === userId){
-                    isIn = true
-                    if(server.games[i].name === "Quiz Game"){
-                        const g = new QzGame(guildId,server.games[i].hostId)
-                        g.applyData(server.games[i])
-                        return g
-                    }
-                    return server.games[i]
-                }
-            }
-            if(isIn) return
-        }
-        throw new Error(`Game not found`)
-    }
-    
-    abstract hostName: string;
-    abstract players?: Member[];
-    abstract channelId: string;
-    abstract name: "Spy Game" | "Quiz Game";
-    abstract hostId: string;
-    abstract guildId : string
-
-    abstract update() :void
-    abstract delete(reason? : string) : void
-}
-
-
-/**
- * The New Constructor for Quiz Game
- */
-export class QzGame extends Game implements QuizGameType{
     /**
-     * New Get game Function
-     * @param guildId Server id
-     * @param hostId game id
-     * @returns new QzGame()
+     * server id
      */
-    static async getGame(guildId: string, hostId: string): Promise<QzGame> {
-        const server = await getServerByGuildId(guildId)
-        for(let i = 0;server.games.length;i++){
-            if(server.games[i].hostId  === hostId){
-                if(!isQuizGame(server.games[i])) throw new QzGameError("303",`This is not a quiz game`)
-                const game = new QzGame(server.serverId,server.games[i].hostId)
-                game.applyData(server.games[i])
-                return game
-            }
-        }
-        throw new QzGameError("404",`Game with id=${hostId} is not found`)
-    }
-    
-    static async getGameWithUserId(guildId: string, userId: string): Promise<QzGame> {
-       const server = await fetchServer(guildId)
-       for(let i = 0;i<server.games.length;i++){
-         for(let j = 0;j<server.games[i].players.length;j++){
-            if(server.games[i].players[j].id === userId){
-                const game = new QzGame(server.serverId,server.games[i].hostId)
-                game.applyData(server.games[i])
-                return game
-            }
-         }
-       } 
-       throw new QzGameError("404",`Game not found`)
-    }
-    
+    public guildId: string;
     public hostName: string;
-    public name: "Spy Game" | "Quiz Game";
     public players: QuizGamePlayer[];
     public channelId: string;
     /**
@@ -469,10 +447,6 @@ export class QzGame extends Game implements QuizGameType{
     public gameStart?: TGameStart;
     constructor(
     /**
-     * Server id 
-     */
-    public readonly guildId : string,
-    /**
      * Game id
      */
     public readonly hostId : string){super()}
@@ -480,7 +454,7 @@ export class QzGame extends Game implements QuizGameType{
      * Set the game data.
      */
     applyData(game : Partial<QuizGameType>){
-        this.name = game.name || this.name
+        this.guildId = game.guildId || this.guildId 
         this.hostName = game.hostName || this.hostName
         this.players = game.players || this.players
         this.channelId = game.channelId||this.channelId
@@ -495,66 +469,43 @@ export class QzGame extends Game implements QuizGameType{
         this.time = game.time||this.time
         this.mainChannel = game.mainChannel ||this.mainChannel
         this.gameStart = game.gameStart || 0
+        return this
     }
     /**
-     * Fetch the game data from the database and update the local props
+     * Fetch the game data from the storage and update the local props
      */
     async fetch() : Promise<void>{
-        const game = await Game.getGame(this.guildId,this.hostId)
-        if(!isQuizGame(game)) throw new QzGameError("303","This game is not a quiz game")
+        const game = await QzGame.getGame(this.hostId)
         this.applyData(game)
     }
     /**
-     * Save changes in the database
+     * Save changes in the storage
      */
     async update(): Promise<void> {
-        const server = await getServerByGuildId(this.guildId)
-        for(let i = 0 ;i<server.games.length;i++){
-            if(server.games[i].hostId === this.hostId){
-                server.games[i] = this.cache
-                await server.save()
-                return
-            }
-        }
-        throw new QzGameError("404",`Game with id=${this.hostId} is not found`)
+        await QzGame.getGame(this.hostId)
+        games.set(this.hostId,this)
     }
     /**
-     * Delete the game from the database
+     * Delete the game from the storage
      */
-    async delete(reason?: string): Promise<void> {
-        await DiscordServers.deleteGame(this.guildId,this.hostId)
+    delete(): void {
+        games.delete(this.hostId)
     }
     /**
-     * set the property started to true and save it in the database
+     * set the property started to true and save it in the storage
      */
     async start() : Promise<void>{
-        const server = await getServerByGuildId(this.guildId)
-        for(let i = 0;i<server.games.length;i++){
-            if(server.games[i].hostId === this.hostId){
-                if(!isQuizGame(server.games[i])) throw new QzGameError("303",`This game is not a Quiz Game`);
-                (server.games[i] as QuizGameType).started = true
-                await server.save()
-                this.started = true
-                return
-            }
-        }
-        throw new QzGameError("404",`Game with id=${this.hostId} is not found`)
+        await QzGame.getGame(this.hostId)
+        this.started = true
+        games.set(this.hostId,this)
     }
     /**
-     * set the property end to true and save it in the database
+     * set the property end to true and save it in the storage
      */
     async endGame() : Promise<void>{
-        const server = await getServerByGuildId(this.guildId)
-        for(let i = 0;i<server.games.length;i++){
-            if(server.games[i].hostId === this.hostId){
-                if(!isQuizGame(server.games[i])) throw new QzGameError("303",`This is not a Quiz Game`);
-                (server.games[i] as QuizGameType).end = true
-                await server.save()
-                this.end = true
-                return
-            }
-        }
-        throw new QzGameError("404",`Game with id=${this.hostId} is not found`)
+        await QzGame.getGame(this.hostId)
+        this.end = true
+        games.set(this.hostId,this)
     }
     /**
      * @returns Game Generator
@@ -696,6 +647,7 @@ export class QzGame extends Game implements QuizGameType{
         if(!this.round || !this.started) return
         for(let i = 0;i<this.players.length;i++){
             if(!this.players[i].answers) this.players[i].answers = []
+            this.players[i].score = 0
             for(let j = 0;j<this.players[i].answers.length;j++){
                 let correctIndex = this.quiz[this.players[i].answers[j].index].correctIndex
                 if(ansIndex[correctIndex] === this.players[i].answers[j].answer){
@@ -787,7 +739,7 @@ export class QzGame extends Game implements QuizGameType{
                     embeds : [endEmbed]
                 })
     
-                await DiscordServers.deleteGame(interaction.guildId,this.hostId)
+                this.delete()
                 if(this.mainChannel) return
                 if(channel){
                     setTimeout(async()=>{
@@ -810,7 +762,47 @@ export class QzGame extends Game implements QuizGameType{
         }
     }
 }
- 
+
+
+
+export function generateId(){
+    return Math.random().toString(16).slice(2)
+}
+export interface QzGameInfo{
+    guildId : string,
+    hostName : string,
+    hostUserId : string,
+    maxPlayers : number,
+    channelId : string,
+    announcementId : string,
+    category : QuizCategory,
+    amount : number,
+    time? : number,
+    mainChannel? : boolean,
+    gameStart? : TGameStart
+}
+/**
+ * fetch the quiz and save the game in the storage
+ * @param guildId discord server id
+ * @param qz the quiz game info
+ * @returns QzGame
+ */
+export async function createQzGame(id : string,qz : QzGameInfo) : Promise<QzGame>{
+    const check = games.get(id)
+    if(check) throw new QzGameError("204","exist game")
+    const quiz = (await new Quiz(qz.category,qz.amount).fetch()).quiz
+    const qzGame : QuizGameType = {
+        ...qz,
+        players : [],
+        index : 0,
+        quiz,
+        guildId : qz.guildId,
+        hostId : id
+    }
+    games.set(id,qzGame)
+    return new QzGame(id).applyData(qzGame)
+}
+
 /**
  * Stop the execution of the code
  * @param time timer ms
@@ -851,19 +843,21 @@ export class Quiz<CategoryT extends QuizCategory> implements QuizT{
     /**
      * Fetch the quiz from the API
      */
-    async fetch() : Promise<void> {
+    async fetch() : Promise<this> {
         try{
             let catUrl = `&category=${this.categoryNum}`
             if(this.categoryNum === "any"){
                 catUrl = ""
             }
-            const req = await fetch(`https://opentdb.com/api.php?amount=${this.amount}&difficulty=easy${catUrl}`)
-            const res : APIresponse = await req.json()
+            const req = await axios.get(`https://opentdb.com/api.php?amount=${this.amount}&difficulty=easy${catUrl}`)
+            const res : APIresponse = req.data
             this.quiz = res.results.map((e)=>{
-                let q = e.question.replace(regex,' ')
-                let c = e.correct_answer.replace(regex,' ')
+                // let q = e.question.replace(regex,' ')
+                let q = decode(e.question)
+                // let c = e.correct_answer.replace(regex,' ')
+                let c = decode(e.correct_answer)
                 let ans = e.incorrect_answers.map(ele=>{
-                return ele.replace(regex,' ')
+                return decode(ele)
                 })
                 let num = Math.floor(Math.random() * ans.length)
                 let an = ans[num]
@@ -878,6 +872,7 @@ export class Quiz<CategoryT extends QuizCategory> implements QuizT{
                     category : e.category as QuizCategory
                 }
             })
+            return this
         }
         catch(err){
             throw new QzGameError("505",err.message)

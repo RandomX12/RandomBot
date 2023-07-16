@@ -1,9 +1,12 @@
+/**
+ * this file will be deleted in the stable version of random bot 1.0.0
+ */
+
 import { Schema } from "mongoose";
 import { Game } from "./discordServers";
 
 
 const Game = new Schema<Game>({
-    name :String,
                 hostId : String,
                 hostName : String,
                 //@ts-ignore

@@ -1,5 +1,5 @@
 import { ButtonInteraction, CacheType } from "discord.js";
-import QuizGame from "../lib/QuizGame";
+import { QzGame } from "../lib/QuizGame";
 import { ButtonCommand, reply } from "../lib/Commands";
 
 
@@ -9,7 +9,6 @@ module.exports = new ButtonCommand({
         description : "remove your answer"
     },
     async execute(interaction : ButtonInteraction<CacheType>){
-        const message =  await interaction.deferReply({ephemeral : true})
         const hostId = interaction.customId.split("_")[1]
         const index = +interaction.customId.split("_")[2]
         if(typeof index !== "number" || !hostId){
@@ -18,7 +17,8 @@ module.exports = new ButtonCommand({
             })
             return
         }
-        await QuizGame.removeAns(interaction.guildId,hostId,interaction.user.id,index)
-        await message.delete()
-    }
+        await QzGame.removeAns(hostId,interaction.user.id,index)
+        await interaction.deleteReply()
+    },
+    ephemeral : true,    
 })

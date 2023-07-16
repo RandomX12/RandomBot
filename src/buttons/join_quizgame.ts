@@ -1,9 +1,9 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, CacheType,  EmbedBuilder } from "discord.js";
 import DiscordServers from "../lib/DiscordServers";
-import QuizGame, { QzGame } from "../lib/QuizGame";
+import { QzGame } from "../lib/QuizGame";
 import { error, warning } from "../lib/cmd";
 import { gameStartType } from "../lib/DiscordServersConfig";
-import { ButtonCommand } from "../lib/Commands";
+import { ButtonCommand, reply } from "../lib/Commands";
 
 module.exports = new ButtonCommand({
     data : {
@@ -11,33 +11,32 @@ module.exports = new ButtonCommand({
         description : "Join a Quiz Game"
     },
     async execute(interaction : ButtonInteraction<CacheType>){
-        if(!interaction.customId || !interaction.customId.startsWith("join_quizgame")){
-            await interaction.reply({
+        if(!interaction.customId || !interaction.customId.startsWith("join")){
+            await reply(interaction,{
                 content : "Invalid request :x:",
                 ephemeral : true
             })
             return
         }
-        const isIn = await DiscordServers.isInGame(interaction.guildId,interaction.user.id)
-        
+        const isIn = DiscordServers.isInGame(interaction.guildId,interaction.user.id)
         if(isIn){
-            await interaction.reply({
+            await reply(interaction,{
                 content : "You are already in a game :x:",
                 ephemeral : true
             })
             return
         }
         const hostId = interaction.customId.split("_")[2]
-        const isFull = await DiscordServers.isGameFull(interaction.guildId,hostId)
+        const isFull = await DiscordServers.isGameFull(hostId)
 
         if(isFull){
-            await interaction.reply({
+            await reply(interaction,{
                 content : "This Game is full :x:",
                 ephemeral : true
             })
             return
         }
-        const game = await QzGame.getGame(interaction.guildId,hostId)
+        const game = await QzGame.getGame(hostId)
         game.players.push({
             id : interaction.user.id,
             username : interaction.user.username
@@ -55,14 +54,14 @@ module.exports = new ButtonCommand({
             .setStyle(4)
             const row : any = new ActionRowBuilder()
             .setComponents(button)
-            await interaction.reply({
+            await reply(interaction,{
                 content : "You joined the game :white_check_mark:",
                 components : [row],
                 ephemeral : true
             })
         }else{
-            const channel = await QuizGame.getChannel(interaction,hostId)
-            await DiscordServers.deleteGame(interaction.guildId,hostId)
+            const channel = await QzGame.getChannel(interaction,hostId)
+            DiscordServers.deleteGame(hostId)
             const embed = new EmbedBuilder()
             .setAuthor({name : "Quiz Game"})
             .setTitle("It looks like someone deleted the game announcement ❌")
@@ -111,11 +110,11 @@ module.exports = new ButtonCommand({
         ){
             try{
                  await game.executeGame(interaction,announcement)
-        }
+            }
             catch(err : any){
                 try{
-                    const announcement = await QuizGame.getAnnouncement(interaction,interaction.guildId,hostId)
-                    await DiscordServers.deleteGame(interaction.guildId,hostId)
+                    const announcement = await QzGame.getAnnouncement(interaction,hostId)
+                    DiscordServers.deleteGame(hostId)
                     error(err)
                     await announcement.edit({
                         content : "an error occured while starting the game :x:\nThe game is deleted",

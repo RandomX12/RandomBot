@@ -1,6 +1,6 @@
 import {ButtonInteraction, CacheType} from "discord.js"
 import { ButtonCommand, reply } from "../lib/Commands"
-import QuizGame, { QzGame } from "../lib/QuizGame"
+import { QzGame } from "../lib/QuizGame"
 
 module.exports = new ButtonCommand({
     data : {
@@ -8,7 +8,6 @@ module.exports = new ButtonCommand({
         description : "not ready"
     },
     async execute(interaction : ButtonInteraction<CacheType>){
-            await interaction.deferReply({ephemeral : true})
             const hostId = interaction.customId?.split("_")[1]
             if(!hostId){
                 await reply(interaction,{
@@ -17,7 +16,7 @@ module.exports = new ButtonCommand({
                 })
                 return
             }
-            const inGame = await QuizGame.isIn(interaction.guildId,hostId,interaction.user.id)
+            const inGame = await QzGame.isIn(hostId,interaction.user.id)
             if(!inGame) {
                 await reply(interaction,{
                     content : `You are not in this game`,
@@ -25,7 +24,7 @@ module.exports = new ButtonCommand({
                 })
                 return
             }
-            const game = await QzGame.getGame(interaction.guildId,hostId)
+            const game = await QzGame.getGame(hostId)
             if(!game.isReady(interaction.user.id)){
                 await interaction.deleteReply()
                 return
@@ -33,10 +32,12 @@ module.exports = new ButtonCommand({
             game.setPlayerReady(interaction.user.id,false)
             await game.update()
             const embed = game.generateEmbed()
-            const announcement = await QuizGame.getAnnouncement(interaction,interaction.guildId,hostId)
+            const announcement = await QzGame.getAnnouncement(interaction,hostId)
             await announcement.edit({
                 embeds : [embed],
             })
             await interaction.deleteReply()
-    }
+    },
+    ephemeral : true,    
+
 })

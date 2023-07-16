@@ -5,10 +5,11 @@ import { Collection } from "discord.js"
 import discordServers from "../model/discordServers"
 import { error, warning } from "./cmd"
 import  DiscordSv  from "../model/discordServers"
-import { deleteGameLog } from "./QuizGame"
+import { QzGame, deleteGameLog } from "./QuizGame"
 import { Bot } from "./Bot"
 import QzGameError from "./errors/QuizGame"
 import DiscordServersError from "./errors/DiscordServers"
+import { games } from ".."
 /**
  * Get the server document from the data base
  * @param id server id
@@ -45,36 +46,19 @@ export default class DiscordServers{
      * @param userId user id
      * @returns boolean
      */
-    static async isInGame(guildId : string,userId : string) : Promise<boolean>{
-        const server = await getServerByGuildId(guildId)
-        let isIn = false
-        for(let i = 0;i<server.games.length;i++){
-            // if(server.games[i].hostId === userId){                
-            //     isIn = true
-            //     break
-            // }
-
-            for(let j = 0;j<server.games[i].players.length;j++){
-                if(server.games[i].players[j].id === userId){
-                    isIn = true
-                    break
+    static isInGame(guildId : string,userId : string) : boolean{
+        const qzGames = games.select({guildId})
+        for(let i =  0;i<qzGames.length;i++){
+            for(let j = 0;j<qzGames[i].players.length;j++){
+                if(qzGames[i].players[j].id === userId){
+                    return true
                 }
             }
-
-            if(isIn) break
         }
-        return isIn
+        return false
     }
-    static async getGameByHostId(guildId : string,id:string){
-        const server = await getServerByGuildId(guildId)
-        let game : Game 
-        server.games.map(e=>{
-            if(e.hostId === id){
-                game = e
-            }
-        })
-        if(!game) throw new QzGameError("404",`Game with id=${id} is not found`)
-        return game
+    static async getGameByHostId(id:string){
+        return await QzGame.getGame(id)
     }
     static async getUser(guildId:string,userId : string){
         const server = await getServerByGuildId(guildId)
@@ -93,14 +77,8 @@ export default class DiscordServers{
      * @param hostId id of the game in this server
      */
     @deleteGameLog()
-    static async deleteGame(guildId : string,hostId : string){
-        const server = await getServerByGuildId(guildId)
-        server.games.map((e,i)=>{
-            if(e.hostId === hostId){
-                server.games.splice(i,1)
-            }
-        })
-        await server.save()
+    static deleteGame(hostId : string){
+        games.delete(hostId)
     }
     /**
      * Check if the game is full
@@ -108,9 +86,8 @@ export default class DiscordServers{
      * @param hostId id of the game in this server
      * @returns boolean
      */
-    static async isGameFull(guildId : string,hostId : string){
-        const game = await DiscordServers.getGameByHostId(guildId,hostId)
-        if(!("maxPlayers" in game)) return
+    static async isGameFull(hostId : string){
+        const game = await QzGame.getGame(hostId)
         if(game.players.length === game.maxPlayers) return true
         return false
     }
@@ -169,6 +146,7 @@ export default class DiscordServers{
      * @note this function is used to run when the bot do a restart or when doing an update
      */
     static async cleanGuilds() : Promise<void>{
+        warning(`this function will be deleted in the 1.0.0 stable version`)
         const server = await DiscordSv.find()
         server.map(async (e,i)=>{
             try{
@@ -270,6 +248,7 @@ export class Server implements DiscordServer{
      * delete all games in this server
      */
     async cleanGames() : Promise<void>{
+        warning(`this function will be deleted in the 1.0.0 stable version`)
         const server = await getServerByGuildId(this.serverId)
         server.games = []
         await server.save()

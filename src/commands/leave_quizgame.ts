@@ -1,7 +1,6 @@
 import { CacheType, ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
-import DiscordServers, { Server, getServerByGuildId } from "../lib/DiscordServers";
-import  QuizGame, { Game, QzGame, isQuizGame } from "../lib/QuizGame";
-import Spygame, { isSpyGame } from "../lib/spygame";
+import DiscordServers from "../lib/DiscordServers";
+import  {  QzGame } from "../lib/QuizGame";
 import { warning } from "../lib/cmd";
 import Command, { reply } from "../lib/Commands";
 
@@ -28,7 +27,7 @@ module.exports = new Command({
             content : "You left the game :white_check_mark:",
             ephemeral : true
         })
-        const announcement = await QuizGame.getAnnouncement(interaction,interaction.guildId,game.hostId)
+        const announcement = await QzGame.getAnnouncement(interaction,game.hostId)
         if(game.started) {
             if(game.players.length === 0){
                 if(announcement){
@@ -36,7 +35,7 @@ module.exports = new Command({
                     .setTitle("No one else in the game ❌")
                     .setFooter({text : "Game Deleted"})
                     .setAuthor({name : "Quiz Game"})
-                    await DiscordServers.deleteGame(interaction.guildId,game.hostId)
+                    DiscordServers.deleteGame(game.hostId)
                     const msg = await announcement.edit({
                         embeds : [deleteEmbed],
                         components : [],
@@ -63,12 +62,12 @@ module.exports = new Command({
                     },5000)
                 }else{
                     if(!game.mainChannel){
-                        const channel = await QuizGame.getChannel(interaction,game.hostId)
+                        const channel = await QzGame.getChannel(interaction,game.hostId)
                         if(channel){
                             await channel.delete()
                         }
                     }
-                    await DiscordServers.deleteGame(interaction.guildId,game.hostId)
+                    DiscordServers.deleteGame(game.hostId)
                 }
             }
             return
@@ -80,8 +79,8 @@ module.exports = new Command({
             })
             return
         }else{
-            const channel = await QuizGame.getChannel(interaction,game.hostId)
-            await DiscordServers.deleteGame(interaction.guildId,game.hostId)
+            const channel = await QzGame.getChannel(interaction,game.hostId)
+            DiscordServers.deleteGame(game.hostId)
             
             const embed = new EmbedBuilder()
             .setAuthor({name : "Quiz Game"})

@@ -1,6 +1,9 @@
 /**
  * DEAD CODE :( .
  */
+/**
+ * this file will be deleted in the stable version of random bot 1.0.0
+ */
 import DiscordServers, { getServerByGuildId } from "./DiscordServers";
 import { error } from "./cmd";
 import { Game } from "../model/discordServers";
@@ -20,9 +23,7 @@ export const numberEmojisUnicode = [
     "\uD83D\uDD1F\uFE0F",] // 🔟
 
 export function isSpyGame(game : Game) : game is SpygameType  {
-        if(game.name === "Spy Game"){
-            return true
-        }
+        return true
 }
     export default class Spygame{
     public inanimateThings = [

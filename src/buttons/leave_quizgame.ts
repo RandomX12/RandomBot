@@ -1,8 +1,8 @@
 import { ButtonInteraction, CacheType, EmbedBuilder } from "discord.js";
 import DiscordServers, { getServerByGuildId } from "../lib/DiscordServers";
-import QuizGame, { QzGame, isQuizGame } from "../lib/QuizGame";
+import  { QzGame } from "../lib/QuizGame";
 import { warning } from "../lib/cmd";
-import { ButtonCommand } from "../lib/Commands";
+import { ButtonCommand, reply } from "../lib/Commands";
 
 
 module.exports = new ButtonCommand({
@@ -12,32 +12,32 @@ module.exports = new ButtonCommand({
     },
     async execute(interaction : ButtonInteraction<CacheType>){
         if(!interaction.customId || !interaction.customId.startsWith("leave_quizgame")){
-            await interaction.reply({
+            await reply(interaction,{
                 content : "Invalid request :x:",
                 ephemeral : true
             })
             return
         }
         const hostId = interaction.customId.split("_")[2]
-        const isIn = await QuizGame.isIn(interaction.guildId,hostId,interaction.user.id)
+        const isIn = await QzGame.isIn(hostId,interaction.user.id)
         if(!isIn) {
-            await interaction.reply({
+            await reply(interaction,{
                 content : "You are not in this quiz game :x:",
                 ephemeral : true
             })
             return
         }
-        const game = await QzGame.getGame(interaction.guildId,hostId)
+        const game = await QzGame.getGame(hostId)
         game.removePlayer(interaction.user.id)
         await game.update()
-        await interaction.reply({
+        await reply(interaction,{
             content : "You left the game :white_check_mark:",
             ephemeral : true
         })
         const announcement = interaction.channel.messages.cache.get(game.announcementId)
         if(game.started) {
             if(game.players.length === 0){
-                await DiscordServers.deleteGame(interaction.guildId,game.hostId)
+                DiscordServers.deleteGame(game.hostId)
                 if(announcement){
                     const deleteEmbed = new EmbedBuilder()
                     .setTitle("No one else in the game ❌")
@@ -77,8 +77,8 @@ module.exports = new ButtonCommand({
             })
             return
         }else{
-            const channel = await QuizGame.getChannel(interaction,hostId)
-            await DiscordServers.deleteGame(interaction.guildId,game.hostId)
+            const channel = await QzGame.getChannel(interaction,hostId)
+            DiscordServers.deleteGame(game.hostId)
             const embed = new EmbedBuilder()
             .setAuthor({name : "Quiz Game"})
             .setTitle("It looks like someone deleted the game announcement ❌")
@@ -100,6 +100,7 @@ module.exports = new ButtonCommand({
             }
             return
         }    
-    }
+    },
+    ephemeral : true,    
     
 })
