@@ -72,7 +72,7 @@ client.on("interactionCreate", async (interaction) => {
       //@ts-ignore
       interaction.user.count = user.count + 1;
       msgs.set(interaction.user.id, interaction.user);
-      if (user.count > 7) {
+      if (user.count > 15) {
         log({
           text: `${interaction.user.tag} is blocked cause of spam`,
           timeColor: "Yellow",
@@ -340,24 +340,6 @@ client.on("guildMemberRemove", async (m) => {
     error(err.message);
   }
 });
-client.on("channelDelete", async (c) => {
-  try {
-    if (c.type !== ChannelType.GuildText) return;
-    if (!c.guildId) return;
-    const server = await getServerByGuildId(c.guildId);
-    if (!server.config) return;
-    if (!server.config.quiz?.multiple_channels) return;
-    if (!c.parent) return;
-    if (c.parent.id !== server.config.quiz.channels_category) return;
-    for (let i = 0; i < server.games.length; i++) {
-      if (server.games[i].channelId === c.id) {
-        DiscordServers.deleteGame(server.games[i].hostId);
-      }
-    }
-  } catch (err: any) {
-    error(err.message);
-  }
-});
 client.on("messageDelete", async (msg) => {
   try {
     if (msg.author.id !== client.user.id) return;
@@ -549,6 +531,7 @@ client.on("channelDelete", async (channel) => {
     if (channel.type !== ChannelType.GuildText) return;
     if (!channel.guild) return;
     const gms = games.select({ guildId: channel.guildId });
+    if (!gms.length) return;
     for (let i = 0; i < gms.length; i++) {
       if (gms[i].channelId === channel.id) {
         DiscordServers.deleteGame(gms[i].hostId);

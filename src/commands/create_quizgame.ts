@@ -10,7 +10,6 @@ import {
   EmbedBuilder,
   GuildTextBasedChannel,
   OverwriteResolvable,
-  PermissionOverwrites,
   TextChannel,
 } from "discord.js";
 import {
@@ -29,9 +28,8 @@ import DiscordServers, {
   getServerByGuildId,
 } from "../lib/DiscordServers";
 import { TimeTampNow, error, warning } from "../lib/cmd";
-import { PermissionsBitField } from "discord.js";
 import Command, { reply } from "../lib/Commands";
-import { gameStartType } from "../lib/DiscordServersConfig";
+import { RolesConfig, gameStartType } from "../lib/DiscordServersConfig";
 import { games } from "..";
 
 let choices = Object.keys(categories).map((e) => {
@@ -124,6 +122,47 @@ module.exports = new Command({
       });
       return;
     }
+    if (
+      server.config?.quiz?.roles?.length > 0 &&
+      interaction.user.id !== interaction.guild.ownerId
+    ) {
+      const member = interaction.guild.members.cache.get(interaction.user.id);
+      let maxGames: number;
+      server.config.quiz.roles.map((e) => {
+        if (member.roles.cache.has(e.id)) {
+          if (!maxGames) {
+            maxGames = e.gamesPerUser;
+            return;
+          }
+          if (maxGames < e.gamesPerUser) {
+            maxGames = e.gamesPerUser;
+            return;
+          }
+        }
+      });
+      if (maxGames === 0) {
+        await reply(interaction, {
+          content: `Sorry but you are not allowed to create quiz game in this server.\ncontact server administrators for permission to create quiz games`,
+        });
+        return;
+      }
+      if (maxPlayers) {
+        const Qzgames = games.select({
+          guildId: interaction.guildId,
+          hostUserId: interaction.user.id,
+        });
+        if (Qzgames.length >= maxGames) {
+          await reply(interaction, {
+            content: `Sorry, you can't create a quiz game. You have only the right to create ${maxGames} game${
+              maxGames >= 2 ? "s" : ""
+            } in this server`,
+            ephemeral: true,
+          });
+          return;
+        }
+      }
+    }
+
     const hostId = generateId();
     let channel: TextChannel | GuildTextBasedChannel;
     if (server.config.quiz?.multiple_channels) {
@@ -144,21 +183,13 @@ module.exports = new Command({
             deny: [],
           },
         ];
-        if (server.config.quiz.private) {
-          server.config.quiz.roles.map((e) => {
+        if (
+          server.config.quiz.viewChannel.length !== 0 &&
+          server.config.quiz.private
+        ) {
+          server.config.quiz.viewChannel.map((e) => {
             permissions.push({
               id: e,
-              deny: ["SendMessages"],
-            });
-          });
-        }
-        if (server.config.quiz.private) {
-          permissions[0].deny = [PermissionsBitField.Flags.ViewChannel];
-          server.config.quiz.roles?.map((role) => {
-            if (!role) return;
-            permissions.push({
-              id: role,
-              allow: [PermissionsBitField.Flags.ViewChannel],
               deny: ["SendMessages"],
             });
           });
@@ -215,6 +246,10 @@ module.exports = new Command({
         if (interaction.replied || interaction.deferred) {
           let errorCode = "";
           let msg = "";
+          if (err instanceof TypeError) {
+            errorCode = err.name;
+            msg = err.message;
+          }
           if (err instanceof DiscordAPIError) {
             errorCode = `DiscordAPIError_${err.code}`;
             msg = err.message;
@@ -264,8 +299,6 @@ module.exports = new Command({
       mainChannel: mainChannel,
       gameStart: server.config.quiz.gameStart || 0,
     };
-    // const game = new QuizGame(interaction.guildId,gameBody,empty || false)
-    // await game.save()
     const game = await createQzGame(hostId, gameBody);
     if (!empty) {
       game.players.push({
@@ -291,15 +324,18 @@ module.exports = new Command({
       await msg.edit({
         embeds: [embed],
         components:
-          game.gameStart &&
-          game.gameStart !== gameStartType.ADMIN &&
-          !game.mainChannel
+          (game.gameStart &&
+            game.gameStart !== gameStartType.ADMIN &&
+            !game.mainChannel) ||
+          game.mainChannel
             ? [row]
             : [],
         content: content,
       });
       await reply(interaction, {
-        content: "Game created :white_check_mark:",
+        content: `Game created ${
+          !game.mainChannel ? `in <#${game.channelId}>` : ""
+        } :white_check_mark:`,
       });
     } catch (err: any) {
       DiscordServers.deleteGame(hostId);
