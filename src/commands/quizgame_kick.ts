@@ -2,6 +2,7 @@ import { ApplicationCommandOptionType, EmbedBuilder } from "discord.js";
 import Command, { reply } from "../lib/Commands";
 import { QzGame } from "../lib/QuizGame";
 import { warning } from "../lib/cmd";
+import { games } from "..";
 
 module.exports = new Command({
   data: {
@@ -18,6 +19,7 @@ module.exports = new Command({
   },
   async execute(interaction) {
     const user = interaction.options.getUser("player");
+
     if (user.id === interaction.client.user.id) {
       await reply(interaction, {
         content: "nah i don't kick myself :)",

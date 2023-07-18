@@ -490,7 +490,7 @@ client.on("channelCreate", async (c) => {
           game.gameStart && game.gameStart !== gameStartType.ADMIN ? [row] : [],
         content: `@everyone new Quiz Game created by <@${
           creator.id
-        }> ${TimeTampNow()}`,
+        }> ${TimeTampNow(Date.now())}`,
       });
     } catch (err: any) {
       DiscordServers.deleteGame(hostId);
@@ -545,7 +545,7 @@ client.on("channelDelete", async (channel) => {
 
 client.on("ready", async (c) => {
   try {
-    // console.clear();
+    console.clear();
     const bDate = Date.now();
     let scan = require("../config.json").scanSlashCommands;
     if (scan) {
@@ -614,7 +614,7 @@ try {
   const server = require("./server.js");
   server();
 } catch (err: any) {
-  console.log(err);
+  warning(err.message);
   warning(
     "Express Server is offline !.\nif you are in production mode please set 'productionMode' in ./config.json to true."
   );

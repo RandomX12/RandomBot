@@ -309,7 +309,7 @@ module.exports = new Command({
     const embed = game.generateEmbed();
     const content = `@everyone new Quiz Game created by <@${
       interaction.user.id
-    }> ${TimeTampNow()}`;
+    }> ${TimeTampNow(Date.now())}`;
     const row: any = game.generateRow(server.config.quiz.gameStart);
     if (game.mainChannel) {
       row.addComponents(
