@@ -1,0 +1,34 @@
+{
+  "productionMode": false,
+  "scanSlashCommands": true,
+  "prefix": "/",
+  "bot": {
+    "loginAutomatically": true
+  },
+  "commands": {
+    "ping": true,
+    "create_spygame": false,
+    "leave_spygame": false,
+    "spygame_ask": false,
+    "spygame_answer": false,
+    "spygame_vote": false,
+    "spygame_remove_vote": false,
+    "spygame": false,
+    "create_quizgame": true,
+    "leave_quizgame": true,
+    "delete_quizgame": true,
+    "delete_all": true,
+    "help": true,
+    "games": true,
+    "start": true,
+    "kick": true
+  },
+  "quizGame": {
+    "emptyWhenCreateNewGame": true
+  },
+  "info": {
+    "website": "http://localhost:3000",
+    "commands": "http://localhost:3000/commands",
+    "server": "discord.gg/dza564d5a"
+  }
+}

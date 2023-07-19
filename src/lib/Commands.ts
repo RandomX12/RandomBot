@@ -9,8 +9,6 @@ import {
   MessagePayload,
   PermissionResolvable,
 } from "discord.js";
-import DiscordServers from "./DiscordServers";
-import Config from "./DiscordServersConfig";
 import discordServers, { Member } from "../model/discordServers";
 import { Bot } from "./Bot";
 import DiscordServersError from "./errors/DiscordServers";

@@ -63,7 +63,7 @@ module.exports = new Command({
         ephemeral: true,
       });
       if (!game.mainChannel) {
-        await announcement.channel.edit({ name: "Game Deleted" });
+        await announcement.channel.edit({ name: "Game Deleted 🔴" });
         setTimeout(async () => {
           try {
             await announcement.channel.delete();

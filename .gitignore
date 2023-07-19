@@ -2,4 +2,3 @@ node_modules
 .env
 *.txt
 dist
-config.json

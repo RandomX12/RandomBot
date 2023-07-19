@@ -29,10 +29,7 @@ import { decode } from "html-entities";
 import axios from "axios";
 import DiscordServers, { getServerByGuildId } from "./DiscordServers";
 
-export function getCategoryByNum<
-  T extends CategoriesNum | "any",
-  R extends typeof categories
->(num: T) {
+export function getCategoryByNum<T extends CategoriesNum | "any">(num: T) {
   if (num === "any") return "Random";
   let names: QuizCategory[] = Object.keys(categories) as QuizCategory[];
   let category: QuizCategory;

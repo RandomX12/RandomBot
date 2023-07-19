@@ -340,7 +340,11 @@ module.exports = new Command({
         new ButtonBuilder()
           .setCustomId(`join_quizgame_${hostId}`)
           .setLabel("Join")
-          .setStyle(3)
+          .setStyle(3),
+        new ButtonBuilder()
+          .setCustomId(`leave_quizgame_${hostId}`)
+          .setLabel("leave")
+          .setStyle(4)
       );
     }
     try {

@@ -36,9 +36,7 @@ module.exports = new ButtonCommand({
       content: "You left the game :white_check_mark:",
       ephemeral: true,
     });
-    const announcement = interaction.channel.messages.cache.get(
-      game.announcementId
-    );
+    const announcement = await QzGame.getAnnouncement(interaction, hostId);
     if (game.started) {
       if (game.players.length === 0) {
         DiscordServers.deleteGame(game.hostId);

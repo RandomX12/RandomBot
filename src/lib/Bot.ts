@@ -1,12 +1,11 @@
 import {
   ActivityOptions,
-  ApplicationCommandOptionType,
   CacheType,
   ChatInputCommandInteraction,
   Collection,
   GatewayIntentBits,
 } from "discord.js";
-import Discord, { ApplicationCommandDataResolvable } from "discord.js";
+import Discord from "discord.js";
 import { Member } from "../model/discordServers";
 import path from "path";
 import fs from "fs";

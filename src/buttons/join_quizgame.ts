@@ -10,6 +10,7 @@ import { QzGame } from "../lib/QuizGame";
 import { error, warning } from "../lib/cmd";
 import { gameStartType } from "../lib/DiscordServersConfig";
 import { ButtonCommand, reply } from "../lib/Commands";
+import { games } from "..";
 
 module.exports = new ButtonCommand({
   data: {
@@ -29,8 +30,19 @@ module.exports = new ButtonCommand({
       interaction.user.id
     );
     if (isIn) {
+      const game = await QzGame.getGameWithUserId(
+        interaction.guildId,
+        interaction.user.id
+      );
+      const row: any = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`leave_quizgame_${game.hostId}`)
+          .setLabel("leave")
+          .setStyle(4)
+      );
       await reply(interaction, {
         content: "You are already in a game :x:",
+        components: [row],
         ephemeral: true,
       });
       return;
