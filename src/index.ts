@@ -34,6 +34,7 @@ import {
   generateId,
   type QzGameInfo,
   QuizCategoryImg,
+  difficulty,
 } from "./lib/QuizGame";
 import { Bot } from "./lib/Bot";
 import listenToCmdRunTime from "./lib/consoleCmd";
@@ -387,7 +388,8 @@ client.on("channelCreate", async (c) => {
     const creator = AuditLogFetch.entries.first().executor;
     if (creator.id === client.user.id) return;
     const options = c.name.split("-");
-    if (options.length !== 3 && options.length !== 4) return;
+    if (options.length !== 3 && options.length !== 4 && options.length !== 5)
+      return;
     const cat = Object.keys(categories);
     let isValidCat = false;
     let category: QuizCategory;
@@ -404,16 +406,30 @@ client.on("channelCreate", async (c) => {
     const maxPl = +options[2];
     if (maxPl < maxPlayers[0] || maxPl > maxPlayers[1]) return;
     let time: number;
+    const times = [5, 10, 15, 30, 45];
+    let difficulty: difficulty;
+    const diffs: difficulty[] = ["easy", "medium", "hard"];
     if (options[3]) {
-      time = +options[3];
-      if (
-        time !== 5 &&
-        time !== 10 &&
-        time !== 15 &&
-        time !== 30 &&
-        time !== 45
-      )
-        return;
+      if (diffs.indexOf(options[3] as difficulty) === -1) {
+        if (+options[3]) {
+          if (times.indexOf(+options[3]) === -1) return;
+          time = +options[3];
+        }
+      } else {
+        difficulty = options[3] as difficulty;
+      }
+      if (options[4]) {
+        if (diffs.indexOf(options[4] as difficulty) === -1) {
+          if (time) return;
+          if (+options[4]) {
+            if (times.indexOf(+options[4]) === -1) return;
+            time = +options[4];
+          }
+        } else {
+          if (difficulty) return;
+          difficulty = options[4] as difficulty;
+        }
+      }
     }
     if (!time) {
       time = 30;
@@ -467,6 +483,7 @@ client.on("channelCreate", async (c) => {
       time: time || 30 * 1000,
       mainChannel: false,
       gameStart: server.config.quiz.gameStart || 0,
+      difficulty: difficulty,
     };
     try {
       await createQzGame(hostId, gameBody);

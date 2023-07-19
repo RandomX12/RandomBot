@@ -18,10 +18,10 @@ import {
   CategoriesNum,
   maxGames,
   QzGame,
-  QuizGameInfo,
   createQzGame,
   QzGameInfo,
   generateId,
+  difficulty,
 } from "../lib/QuizGame";
 import DiscordServers, {
   fetchServer,
@@ -94,6 +94,26 @@ let cmdBody: ApplicationCommandDataResolvable = {
         },
       ],
     },
+    {
+      name: "difficulty",
+      description: "Select Difficulty",
+      required: false,
+      type: ApplicationCommandOptionType.String,
+      choices: [
+        {
+          name: "Easy",
+          value: "easy",
+        },
+        {
+          name: "Medium",
+          value: "medium",
+        },
+        {
+          name: "Hard",
+          value: "hard",
+        },
+      ],
+    },
   ],
 };
 module.exports = new Command({
@@ -114,6 +134,9 @@ module.exports = new Command({
     const amount = interaction.options.getNumber("amount");
     const maxPlayers = interaction.options.getNumber("max_players");
     let time = interaction.options.getNumber("time");
+    let difficulty: difficulty = interaction.options.getString(
+      "difficulty"
+    ) as difficulty;
     const server = await fetchServer(interaction.guildId);
     const guidGames = games.select({ guildId: interaction.guildId });
     if (guidGames.length >= maxGames) {
@@ -298,6 +321,7 @@ module.exports = new Command({
       time: time || 30 * 1000,
       mainChannel: mainChannel,
       gameStart: server.config.quiz.gameStart || 0,
+      difficulty: difficulty,
     };
     const game = await createQzGame(hostId, gameBody);
     if (!empty) {

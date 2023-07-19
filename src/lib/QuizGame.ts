@@ -562,6 +562,10 @@ export class QzGame extends Game implements QuizGameType {
    */
   public round: Qs | null;
   /**
+   * Questions difficulty
+   */
+  public difficulty: difficulty;
+  /**
    * Get all game data without the methods
    */
   get cache() {
@@ -603,6 +607,7 @@ export class QzGame extends Game implements QuizGameType {
     this.time = game.time || this.time;
     this.mainChannel = game.mainChannel || this.mainChannel;
     this.gameStart = game.gameStart || 0;
+    this.difficulty = game.difficulty;
     return this;
   }
   /**
@@ -674,7 +679,9 @@ export class QzGame extends Game implements QuizGameType {
           this.amount
         }** \ntime : **${
           this.time / 1000 + " seconds" || "30 seconds"
-        }** \nMax players : **${this.maxPlayers}**`,
+        }** \nMax players : **${this.maxPlayers}**\nDifficulty : **${
+          this.difficulty ? this.difficulty : "Random"
+        }**`,
       })
       .setAuthor({
         name: `Waiting for players... ${this.players.length} / ${this.maxPlayers}`,
@@ -941,6 +948,8 @@ export class QzGame extends Game implements QuizGameType {
 export function generateId() {
   return Math.random().toString(16).slice(2);
 }
+
+export type difficulty = "easy" | "medium" | "hard";
 export interface QzGameInfo {
   guildId: string;
   hostName: string;
@@ -953,6 +962,7 @@ export interface QzGameInfo {
   time?: number;
   mainChannel?: boolean;
   gameStart?: TGameStart;
+  difficulty?: difficulty;
 }
 /**
  * fetch the quiz and save the game in the storage
@@ -966,7 +976,8 @@ export async function createQzGame(
 ): Promise<QzGame> {
   const check = games.get(id);
   if (check) throw new QzGameError("204", "exist game");
-  const quiz = (await new Quiz(qz.category, qz.amount).fetch()).quiz;
+  const quiz = (await new Quiz(qz.category, qz.amount, qz.difficulty).fetch())
+    .quiz;
   const qzGame: QuizGameType = {
     ...qz,
     players: [],
@@ -1015,7 +1026,11 @@ export class Quiz<CategoryT extends QuizCategory> implements QuizT {
     /**
      * Number of questions
      */
-    public amount: number
+    public amount: number,
+    /**
+     * Questions difficulty
+     */
+    public difficulty?: difficulty
   ) {}
   /**
    * Fetch the quiz from the API
@@ -1026,8 +1041,12 @@ export class Quiz<CategoryT extends QuizCategory> implements QuizT {
       if (this.categoryNum === "any") {
         catUrl = "";
       }
+      let difficulty: string = "";
+      if (this.difficulty) {
+        difficulty = `&difficulty=${this.difficulty}`;
+      }
       const req = await axios.get(
-        `https://opentdb.com/api.php?amount=${this.amount}&difficulty=easy${catUrl}`
+        `https://opentdb.com/api.php?amount=${this.amount}${difficulty}${catUrl}`
       );
       const res: APIresponse = req.data;
       this.quiz = res.results.map((e) => {
