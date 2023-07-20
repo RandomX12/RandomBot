@@ -1,3 +1,7 @@
+/**
+ * this file will be deleted in the stable version of random bot 1.0.0
+ */
+
 import { Schema } from "mongoose";
 import { Game, Member } from "./discordServers";
 
@@ -20,7 +24,6 @@ export interface SpyGame extends Game{
     end? : boolean
 }
 export const SpyGameSchema = new Schema<SpyGame>({
-    name :String,
                 hostId : String,
                 hostName : String,
                 index : {
