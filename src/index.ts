@@ -400,7 +400,8 @@ client.on("channelCreate", async (c) => {
       }
     });
     if (!isValidCat) return;
-    if (typeof +options[1] !== "number") return;
+    if (!+options[1]) return;
+    if (!+options[2]) return;
     const amount = +options[1];
     if (amount > amountQs[1] || amount < amountQs[0]) return;
     const maxPl = +options[2];
@@ -411,20 +412,18 @@ client.on("channelCreate", async (c) => {
     const diffs: difficulty[] = ["easy", "medium", "hard"];
     if (options[3]) {
       if (diffs.indexOf(options[3] as difficulty) === -1) {
-        if (+options[3]) {
-          if (times.indexOf(+options[3]) === -1) return;
-          time = +options[3];
-        }
+        if (!+options[3]) return;
+        if (times.indexOf(+options[3]) === -1) return;
+        time = +options[3];
       } else {
         difficulty = options[3] as difficulty;
       }
       if (options[4]) {
         if (diffs.indexOf(options[4] as difficulty) === -1) {
           if (time) return;
-          if (+options[4]) {
-            if (times.indexOf(+options[4]) === -1) return;
-            time = +options[4];
-          }
+          if (!+options[4]) return;
+          if (times.indexOf(+options[4]) === -1) return;
+          time = +options[4];
         } else {
           if (difficulty) return;
           difficulty = options[4] as difficulty;
