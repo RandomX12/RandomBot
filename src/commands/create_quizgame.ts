@@ -23,13 +23,10 @@ import {
   generateId,
   difficulty,
 } from "../lib/QuizGame";
-import DiscordServers, {
-  fetchServer,
-  getServerByGuildId,
-} from "../lib/DiscordServers";
+import DiscordServers, { fetchServer } from "../lib/DiscordServers";
 import { TimeTampNow, error, warning } from "../lib/cmd";
 import Command, { reply } from "../lib/Commands";
-import { RolesConfig, gameStartType } from "../lib/DiscordServersConfig";
+import { gameStartType } from "../lib/DiscordServersConfig";
 import { games } from "..";
 
 let choices = Object.keys(categories).map((e) => {
@@ -202,7 +199,12 @@ module.exports = new Command({
           },
           {
             id: interaction.client.user.id,
-            allow: ["ManageMessages", "SendMessages", "ManageChannels"],
+            allow: [
+              "ManageMessages",
+              "SendMessages",
+              "ManageChannels",
+              "ViewChannel",
+            ],
             deny: [],
           },
         ];
