@@ -4,7 +4,6 @@ import {
   CacheType,
   ChatInputCommandInteraction,
   EmbedBuilder,
-  GuildMember,
   PermissionResolvable,
 } from "discord.js";
 import { QzGame } from "../lib/QuizGame";
@@ -38,7 +37,7 @@ module.exports = new Command({
       })[0];
       if (!game) {
         await reply(interaction, {
-          content: `still`,
+          content: `Game not found :x:`,
           ephemeral: true,
         });
         return;

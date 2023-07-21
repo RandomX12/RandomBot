@@ -8,6 +8,8 @@ import {
   DiscordAPIError,
   EmbedBuilder,
   type GuildMember,
+  PermissionOverwrites,
+  OverwriteResolvable,
 } from "discord.js";
 import {
   TimeTampNow,
@@ -460,15 +462,37 @@ client.on("channelCreate", async (c) => {
     let msg = await channel.send({
       content: "creating Quiz Game...",
     });
-    const permissions = c.permissionOverwrites;
-    permissions.cache.map((e) => {
-      if (e.id === c.guild.roles.everyone.id) {
-        e.deny.add("SendMessages");
+    const permissions: OverwriteResolvable[] = c.permissionOverwrites.cache.map(
+      (e) => {
+        if (e.id === c.guild.roles.everyone.id) {
+          return {
+            id: e.id,
+            allow: e.allow.remove("SendMessages"),
+            deny: e.deny.add("SendMessages"),
+          };
+        }
+        return e;
       }
+    );
+    if (permissions.length === 0) {
+      permissions.push({
+        id: channel.guild.roles.everyone.id,
+        deny: ["SendMessages"],
+      });
+    }
+    permissions.push({
+      id: client.user.id,
+      allow: [
+        "ManageMessages",
+        "SendMessages",
+        "ManageChannels",
+        "ViewChannel",
+      ],
+      deny: [],
     });
     await c.edit({
       name: "waiting 🟡",
-      permissionOverwrites: permissions.cache,
+      permissionOverwrites: permissions,
     });
     const gameBody: QzGameInfo = {
       guildId: channel.guildId,
