@@ -624,6 +624,7 @@ export class QzGame extends Game implements QuizGameType {
   /**
    * Delete the game from the storage
    */
+  @deleteGameLog()
   delete(): void {
     games.delete(this.hostId);
   }
@@ -895,6 +896,7 @@ export class QzGame extends Game implements QuizGameType {
         }
       }
       await this.fetch();
+      this.delete();
       this.setPlayersScore();
       const endEmbed = new EmbedBuilder()
         .setTitle(`Quiz Game`)
@@ -913,7 +915,6 @@ export class QzGame extends Game implements QuizGameType {
         embeds: [endEmbed],
       });
 
-      this.delete();
       if (this.mainChannel) return;
       if (channel) {
         setTimeout(async () => {
@@ -937,7 +938,8 @@ export class QzGame extends Game implements QuizGameType {
         permissionOverwrites: [...permissions],
       });
     } catch (err: any) {
-      error(err.message);
+      this.delete();
+      error(`error when executing quiz game : ${err.message}`);
     }
   }
 }

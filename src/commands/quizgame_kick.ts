@@ -22,7 +22,7 @@ module.exports = new Command({
 
     if (user.id === interaction.client.user.id) {
       await reply(interaction, {
-        content: "nah i don't kick myself :)",
+        content: "nah i don't kick myself (👉ﾟヮﾟ)👉",
         ephemeral: true,
       });
       return;

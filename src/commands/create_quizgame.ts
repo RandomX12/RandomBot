@@ -253,20 +253,6 @@ module.exports = new Command({
           }
           mainChannel = false;
         }
-        const row: any = new ActionRowBuilder().addComponents(
-          new ButtonBuilder()
-            .setCustomId(`join_quizgame_${hostId}`)
-            .setLabel("join")
-            .setStyle(3),
-          new ButtonBuilder()
-            .setCustomId(`leave_quizgame_${hostId}`)
-            .setLabel("leave")
-            .setStyle(4)
-        );
-
-        await channel.send({
-          components: [row],
-        });
       } catch (err: any) {
         if (interaction.replied || interaction.deferred) {
           let errorCode = "";
@@ -305,6 +291,19 @@ module.exports = new Command({
     if (!time) {
       time = 30 * 1000;
     }
+    const joinLeaveBtns: any = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`join_quizgame_${hostId}`)
+        .setLabel("join")
+        .setStyle(3),
+      new ButtonBuilder()
+        .setCustomId(`leave_quizgame_${hostId}`)
+        .setLabel("leave")
+        .setStyle(4)
+    );
+    await channel.send({
+      components: [joinLeaveBtns],
+    });
     let msg = await channel.send({
       content: "creating Quiz Game...",
     });
@@ -337,29 +336,12 @@ module.exports = new Command({
       interaction.user.id
     }> ${TimeTampNow(Date.now())}`;
     const row: any = game.generateRow(server.config.quiz.gameStart);
-    if (game.mainChannel) {
-      row.addComponents(
-        new ButtonBuilder()
-          .setCustomId(`join_quizgame_${hostId}`)
-          .setLabel("Join")
-          .setStyle(3),
-        new ButtonBuilder()
-          .setCustomId(`leave_quizgame_${hostId}`)
-          .setLabel("leave")
-          .setStyle(4)
-      );
-    }
     try {
       if (!msg) throw new Error(`Cannot create the game`);
       await msg.edit({
         embeds: [embed],
         components:
-          (game.gameStart &&
-            game.gameStart !== gameStartType.ADMIN &&
-            !game.mainChannel) ||
-          game.mainChannel
-            ? [row]
-            : [],
+          game.gameStart && game.gameStart !== gameStartType.ADMIN ? [row] : [],
         content: content,
       });
       await reply(interaction, {
