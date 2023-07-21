@@ -21,7 +21,7 @@
     "figlet": "^1.6.0",
     "gradient-string": "^2.0.2",
     "html-entities": "^2.4.0",
-    "mongoose": "^7.0.4"
+    "mongoose": "^7.3.3"
   },
   "devDependencies": {
     "@types/chalk-animation": "^1.6.1",
