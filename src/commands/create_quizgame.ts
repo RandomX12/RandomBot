@@ -28,6 +28,7 @@ import { TimeTampNow, error, warning } from "../lib/cmd";
 import Command, { reply } from "../lib/Commands";
 import { gameStartType } from "../lib/DiscordServersConfig";
 import { games } from "..";
+import QzGameError from "../lib/errors/QuizGame";
 
 let choices = Object.keys(categories).map((e) => {
   return {
@@ -301,7 +302,7 @@ module.exports = new Command({
         .setLabel("leave")
         .setStyle(4)
     );
-    await channel.send({
+    let comp = await channel.send({
       components: [joinLeaveBtns],
     });
     let msg = await channel.send({
@@ -353,6 +354,11 @@ module.exports = new Command({
       DiscordServers.deleteGame(hostId);
       if (server.config.quiz.multiple_channels) {
         await channel.delete();
+      } else {
+        if (msg) {
+          await msg.delete();
+          await comp.delete();
+        }
       }
       if (interaction.replied || interaction.deferred) {
         await reply(interaction, {
@@ -363,7 +369,7 @@ module.exports = new Command({
           content: "cannot create the game :x:",
         });
       }
-      throw new Error(err?.message);
+      throw new QzGameError("501", err?.message);
     }
     setTimeout(async () => {
       try {
