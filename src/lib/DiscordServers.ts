@@ -11,7 +11,6 @@ import { error, warning } from "./cmd";
 import DiscordSv from "../model/discordServers";
 import { QzGame, deleteGameLog } from "./QuizGame";
 import { Bot } from "./Bot";
-import QzGameError from "./errors/QuizGame";
 import DiscordServersError from "./errors/DiscordServers";
 import { games } from "..";
 /**

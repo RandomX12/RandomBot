@@ -2,7 +2,6 @@ import { ApplicationCommandOptionType, EmbedBuilder } from "discord.js";
 import Command, { reply } from "../lib/Commands";
 import { QzGame } from "../lib/QuizGame";
 import { warning } from "../lib/cmd";
-import { games } from "..";
 
 module.exports = new Command({
   data: {

@@ -1,3 +1,4 @@
+import { DiscordAPIError } from "discord.js";
 import DiscordServersError, {
   DiscordServersErrorCode,
   ServersErrors,
@@ -29,6 +30,17 @@ describe("testing the handleError function", () => {
       );
       expect(handleError(error)).toBe(ServersErrors[code].message);
     }
+  });
+  it("test DiscordAPIErrors with handleError function", () => {
+    const error = new DiscordAPIError(
+      { message: "any", code: 50001 },
+      50001,
+      403,
+      "post",
+      "any",
+      {}
+    );
+    expect(handleError(error)).toBe("Missing Access");
   });
   it("test it with undefined error", () => {
     //@ts-ignore

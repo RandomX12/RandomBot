@@ -11,11 +11,6 @@ import path from "path";
 import fs from "fs";
 import Command, { ButtonCommand, CommandOptions } from "./Commands";
 
-type ScanCommandsOptions = {
-  sync?: boolean;
-  files?: string[];
-};
-
 export abstract class Bot {
   /**
    * Create a new slash Command
