@@ -10,6 +10,7 @@ import {
   type GuildMember,
   PermissionOverwrites,
   OverwriteResolvable,
+  Message,
 } from "discord.js";
 import {
   TimeTampNow,
@@ -47,6 +48,7 @@ import troubleshoot from "./lib/errors/troubleshoot";
 import { Storage } from "./storage/storage";
 import { QuizGame as QzGameT } from "./model/QuizGame";
 import { gameStartType } from "./lib/DiscordServersConfig";
+import QzGameError from "./lib/errors/QuizGame";
 listenToCmdRunTime();
 require("dotenv").config();
 declare module "discord.js" {
@@ -445,6 +447,7 @@ client.on("channelCreate", async (c) => {
       });
       return;
     }
+
     const server = await fetchServer(channel.guildId);
     const jlAction: any = new ActionRowBuilder().setComponents(
       new ButtonBuilder()
@@ -456,12 +459,31 @@ client.on("channelCreate", async (c) => {
         .setCustomId("leave_quizgame_" + hostId)
         .setStyle(4)
     );
-    await c.send({
-      components: [jlAction],
-    });
-    let msg = await channel.send({
-      content: "creating Quiz Game...",
-    });
+    let msg: Message;
+    let btns: Message;
+
+    try {
+      btns = await c.send({
+        components: [jlAction],
+      });
+      msg = await channel.send({
+        content: "creating Quiz Game...",
+      });
+    } catch (err) {
+      if (msg) {
+        await msg.delete();
+      }
+      if (btns) {
+        await btns.delete();
+      }
+      const embed = new EmbedBuilder()
+        .setTitle("cannot send game's announcement :x:")
+        .setColor("Red");
+      await channel.send({
+        embeds: [embed],
+      });
+      throw new QzGameError("501", "cannot send join leave buttons");
+    }
     const permissions: OverwriteResolvable[] = c.permissionOverwrites.cache.map(
       (e) => {
         if (e.id === c.guild.roles.everyone.id) {
@@ -508,13 +530,13 @@ client.on("channelCreate", async (c) => {
       gameStart: server.config.quiz.gameStart || 0,
       difficulty: difficulty,
     };
+
     try {
       await createQzGame(hostId, gameBody);
     } catch (err: any) {
       await msg.delete();
       msg = null;
       DiscordServers.deleteGame(hostId);
-      await c.delete();
       throw new Error(err?.message);
     }
     const game = await QzGame.getGame(hostId);
@@ -534,7 +556,6 @@ client.on("channelCreate", async (c) => {
       });
     } catch (err: any) {
       DiscordServers.deleteGame(hostId);
-      await c.delete();
       throw new Error(err?.message);
     }
     setTimeout(async () => {
@@ -542,7 +563,8 @@ client.on("channelCreate", async (c) => {
         const game = await QzGame.getGame(hostId);
         if (game.started) return;
         DiscordServers.deleteGame(hostId);
-        const announcement = channel.messages.cache.get(game.announcementId);
+        let ch = await channel.fetch();
+        const announcement = ch.messages.cache.get(game.announcementId);
         if (announcement) {
           const embed = new EmbedBuilder()
             .setAuthor({ name: "Quiz Game" })
@@ -556,12 +578,41 @@ client.on("channelCreate", async (c) => {
         await new Promise((res, rej) => {
           setTimeout(res, 5 * 1000);
         });
-        await channel.delete();
+        await ch.delete();
       } catch (err: any) {
         warning(err.message);
       }
     }, 1000 * 60 * 5);
   } catch (err: any) {
+    const game = games.select({
+      guildId: c.guildId,
+      channelId: c.id,
+      mainChannel: false,
+    })[0];
+    if (game) {
+      games.delete(game.hostId);
+    }
+    try {
+      if (c.type === ChannelType.GuildText) {
+        c.messages.cache.map(async (e) => {
+          if (e.author.id === client.user.id) {
+            try {
+              await e.delete();
+            } catch (err) {
+              warning(`unable to delete message`);
+            }
+          }
+        });
+        const errorEmbed = new EmbedBuilder()
+          .setColor("Red")
+          .setTitle(`unable to create custom quiz game`);
+        await c.send({
+          embeds: [errorEmbed],
+        });
+      }
+    } catch (error) {
+      warning(error.message);
+    }
     warning(err.message);
   }
 });
