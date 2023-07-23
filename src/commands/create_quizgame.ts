@@ -25,7 +25,7 @@ import {
 } from "../lib/QuizGame";
 import DiscordServers, { fetchServer } from "../lib/DiscordServers";
 import { TimeTampNow, error, warning } from "../lib/cmd";
-import Command, { reply } from "../lib/Commands";
+import Command, { reply, replyError } from "../lib/Commands";
 import { gameStartType } from "../lib/DiscordServersConfig";
 import { games } from "..";
 import QzGameError from "../lib/errors/QuizGame";
@@ -122,9 +122,7 @@ module.exports = new Command({
       interaction.user.id
     );
     if (isIn) {
-      await reply(interaction, {
-        content: `You are already in game :x:`,
-      });
+      await replyError(interaction, `You are already in game`);
       return;
     }
     let mainChannel = true;
@@ -138,9 +136,10 @@ module.exports = new Command({
     const server = await fetchServer(interaction.guildId);
     const guidGames = games.select({ guildId: interaction.guildId });
     if (guidGames.length >= maxGames) {
-      await reply(interaction, {
-        content: `Cannot create the game :x:\nThis server has reached the maximum number of games ${maxGames}.`,
-      });
+      await replyError(
+        interaction,
+        `Cannot create the game, \nThis server has reached the maximum number of games ${maxGames}.`
+      );
       return;
     }
     if (
@@ -162,9 +161,10 @@ module.exports = new Command({
         }
       });
       if (maxGames === 0) {
-        await reply(interaction, {
-          content: `Sorry but you are not allowed to create quiz game in this server.\ncontact server administrators for permission to create quiz games`,
-        });
+        await replyError(
+          interaction,
+          `Sorry but you are not allowed to create quiz game in this server.\ncontact server administrators for permission to create quiz games`
+        );
         return;
       }
       if (maxPlayers) {
@@ -173,12 +173,12 @@ module.exports = new Command({
           hostUserId: interaction.user.id,
         });
         if (Qzgames.length >= maxGames) {
-          await reply(interaction, {
-            content: `Sorry, you can't create a quiz game. You have only the right to create ${maxGames} game${
+          await replyError(
+            interaction,
+            `Sorry, you can't create a quiz game. You have only the right to create ${maxGames} game${
               maxGames >= 2 ? "s" : ""
-            } in this server`,
-            ephemeral: true,
-          });
+            } in this server`
+          );
           return;
         }
       }
@@ -246,10 +246,7 @@ module.exports = new Command({
               permissionOverwrites: permissions,
             });
           } else {
-            await reply(interaction, {
-              content: "Cannot create category :x:",
-              ephemeral: true,
-            });
+            await replyError(interaction, "Cannot create category");
             return;
           }
           mainChannel = false;
@@ -266,11 +263,11 @@ module.exports = new Command({
             errorCode = `DiscordAPIError_${err.code}`;
             msg = err.message;
           }
-          await reply(interaction, {
-            content:
-              "An error occurred while creating the channel :x:\n This may be from bad configurations, please check your configuration and make sure everything is OK.\n" +
-              (errorCode ? `error code :${errorCode}\nmessage : ${msg}` : ""),
-          });
+          await replyError(
+            interaction,
+            "An error occurred while creating the channel,\n This may be from bad configurations, please check your configuration and make sure everything is OK.\n" +
+              (errorCode ? `error code :${errorCode}\nmessage : ${msg}` : "")
+          );
         }
         warning(err.message);
         return;
@@ -360,15 +357,7 @@ module.exports = new Command({
           await comp.delete();
         }
       }
-      if (interaction.replied || interaction.deferred) {
-        await reply(interaction, {
-          content: "Cannot create the game :x:",
-        });
-      } else {
-        await reply(interaction, {
-          content: "cannot create the game :x:",
-        });
-      }
+      await replyError(interaction, "Cannot create the game");
       throw new QzGameError("501", err?.message);
     }
     setTimeout(async () => {

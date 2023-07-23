@@ -9,7 +9,7 @@ import {
 import { QzGame } from "../lib/QuizGame";
 import DiscordServers from "../lib/DiscordServers";
 import { warning } from "../lib/cmd";
-import Command, { reply } from "../lib/Commands";
+import Command, { reply, replyError } from "../lib/Commands";
 import { games } from "..";
 
 const cmdBody: ApplicationCommandDataResolvable = {
@@ -36,10 +36,7 @@ module.exports = new Command({
         mainChannel: false,
       })[0];
       if (!game) {
-        await reply(interaction, {
-          content: `Game not found :x:`,
-          ephemeral: true,
-        });
+        await replyError(interaction, `Game not found`);
         return;
       }
       hostId = game.hostId;

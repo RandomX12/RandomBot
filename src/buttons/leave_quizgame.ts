@@ -2,7 +2,7 @@ import { ButtonInteraction, CacheType, EmbedBuilder } from "discord.js";
 import DiscordServers, { getServerByGuildId } from "../lib/DiscordServers";
 import { QzGame } from "../lib/QuizGame";
 import { warning } from "../lib/cmd";
-import { ButtonCommand, reply } from "../lib/Commands";
+import { ButtonCommand, reply, replyError } from "../lib/Commands";
 
 module.exports = new ButtonCommand({
   data: {
@@ -14,19 +14,13 @@ module.exports = new ButtonCommand({
       !interaction.customId ||
       !interaction.customId.startsWith("leave_quizgame")
     ) {
-      await reply(interaction, {
-        content: "Invalid request :x:",
-        ephemeral: true,
-      });
+      await replyError(interaction, "Invalid request");
       return;
     }
     const hostId = interaction.customId.split("_")[2];
     const isIn = await QzGame.isIn(hostId, interaction.user.id);
     if (!isIn) {
-      await reply(interaction, {
-        content: "You are not in this quiz game :x:",
-        ephemeral: true,
-      });
+      await replyError(interaction, "You are not in this quiz game");
       return;
     }
     const game = await QzGame.getGame(hostId);
