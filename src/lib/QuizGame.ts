@@ -28,6 +28,7 @@ import { games } from "..";
 import { decode } from "html-entities";
 import axios from "axios";
 import DiscordServers, { getServerByGuildId } from "./DiscordServers";
+import { Bot } from "./Bot";
 
 export function getCategoryByNum<T extends CategoriesNum | "any">(num: T) {
   if (num === "any") return "Random";
@@ -666,6 +667,12 @@ export class QzGame extends Game implements QuizGameType {
    * Generate a discord Embed For this game
    */
   generateEmbed(): EmbedBuilder {
+    let commandId: string;
+    Bot.client.application.commands.cache.map((e) => {
+      if (e.name === "start") {
+        commandId = e.id;
+      }
+    });
     const embed = new EmbedBuilder()
       .setTitle(`Quiz Game`)
       .setThumbnail(
@@ -679,7 +686,15 @@ export class QzGame extends Game implements QuizGameType {
           this.time / 1000 + " seconds" || "30 seconds"
         }** \nMax players : **${this.maxPlayers}**\nDifficulty : **${
           this.difficulty ? this.difficulty : "Random"
-        }**`,
+        }**\n\n${
+          this.gameStart === 0
+            ? "Start when the game gets full"
+            : this.gameStart === 1
+            ? "Start when everyone is ready"
+            : this.gameStart === 2
+            ? "Start once everyone is ready and the game is full"
+            : `Waiting until someone starts with </start:${commandId}>`
+        }`,
       })
       .setAuthor({
         name: `Waiting for players... ${this.players.length} / ${this.maxPlayers}`,
