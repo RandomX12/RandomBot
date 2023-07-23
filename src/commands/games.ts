@@ -5,7 +5,6 @@ import {
 } from "discord.js";
 import { QuizCategoryImg, QzGame } from "../lib/QuizGame";
 import Command, { reply } from "../lib/Commands";
-// still under dev
 module.exports = new Command({
   data: {
     name: "games",
@@ -15,7 +14,12 @@ module.exports = new Command({
     const games = QzGame.getServerGames(interaction.guildId);
     let v = "";
     games.map((e) => {
-      v += e.hostName + " | id : " + e.hostId + ` <#${e.channelId}>` + "\n";
+      v +=
+        e.hostName +
+        " | id : " +
+        e.hostId +
+        ` https://discord.com/channels/${interaction.guildId}/${e.channelId}/${e.announcementId}` +
+        "\n";
     });
     if (!v) {
       v = "There is no game right now";
