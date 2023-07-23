@@ -5,7 +5,6 @@ import {
 } from "discord.js";
 import { QuizCategoryImg, QzGame } from "../lib/QuizGame";
 import Command, { reply } from "../lib/Commands";
-// still under dev
 module.exports = new Command({
   data: {
     name: "games",
