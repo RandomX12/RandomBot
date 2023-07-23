@@ -63,9 +63,7 @@ export abstract class Bot {
       const filePath = path.join(commandPath, file);
       const command = require(filePath);
       if ("data" in command && "execute" in command) {
-        this.client.commands.set(command.data.name, command as Command);
-        this.cmds.set(command.data.name, new Map<string, Member>());
-        this.client.application?.commands?.create(command.data);
+        await (command as Command).save();
       } else {
         console.log(
           "\x1b[33m",

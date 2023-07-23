@@ -641,7 +641,7 @@ client.on("ready", async (c) => {
     let scan = require("../config.json").scanSlashCommands;
     if (scan) {
       let ws = animateRotatingSlash("Scanning commands...");
-      Bot.scanCommands();
+      await Bot.scanCommands();
       clearInterval(ws);
       console.log("\ncommands scanned successfully");
     }
