@@ -3,7 +3,9 @@ import {
   ButtonInteraction,
   CacheType,
   ChatInputCommandInteraction,
+  EmbedBuilder,
   GuildMember,
+  Interaction,
   InteractionEditReplyOptions,
   InteractionReplyOptions,
   MessagePayload,
@@ -32,6 +34,24 @@ export async function reply(
   } else {
     await interaction.reply(options);
   }
+}
+/**
+ * Reply with embedded message error
+ * @param interaction the request
+ * @param content error message
+ */
+export async function replyError(
+  interaction: ChatInputCommandInteraction | ButtonInteraction<CacheType>,
+  content: string,
+  components?: any[]
+) {
+  const embed = new EmbedBuilder().setDescription(content).setColor("Red");
+  await reply(interaction, {
+    embeds: [embed],
+    content: "",
+    components: components || [],
+    ephemeral: true,
+  });
 }
 
 export async function verify(
@@ -67,10 +87,10 @@ export async function verify(
   for (let i = 0; i < server.config?.commands?.length; i++) {
     if (server.config.commands[i].name === interaction.commandName) {
       if (!server.config.commands[i].enable) {
-        await reply(interaction, {
-          content: ":x: This command is disabled in this server",
-          ephemeral: true,
-        });
+        await replyError(
+          interaction,
+          "This command is disabled in this server"
+        );
         return false;
       }
       if (interaction.guild.ownerId === interaction.user.id) {
@@ -79,10 +99,7 @@ export async function verify(
       if (
         server.config.commands[i].bannedUsers.indexOf(interaction.user.id) > -1
       ) {
-        await reply(interaction, {
-          content: "You are banned from using this command :x:",
-          ephemeral: true,
-        });
+        await replyError(interaction, "You are banned from using this command");
         return false;
       }
       if (server.config.commands[i].permissions.length === 0) {
@@ -115,10 +132,10 @@ export async function verify(
         }
       }
 
-      await reply(interaction, {
-        content: "You don't have the permission to this command :x:",
-        ephemeral: true,
-      });
+      await replyError(
+        interaction,
+        "You don't have the permission to this command "
+      );
       return false;
     }
   }

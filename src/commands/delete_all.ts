@@ -11,7 +11,7 @@ import {
   TextInputBuilder,
 } from "discord.js";
 import { getServerByGuildId } from "../lib/DiscordServers";
-import Command, { reply } from "../lib/Commands";
+import Command, { reply, replyError } from "../lib/Commands";
 import { error } from "../lib/cmd";
 import handleError from "../lib/errors/handler";
 import { QzGame } from "../lib/QuizGame";
@@ -27,10 +27,7 @@ module.exports = new Command({
     if (!interaction.isChatInputCommand()) return;
     const games = QzGame.getServerGames(interaction.guildId);
     if (!games || games.length === 0) {
-      await reply(interaction, {
-        content: "There is no game in this server",
-        ephemeral: true,
-      });
+      await replyError(interaction, "There is no game in this server");
       return;
     }
     const modal = new ModalBuilder()
@@ -95,10 +92,7 @@ module.exports = new Command({
       return;
     } catch (err: any) {
       error(err.message);
-      await reply(interaction, {
-        content: handleError(err) + " :x:",
-        ephemeral: true,
-      });
+      await replyError(interaction, handleError(err));
     }
   },
   permissions: permissions,

@@ -9,8 +9,7 @@ import DiscordServers from "../lib/DiscordServers";
 import { QzGame } from "../lib/QuizGame";
 import { error, warning } from "../lib/cmd";
 import { gameStartType } from "../lib/DiscordServersConfig";
-import { ButtonCommand, reply } from "../lib/Commands";
-import { games } from "..";
+import { ButtonCommand, reply, replyError } from "../lib/Commands";
 
 module.exports = new ButtonCommand({
   data: {
@@ -19,10 +18,7 @@ module.exports = new ButtonCommand({
   },
   async execute(interaction: ButtonInteraction<CacheType>) {
     if (!interaction.customId || !interaction.customId.startsWith("join")) {
-      await reply(interaction, {
-        content: "Invalid request :x:",
-        ephemeral: true,
-      });
+      await replyError(interaction, "Invalid request");
       return;
     }
     const isIn = DiscordServers.isInGame(
@@ -40,21 +36,14 @@ module.exports = new ButtonCommand({
           .setLabel("leave")
           .setStyle(4)
       );
-      await reply(interaction, {
-        content: "You are already in a game :x:",
-        components: [row],
-        ephemeral: true,
-      });
+      await replyError(interaction, "You are already in a game", [row]);
       return;
     }
     const hostId = interaction.customId.split("_")[2];
     const isFull = await DiscordServers.isGameFull(hostId);
 
     if (isFull) {
-      await reply(interaction, {
-        content: "This Game is full :x:",
-        ephemeral: true,
-      });
+      await replyError(interaction, "This Game is full");
       return;
     }
     const game = await QzGame.getGame(hostId);

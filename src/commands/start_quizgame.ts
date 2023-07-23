@@ -1,5 +1,5 @@
 import { ApplicationCommandOptionType, EmbedBuilder } from "discord.js";
-import Command, { reply } from "../lib/Commands";
+import Command, { reply, replyError } from "../lib/Commands";
 import { QzGame } from "../lib/QuizGame";
 import { games } from "..";
 
@@ -25,25 +25,21 @@ module.exports = new Command({
         mainChannel: false,
       })[0];
       if (!game) {
-        await reply(interaction, {
-          content: "no game in this channel",
-          ephemeral: true,
-        });
+        await replyError(interaction, "no game in this channel");
         return;
       }
       hostId = game.hostId;
     }
     const game = await QzGame.getGame(hostId);
     if (game.players.length === 0) {
-      await reply(interaction, {
-        content: ":x: cannot start the game : the game is empty",
-      });
+      await replyError(
+        interaction,
+        "cannot start the game : the game is empty"
+      );
       return;
     }
     if (game.started) {
-      await reply(interaction, {
-        content: ":x: The game is already started",
-      });
+      await replyError(interaction, "The game is already started");
       return;
     }
     const announcement = await QzGame.getAnnouncement(interaction, hostId);

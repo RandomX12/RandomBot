@@ -25,7 +25,12 @@ import DiscordServers, {
   getServerByGuildId,
 } from "./lib/DiscordServers";
 import { Member } from "./model/discordServers";
-import Command, { ButtonCommand, reply, verify } from "./lib/Commands";
+import Command, {
+  ButtonCommand,
+  reply,
+  replyError,
+  verify,
+} from "./lib/Commands";
 import {
   type QuizCategory,
   categories,
@@ -150,10 +155,7 @@ client.on("interactionCreate", async (interaction) => {
           await troubleshoot(err, interaction, command);
           await command.execute(interaction);
         } catch (error) {
-          await reply(interaction, {
-            content: handleError(error) + " :x:",
-            ephemeral: true,
-          });
+          await replyError(interaction, handleError(error));
           warning(error.message);
         }
 
@@ -202,10 +204,7 @@ client.on("interactionCreate", async (interaction) => {
               await troubleshoot(err, interaction, command);
               await command.execute(interaction);
             } catch (error) {
-              await reply(interaction, {
-                content: handleError(error) + " :x:",
-                ephemeral: true,
-              });
+              await replyError(interaction, handleError(error));
               warning(error.message);
             }
 

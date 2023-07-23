@@ -6,7 +6,7 @@ import {
 import DiscordServers from "../lib/DiscordServers";
 import { QzGame } from "../lib/QuizGame";
 import { warning } from "../lib/cmd";
-import Command, { reply } from "../lib/Commands";
+import Command, { reply, replyError } from "../lib/Commands";
 
 module.exports = new Command({
   data: {
@@ -14,15 +14,12 @@ module.exports = new Command({
     description: "Leave Quiz Game",
   },
   async execute(interaction: ChatInputCommandInteraction<CacheType>) {
-    const isIn = await DiscordServers.isInGame(
+    const isIn = DiscordServers.isInGame(
       interaction.guildId,
       interaction.user.id
     );
     if (!isIn) {
-      await reply(interaction, {
-        content: "You are not in a game :x:",
-        ephemeral: true,
-      });
+      await replyError(interaction, "You are not in a game");
       return;
     }
     // still under dev :)
