@@ -9,6 +9,8 @@ import DiscordServers from "./DiscordServers";
 import { QzGame } from "./QuizGame";
 import Ping from "./Ping";
 import { games } from "..";
+import mongoose from "mongoose";
+import { connectDB } from "./connectDB";
 type CommandType = "SYNC" | "ASYNC";
 
 type ArgType = "str" | "int" | "float" | "bol" | "txt" | "arr";
@@ -234,18 +236,18 @@ export default function listenToCmdRunTime() {
             let wt = animateRotatingSlash(e.loadingTxt);
             try {
               await e.fn(argsBody);
+              counter.end();
+              process.stdout.write(
+                "\r" +
+                  `\x1b[32m ${
+                    e.finishTxt + `\t${counter.ping}ms` ||
+                    "" + `\t${counter.ping}ms`
+                  } \x1b[37m\n`
+              );
             } catch (err) {
               error(err.message);
             }
             clearInterval(wt);
-            counter.end();
-            process.stdout.write(
-              "\r" +
-                `\x1b[32m ${
-                  e.finishTxt + `\t${counter.ping}ms` ||
-                  "" + `\t${counter.ping}ms`
-                } \x1b[37m\n`
-            );
           }
         }
       });
@@ -539,4 +541,18 @@ addRuntimeCMD({
     });
     console.table(table);
   },
+});
+
+addRuntimeCMD({
+  input: "connectDB [:url]?:txt",
+  async fn(args) {
+    if (args[0]?.value) {
+      await mongoose.connect(args[0].value as string);
+      return;
+    }
+    await connectDB();
+  },
+  type: "ASYNC",
+  loadingTxt: "connecting to the DB...",
+  finishTxt: "connected to the DB",
 });
