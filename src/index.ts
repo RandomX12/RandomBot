@@ -643,6 +643,8 @@ client.on("ready", async (c) => {
       await Bot.scanCommands();
       clearInterval(ws);
       console.log("\ncommands scanned successfully");
+    } else {
+      Bot.scanCommands();
     }
     Bot.scanButtons();
     scan = null;
