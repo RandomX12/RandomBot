@@ -1,9 +1,9 @@
 {
   "productionMode": false,
-  "scanSlashCommands": true,
+  "scanSlashCommands": false,
   "prefix": "/",
   "bot": {
-    "loginAutomatically": true
+    "loginAutomatically": false
   },
   "commands": {
     "ping": true,

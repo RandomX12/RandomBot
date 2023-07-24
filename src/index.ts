@@ -390,6 +390,8 @@ client.on("channelCreate", async (c) => {
     if (!AuditLogFetch.entries.first()) return;
     const creator = AuditLogFetch.entries.first().executor;
     if (creator.id === client.user.id) return;
+    const server = await fetchServer(c.guildId);
+    if (!server.config?.quiz.customGames) return;
     const options = c.name.split("-");
     if (options.length !== 3 && options.length !== 4 && options.length !== 5)
       return;
@@ -447,7 +449,6 @@ client.on("channelCreate", async (c) => {
       return;
     }
 
-    const server = await fetchServer(channel.guildId);
     const jlAction: any = new ActionRowBuilder().setComponents(
       new ButtonBuilder()
         .setLabel("join")

@@ -29,6 +29,7 @@ export type RolesConfig = {
 
 type QzConfigs<MultipleChannels extends boolean> = {
   multiple_channels: MultipleChannels;
+  customGames?: boolean;
   channels_category: string;
   private: boolean;
   viewChannel: string[];
