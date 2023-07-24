@@ -50,6 +50,11 @@ const discordServer = new Schema<DiscordServer>({
       quiz: {
         type: {
           multiple_channels: Boolean,
+          customGames: {
+            required: false,
+            type: Boolean,
+            default: false,
+          },
           channels_category: {
             required: false,
             type: String,
