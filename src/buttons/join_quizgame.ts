@@ -60,10 +60,7 @@ module.exports = new ButtonCommand({
       await announcement.edit({
         embeds: [embed],
       });
-      await reply(interaction, {
-        content: "You joined the game :white_check_mark:",
-        ephemeral: true,
-      });
+      await reply(interaction);
     } else {
       const channel = await QzGame.getChannel(interaction, hostId);
       DiscordServers.deleteGame(hostId);
@@ -138,4 +135,5 @@ module.exports = new ButtonCommand({
     }
   },
   ephemeral: true,
+  deferReply: true,
 });
