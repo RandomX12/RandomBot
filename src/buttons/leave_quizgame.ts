@@ -26,10 +26,7 @@ module.exports = new ButtonCommand({
     const game = await QzGame.getGame(hostId);
     game.removePlayer(interaction.user.id);
     await game.update();
-    await reply(interaction, {
-      content: "You left the game :white_check_mark:",
-      ephemeral: true,
-    });
+    await reply(interaction);
     const announcement = await QzGame.getAnnouncement(interaction, hostId);
     if (game.started) {
       if (game.players.length === 0) {

@@ -23,15 +23,23 @@ import DiscordServersError from "./errors/DiscordServers";
  */
 export async function reply(
   interaction: ChatInputCommandInteraction | ButtonInteraction<CacheType>,
-  options:
+  options?:
     | string
     | MessagePayload
     | InteractionEditReplyOptions
     | InteractionReplyOptions
 ) {
   if (interaction.deferred || interaction.replied) {
+    if (!options) {
+      await interaction.deleteReply();
+      return;
+    }
     await interaction.editReply(options);
   } else {
+    if (!options) {
+      await interaction.deferReply({ ephemeral: true });
+      await interaction.deleteReply();
+    }
     await interaction.reply(options);
   }
 }
