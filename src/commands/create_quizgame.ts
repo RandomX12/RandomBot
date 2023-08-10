@@ -186,15 +186,15 @@ module.exports = new Command({
 
     const hostId = generateId();
     let channel: TextChannel | GuildTextBasedChannel;
-    if (server.config.quiz?.multiple_channels) {
+    if (server.config.quiz?.multiple_channels.enable) {
       try {
         const category = interaction.guild.channels.cache.get(
-          server.config.quiz?.channels_category
+          server.config.quiz?.multiple_channels.category_id
         );
         let permissions: OverwriteResolvable[] = [
           {
             id: interaction.guild.roles.everyone.id,
-            deny: server.config.quiz.private
+            deny: server.config.quiz.multiple_channels.private.enable
               ? ["SendMessages", "ViewChannel"]
               : ["SendMessages"],
           },
@@ -210,13 +210,15 @@ module.exports = new Command({
           },
         ];
         if (
-          server.config.quiz.viewChannel.length !== 0 &&
-          server.config.quiz.private
+          server.config.quiz.multiple_channels.private?.viewChannel.length !==
+            0 &&
+          server.config.quiz.multiple_channels.private?.enable
         ) {
-          server.config.quiz.viewChannel.map((e) => {
+          server.config.quiz.multiple_channels.private.viewChannel.map((e) => {
             permissions.push({
               id: e,
               deny: ["SendMessages"],
+              allow: ["ViewChannel"],
             });
           });
         }
@@ -232,11 +234,15 @@ module.exports = new Command({
         } else {
           const cat =
             await interaction.guild.channels.create<ChannelType.GuildCategory>({
-              name: server.config.quiz.category_name || "Quiz Game",
+              name:
+                server.config.quiz.multiple_channels.category_name ||
+                "Quiz Games",
               type: ChannelType.GuildCategory,
               permissionOverwrites: permissions,
             });
-          server.config.quiz.channels_category = cat.id;
+          server.config.quiz.multiple_channels.category_id = cat.id;
+          server.config.quiz.multiple_channels.category_name =
+            server.config.quiz.multiple_channels.category_name || "Quiz Games";
           await server.update();
           if (cat) {
             channel = await interaction.guild.channels.create({
@@ -349,7 +355,7 @@ module.exports = new Command({
       });
     } catch (err: any) {
       DiscordServers.deleteGame(hostId);
-      if (server.config.quiz.multiple_channels) {
+      if (server.config.quiz.multiple_channels.enable) {
         await channel.delete();
       } else {
         if (msg) {
@@ -376,7 +382,7 @@ module.exports = new Command({
             content: "",
           });
         }
-        if (server.config.quiz.multiple_channels) {
+        if (server.config.quiz.multiple_channels.enable) {
           await channel.delete();
         }
       } catch (err: any) {

@@ -111,7 +111,7 @@ export const QuizCategoryImg: Record<QuizCategory, string> = {
   VideoGames: "https://cdn-icons-png.flaticon.com/512/3408/3408506.png",
   Sports: "https://cdn-icons-png.flaticon.com/512/857/857455.png",
   History:
-    "https://cdn.imgbin.com/0/14/17/ancient-scroll-icon-history-icon-scroll-icon-gHvzqatT.jpg",
+    "https://i.pinimg.com/originals/06/d2/cf/06d2cfa5cd7f8fbe8e94ef5d75496a75.png",
   Geography: "https://cdn-icons-png.flaticon.com/256/1651/1651598.png",
   Mathematics: "https://cdn-icons-png.flaticon.com/512/4954/4954397.png",
   Computers: "https://cdn-icons-png.flaticon.com/512/4703/4703650.png",
@@ -170,210 +170,6 @@ export function deleteGameLog() {
 export const amount = [3, 10];
 export const maxPlayers = [2, 20];
 export const maxGames = 15;
-export default class QuizGame {
-  static async join(guildId: string, hostId: string, user: User) {
-    warning(`this function will be deleted in the 1.0.0 stable version`);
-    const server = await getServerByGuildId(guildId);
-    let gameFound = false;
-    for (let i = 0; i < server.games.length; i++) {
-      if (server.games[i].hostId === hostId) {
-        gameFound = true;
-        const isIn = await DiscordServers.isInGame(guildId, user.id);
-        if (isIn)
-          throw new QzGameError(
-            "202",
-            `User id="${user.id} is already in the game"`
-          );
-        server.games[i].players.push({ username: user.tag, id: user.id });
-        await server.save();
-        break;
-      }
-    }
-    if (!gameFound)
-      throw new QzGameError("404", `Cannot join the game : Game not found`);
-  }
-  static async leave(guildId: string, hostId: string, userId: string) {
-    warning(`this function will be deleted in the 1.0.0 stable version`);
-    const server = await getServerByGuildId(guildId);
-    let isGame = false;
-    let isIn = false;
-    server.games.map((e, i) => {
-      if (e.hostId === hostId) {
-        isGame = true;
-        e.players.map((ele, j) => {
-          if (ele.id === userId) {
-            isIn = true;
-            server.games[i].players.splice(j, 1);
-          }
-        });
-      }
-    });
-    if (!isGame) throw new QzGameError("404", `Game not found`);
-    if (!isIn)
-      throw new QzGameError(
-        "201",
-        `User with id=${userId} is not in the game with id=${hostId}`
-      );
-    await server.save();
-  }
-  /**
-   * This function will no longer be supported in the futur versions of RandomBot
-   */
-  static async getGameWithHostId(guildId: string, hostId: string) {
-    warning(`this function will be deleted in the 1.0.0 stable version`);
-    const game = new QzGame(hostId);
-    await game.fetch();
-    return game;
-  }
-  static async isIn(hostId: string, userId: string): Promise<boolean> {
-    const game = await QzGame.getGame(hostId);
-
-    for (let i = 0; i < game.players.length; i++) {
-      if (game.players[i].id === userId) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-  static async setAns(
-    hostId: string,
-    userId: string,
-    ans: answer,
-    index: number
-  ) {
-    const game = await QzGame.getGame(hostId);
-    let isUser: boolean = false;
-    for (let i = 0; i < game.players.length; i++) {
-      if (game.players[i].id === userId) {
-        isUser = true;
-        if (!game.players[i].answers) {
-          game.players[i].answers = [
-            {
-              index: index,
-              answer: ans,
-            },
-          ];
-        } else {
-          for (let j = 0; j < game.players[i].answers.length; j++) {
-            if (game.players[i].answers[j].index === index) {
-              game.players[i].answers[j].answer = ans;
-              await game.update();
-              return;
-            }
-          }
-          game.players[i].answers.push({
-            index: index,
-            answer: ans,
-          });
-        }
-        break;
-      }
-    }
-    if (!isUser)
-      throw new QzGameError("201", `User with id=${userId} is not in the game`);
-    await game.update();
-  }
-  static async removeAns(hostId: string, userId: string, index: number) {
-    const game = await QzGame.getGame(hostId);
-    game.players.map((ele, j) => {
-      if (ele.id === userId) {
-        game.players[j].answers.map((e, i) => {
-          if (e.index === index) {
-            game.players[j].answers.splice(i, 1);
-          }
-        });
-      }
-    });
-    await game.update();
-  }
-  static async getAnnouncement(
-    interaction:
-      | ChatInputCommandInteraction<CacheType>
-      | ButtonInteraction<CacheType>,
-    hostId: string
-  ) {
-    const game = await QzGame.getGame(hostId);
-    const channel: any = await interaction.guild.channels.cache
-      .get(game.channelId)
-      ?.fetch();
-    const announcement: Message<true> = channel?.messages?.cache?.get(
-      (game as QuizGameType).announcementId
-    );
-    return announcement;
-  }
-  static async getChannel(
-    interaction: Interaction<CacheType> | ButtonInteraction<CacheType>,
-    hostId: string
-  ) {
-    const game = await QzGame.getGame(hostId);
-    const channel: any = await interaction.guild.channels.cache
-      .get(game?.channelId)
-      ?.fetch();
-    return channel as GuildTextBasedChannel;
-  }
-  static async getGameWithUserId(guildId: string, userId: string) {
-    const qzGames = games.select({ guildId });
-    for (let i = 0; i < qzGames.length; i++) {
-      let isIn = false;
-      for (let j = 0; j < qzGames[i].players.length; j++) {
-        if (qzGames[i].players[j].id === userId) {
-          isIn = true;
-          const g = new QzGame(qzGames[i].hostId);
-          g.applyData(qzGames[i]);
-          return g;
-        }
-      }
-      if (isIn) return;
-    }
-    throw new QzGameError("404", `Game with userId=${userId} is not found`);
-  }
-
-  constructor(
-    public serverId: string,
-    public info: QuizGameInfo,
-    public empty?: boolean
-  ) {
-    if (info.amount < amount[0] || info.amount > amount[1])
-      throw new QzGameError("301", `Amount must be between 3 and 10`);
-  }
-  @createGameLog()
-  async save() {
-    const server = await getServerByGuildId(this.serverId);
-    let hasGame = false;
-    server.games.map((e) => {
-      if (e.hostId === this.info.hostId) {
-        hasGame = true;
-      }
-    });
-    if (hasGame) throw new Error(`This user already has a game`);
-    const QuizCatNum = categories[this.info.category];
-    let catUrl = `&category=${QuizCatNum}`;
-    if (QuizCatNum === "any") {
-      catUrl = "";
-    }
-    let qz = new Quiz(this.info.category, this.info.amount);
-    await qz.fetch();
-    const quiz = qz.quiz;
-    let players = [{ username: this.info.hostName, id: this.info.hostUserId }];
-    if (this.empty) {
-      players = [];
-    }
-    server.games.push({
-      ...this.info,
-      index: 0,
-      players: players,
-      quiz: quiz,
-      category: this.info.category,
-      amount: this.info.amount,
-      time: this.info.time || 15 * 1000,
-      hostId: this.info.hostId,
-      hostUserId: this.info.hostUserId,
-      gameStart: this.info.gameStart || 0,
-    } as QuizGameType);
-    await server.save();
-  }
-}
 
 export abstract class Game implements GameT {
   abstract hostName: string;
@@ -400,7 +196,7 @@ export class QzGame extends Game implements QuizGameType {
     const game = games.get(hostId);
     if (!game)
       throw new QzGameError("404", `Game with id=${hostId} is not found`);
-    return new QzGame(game.hostId).applyData(game);
+    return new QzGame(game.hostId, game.hostUserId).applyData(game);
   }
 
   static async getGameWithUserId(
@@ -411,7 +207,10 @@ export class QzGame extends Game implements QuizGameType {
     for (let i = 0; i < qzGames.length; i++) {
       for (let j = 0; j < qzGames[i].players.length; j++) {
         if (qzGames[i].players[j].id === userId) {
-          const game = new QzGame(qzGames[i].hostId).applyData(qzGames[i]);
+          const game = new QzGame(
+            qzGames[i].hostId,
+            qzGames[i].hostUserId
+          ).applyData(qzGames[i]);
           return game;
         }
       }
@@ -533,10 +332,6 @@ export class QzGame extends Game implements QuizGameType {
    * start from 0
    */
   public index: number = 0;
-  /**
-   * id of the user who creates the game
-   */
-  public readonly hostUserId: string;
   public maxPlayers: number;
   public announcementId: string;
   public started: boolean = false;
@@ -564,6 +359,10 @@ export class QzGame extends Game implements QuizGameType {
    */
   public difficulty: difficulty;
   /**
+   * Banned users ids
+   */
+  public bannedPlayers: string[];
+  /**
    * Get all game data without the methods
    */
   get cache() {
@@ -582,7 +381,11 @@ export class QzGame extends Game implements QuizGameType {
     /**
      * Game id
      */
-    public readonly hostId: string
+    public readonly hostId: string,
+    /**
+     * id of the user who creates the game
+     */
+    public readonly hostUserId: string
   ) {
     super();
   }
@@ -606,6 +409,7 @@ export class QzGame extends Game implements QuizGameType {
     this.mainChannel = game.mainChannel || this.mainChannel;
     this.gameStart = game.gameStart || 0;
     this.difficulty = game.difficulty;
+    this.bannedPlayers = game.bannedPlayers || this.bannedPlayers;
     return this;
   }
   /**
@@ -752,9 +556,9 @@ export class QzGame extends Game implements QuizGameType {
     return row;
   }
   generateContent() {
-    return `@everyone new Quiz Game created by <@${this.hostId}> ${TimeTampNow(
-      Date.now()
-    )}`;
+    return `@everyone new Quiz Game created by <@${
+      this.hostUserId
+    }> ${TimeTampNow(Date.now())}`;
   }
   generateRoundEmbed() {
     if (!this.round) return;
@@ -904,7 +708,6 @@ export class QzGame extends Game implements QuizGameType {
             components: [],
             content: "",
           });
-          // await QuizGame.scanAns(interaction.guildId,this.hostId)
           await stop(5 * 1000);
         } catch (err: any) {
           gameGenerator.return();
@@ -999,9 +802,10 @@ export async function createQzGame(
     quiz,
     guildId: qz.guildId,
     hostId: id,
+    bannedPlayers: [],
   };
   games.set(id, qzGame);
-  return new QzGame(id).applyData(qzGame);
+  return new QzGame(id, qz.hostUserId).applyData(qzGame);
 }
 
 /**

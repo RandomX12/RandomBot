@@ -15,7 +15,7 @@ export interface DiscordServer {
   name: string;
   members: Member[];
   games: Game[];
-  config?: ConfigT<boolean>;
+  config?: ConfigT;
 }
 
 const discordServer = new Schema<DiscordServer>({
@@ -49,24 +49,29 @@ const discordServer = new Schema<DiscordServer>({
       },
       quiz: {
         type: {
-          multiple_channels: Boolean,
+          multiple_channels: {
+            required: true,
+            default: {
+              enable: false,
+              private: {
+                enable: false,
+                viewChannel: [],
+              },
+            },
+            type: {
+              enable: Boolean,
+              category_id: String,
+              category_name: String,
+              private: {
+                enable: Boolean,
+                viewChannel: [String],
+              },
+            },
+          },
           customGames: {
             required: false,
             type: Boolean,
             default: false,
-          },
-          channels_category: {
-            required: false,
-            type: String,
-          },
-          private: {
-            required: false,
-            default: false,
-            type: Boolean,
-          },
-          category_name: {
-            type: String,
-            require: false,
           },
           roles: {
             required: false,
@@ -93,17 +98,8 @@ const discordServer = new Schema<DiscordServer>({
             type: Number,
             default: 0,
           },
-          viewChannel: {
-            required: true,
-            type: [String],
-            default: [],
-          },
         },
         required: true,
-        default: {
-          multiple_channels: false,
-          private: false,
-        },
       },
     },
   },

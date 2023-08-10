@@ -1,9 +1,9 @@
 {
-  "productionMode": false,
+  "productionMode": true,
   "scanSlashCommands": false,
   "prefix": "/",
   "bot": {
-    "loginAutomatically": false
+    "loginAutomatically": true
   },
   "commands": {
     "ping": true,
@@ -21,7 +21,8 @@
     "help": true,
     "games": true,
     "start": true,
-    "kick": true
+    "kick": true,
+    "ban": true
   },
   "quizGame": {
     "emptyWhenCreateNewGame": true

@@ -8,7 +8,6 @@ import {
   DiscordAPIError,
   EmbedBuilder,
   type GuildMember,
-  PermissionOverwrites,
   OverwriteResolvable,
   Message,
 } from "discord.js";
@@ -156,7 +155,6 @@ client.on("interactionCreate", async (interaction) => {
           await command.execute(interaction);
         } catch (error) {
           await replyError(interaction, handleError(error));
-          warning(error.message);
         }
 
         error(err.message);
@@ -205,12 +203,12 @@ client.on("interactionCreate", async (interaction) => {
               await command.execute(interaction);
             } catch (error) {
               await replyError(interaction, handleError(error));
-              warning(error.message);
             }
 
             error(
               `error when executing command ${interaction.commandName} : ${err.message}`
             );
+            return;
           }
           const after = Date.now();
           const ping = after - before;
@@ -231,37 +229,6 @@ client.on("interactionCreate", async (interaction) => {
           textColor: "Red",
           timeColor: "Red",
         });
-        try {
-          if (err instanceof DiscordAPIError) {
-            if (err.code === 50001) {
-              await reply(interaction, {
-                content: `:x: Missing Access`,
-                ephemeral: true,
-              });
-              return;
-            }
-            await reply(interaction, {
-              content: `:x: There was an error while executing the command
-error code : DiscordAPIError_${err.code}
-message : ${err.message}`,
-              ephemeral: true,
-            });
-            return;
-          }
-          if (interaction.replied || interaction.deferred) {
-            await interaction.followUp({
-              content: "There was an error while executing the command",
-              ephemeral: true,
-            });
-          } else {
-            await interaction.reply({
-              content: "There was an error while executing the command",
-              ephemeral: true,
-            });
-          }
-        } catch (err: any) {
-          error(err.message);
-        }
       }
     }
   } catch (err) {

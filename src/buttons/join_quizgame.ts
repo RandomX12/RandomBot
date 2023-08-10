@@ -47,6 +47,17 @@ module.exports = new ButtonCommand({
       return;
     }
     const game = await QzGame.getGame(hostId);
+    if (interaction.guild.ownerId !== interaction.user.id) {
+      for (let i = 0; i < game.bannedPlayers.length; i++) {
+        if (game.bannedPlayers[i] === interaction.user.id) {
+          await replyError(
+            interaction,
+            "you are banned from joining this game"
+          );
+          return;
+        }
+      }
+    }
     game.players.push({
       id: interaction.user.id,
       username: interaction.user.username,
