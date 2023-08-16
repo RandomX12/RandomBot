@@ -199,7 +199,7 @@ export class Server implements DiscordServer {
   /**server name */
   public name: string;
   /**server config */
-  public config?: ConfigT<boolean>;
+  public config?: ConfigT;
   /** server members */
   public members: Member[];
   /** */
@@ -242,7 +242,7 @@ export class Server implements DiscordServer {
    * change server config
    * @param config config of the server
    */
-  async setConfig(config: ConfigT<boolean>): Promise<void> {
+  async setConfig(config: ConfigT): Promise<void> {
     const server = await getServerByGuildId(this.serverId);
     const c = new Config(config);
     server.config = c.config;

@@ -10,9 +10,9 @@ export interface CommandsConfig {
   bannedUsers?: string[];
 }
 
-export type ConfigT<MultipleChannels extends boolean> = {
+export type ConfigT = {
   commands: CommandsConfig[];
-  quiz: QzGameConfig<MultipleChannels>;
+  quiz: QzConfigs;
 };
 
 export interface command {
@@ -27,24 +27,22 @@ export type RolesConfig = {
   playQzgame?: boolean;
 };
 
-type QzConfigs<MultipleChannels extends boolean> = {
+type MultipleChannels = {
+  enable: boolean;
+  category_id?: string;
+  category_name?: string;
+  private: {
+    enable: boolean;
+    viewChannel: string[];
+  };
+};
+
+type QzConfigs = {
   multiple_channels: MultipleChannels;
   customGames?: boolean;
-  channels_category: string;
-  private: boolean;
-  viewChannel: string[];
-  category_name: string;
   gameStart: (typeof gameStartType)[keyof typeof gameStartType];
   roles: RolesConfig[];
 };
-
-type QzGameConfig<MultipleChannels extends boolean> =
-  MultipleChannels extends true
-    ? QzConfigs<MultipleChannels>
-    : Omit<
-        QzConfigs<MultipleChannels>,
-        "channels_category" | "private" | "viewChannel" | "category_name"
-      >;
 
 export const gameStartType = {
   /**
@@ -67,24 +65,29 @@ export const gameStartType = {
 
 export type TGameStart = (typeof gameStartType)[keyof typeof gameStartType];
 
-export default class Config<MultipleChannels extends boolean> {
-  constructor(public config?: ConfigT<MultipleChannels>) {
+export default class Config {
+  constructor(public config?: ConfigT) {
     // written by KHLALA
     if (!this.config) {
       this.config = {
         commands: [],
-        //@ts-ignore
         quiz: {
-          multiple_channels: false,
+          multiple_channels: {
+            enable: false,
+            private: {
+              enable: false,
+              viewChannel: [],
+            },
+          },
           gameStart: 0,
           roles: [],
         },
       };
     }
-    if (this.config.quiz.multiple_channels) {
+    if (this.config.quiz.multiple_channels.enable) {
       if (
-        !this.config.quiz.category_name ||
-        !this.config.quiz.channels_category
+        !this.config.quiz.multiple_channels.category_name ||
+        !this.config.quiz.multiple_channels.category_id
       ) {
         throw new Error(
           `category props are required when "multiple_channels" is set to "true"`
