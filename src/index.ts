@@ -53,6 +53,7 @@ import { Storage } from "./storage/storage";
 import { QuizGame as QzGameT } from "./model/QuizGame";
 import { gameStartType } from "./lib/DiscordServersConfig";
 import QzGameError from "./lib/errors/QuizGame";
+import lunchServer from "./server";
 listenToCmdRunTime();
 require("dotenv").config();
 declare module "discord.js" {
@@ -655,14 +656,6 @@ client.on("ready", async (c) => {
     });
   }
 });
-const productionMode = require("../config.json").productionMode;
-if (productionMode) {
-  log({
-    textColor: "Yellow",
-    text: "You are running The bot on production mode",
-    timeColor: "Yellow",
-  });
-}
 
 const { bot } = require("../config.json");
 if (bot?.loginAutomatically) {
@@ -671,8 +664,7 @@ if (bot?.loginAutomatically) {
 
 // for express server :)
 try {
-  const server = require("./server.js");
-  server();
+  lunchServer();
 } catch (err: any) {
   warning(err.message);
   warning(
