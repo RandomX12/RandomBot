@@ -22,7 +22,8 @@
     "games": true,
     "start": true,
     "kick": true,
-    "ban": true
+    "ban": true,
+    "unban": true
   },
   "quizGame": {
     "emptyWhenCreateNewGame": true

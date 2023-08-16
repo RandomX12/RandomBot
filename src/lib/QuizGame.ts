@@ -218,6 +218,26 @@ export class QzGame extends Game implements QuizGameType {
     throw new QzGameError("201", "This user is not in game");
   }
 
+  static select(filter: Partial<QuizGameType>) {
+    const Qzgames = games.select(filter);
+    const g = Qzgames.map((game) => {
+      return new QzGame(game.hostId, game.hostUserId).applyData(game);
+    });
+    return g;
+  }
+
+  static async selectOne(filter: Partial<QuizGameType>) {
+    const Qzgames = games.select(filter);
+    if (!Qzgames.length)
+      throw new QzGameError(
+        "404",
+        `game not found \n filter ${JSON.stringify(filter)}`
+      );
+    return new QzGame(Qzgames[0].hostId, Qzgames[0].hostUserId).applyData(
+      Qzgames[0]
+    );
+  }
+
   static getServerGames(guildId: string) {
     return games.select({ guildId });
   }
@@ -530,12 +550,16 @@ export class QzGame extends Game implements QuizGameType {
     gameStart: (typeof gameStartType)[keyof typeof gameStartType]
   ): ActionRowBuilder<AnyComponentBuilder> {
     const row = new ActionRowBuilder();
-    if (gameStart === gameStartType.AUTO) {
-      const button = new ButtonBuilder()
+    if (gameStart === gameStartType.AUTO || gameStart === gameStartType.ADMIN) {
+      const join = new ButtonBuilder()
+        .setLabel("Join")
+        .setCustomId("join_quizgame_" + this.hostId)
+        .setStyle(3);
+      const leave = new ButtonBuilder()
         .setLabel("Leave")
         .setCustomId("leave_quizgame_" + this.hostId)
         .setStyle(4);
-      row.setComponents(button);
+      row.setComponents(join, leave);
       return row;
     } else if (
       gameStart === gameStartType.READY ||
