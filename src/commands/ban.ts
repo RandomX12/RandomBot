@@ -28,6 +28,9 @@ module.exports = new Command({
       await replyError(interaction, "can't ban the server owner from a game");
       return;
     }
+    if (interaction.client.user.id === user.id) {
+      await replyError(interaction, `i won't let you ban me -_^`);
+    }
     const id = interaction.options.getString("game_id");
     let game: QzGame;
     if (!id) {
