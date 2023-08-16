@@ -64,7 +64,7 @@ module.exports = new Command({
           .get(game.announcementId)
           ?.edit({
             content: game.generateContent(),
-            components: [],
+            components: [game.generateRow(game.gameStart) as any],
             embeds: [game.generateEmbed()],
           });
       }
