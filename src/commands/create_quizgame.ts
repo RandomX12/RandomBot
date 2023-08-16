@@ -305,9 +305,11 @@ module.exports = new Command({
         .setLabel("leave")
         .setStyle(4)
     );
-    let comp = await channel.send({
-      components: [joinLeaveBtns],
-    });
+    if (!mainChannel) {
+      await channel.send({
+        components: [joinLeaveBtns],
+      });
+    }
     let msg = await channel.send({
       content: "creating Quiz Game...",
     });
@@ -345,7 +347,9 @@ module.exports = new Command({
       await msg.edit({
         embeds: [embed],
         components:
-          game.gameStart && game.gameStart !== gameStartType.ADMIN ? [row] : [],
+          game.gameStart && game.gameStart !== gameStartType.ADMIN
+            ? [row, game.mainChannel && joinLeaveBtns].filter((e) => e)
+            : [game.mainChannel && joinLeaveBtns].filter((e) => e),
         content: content,
       });
       await reply(interaction, {
@@ -360,7 +364,6 @@ module.exports = new Command({
       } else {
         if (msg) {
           await msg.delete();
-          await comp.delete();
         }
       }
       await replyError(interaction, "Cannot create the game");
