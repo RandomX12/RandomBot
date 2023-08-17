@@ -63,11 +63,17 @@ module.exports = new Command({
     }
     if (game) {
       if (!game.started) {
+        const components = [];
+        if (game.gameStart === 1 || game.gameStart === 2) {
+          components.push(game.generateRow(2));
+        }
+        if (game.mainChannel) {
+          components.push(game.generateRow(0));
+        }
         await interaction.channel.messages.cache
           .get(game.announcementId)
           ?.edit({
-            content: game.generateContent(),
-            components: [game.generateRow(game.gameStart) as any],
+            components,
             embeds: [game.generateEmbed()],
           });
       }

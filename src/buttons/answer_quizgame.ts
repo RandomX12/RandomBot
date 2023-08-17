@@ -23,4 +23,5 @@ module.exports = new ButtonCommand({
     await interaction.deleteReply();
   },
   ephemeral: true,
+  deferReply: true,
 });
