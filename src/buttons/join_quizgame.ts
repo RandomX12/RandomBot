@@ -47,6 +47,10 @@ module.exports = new ButtonCommand({
       return;
     }
     const game = await QzGame.getGame(hostId);
+    if (game.started) {
+      await replyError(interaction, "This game is already started");
+      return;
+    }
     if (interaction.guild.ownerId !== interaction.user.id) {
       for (let i = 0; i < game.bannedPlayers.length; i++) {
         if (game.bannedPlayers[i] === interaction.user.id) {

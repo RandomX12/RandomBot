@@ -16,8 +16,7 @@ module.exports = new Command({
     const info: Info = require("../../config.json").info;
     await reply(interaction, {
       content: `Website : ${info.website}
-commands : ${info.commands}
-server   : ${info.server}`,
+commands : ${info.commands + `?id=${interaction.guildId}`}`,
       ephemeral: true,
     });
   },

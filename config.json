@@ -29,8 +29,8 @@
     "emptyWhenCreateNewGame": true
   },
   "info": {
-    "website": "http://localhost:3000",
-    "commands": "http://localhost:3000/commands",
+    "website": "https://random-bot-seven.vercel.app/",
+    "commands": "https://random-bot-seven.vercel.app/dashboard/server/commands",
     "server": "discord.gg/dza564d5a"
   }
 }

@@ -69,7 +69,6 @@ module.exports = new Command({
       channel.permissionOverwrites.cache
         .get(user.id)
         ?.allow?.add("ViewChannel");
-      console.log(per);
       await channel.edit({
         permissionOverwrites: per,
       });

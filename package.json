@@ -1,6 +1,6 @@
 {
   "name": "randombot",
-  "version": "0.5.1",
+  "version": "1.0.0",
   "description": "",
   "main": "dist/index.js",
   "scripts": {
@@ -26,6 +26,7 @@
   "devDependencies": {
     "@types/chalk-animation": "^1.6.1",
     "@types/deepai": "^1.0.0",
+    "@types/express": "^4.17.17",
     "@types/figlet": "^1.5.6",
     "@types/gradient-string": "^1.1.2",
     "@types/jest": "^29.5.3",
