@@ -4,7 +4,6 @@ import express from "express";
 import { games } from ".";
 import { log } from "./lib/cmd";
 import axios, { isAxiosError } from "axios";
-import { QzGame } from "./lib/QuizGame";
 
 const productionMode = require("../config.json").productionMode;
 const app = express();
@@ -21,7 +20,7 @@ app.get("/", (req, res) => {
       (1024 * 1024);
     const version = require("../package.json").version;
     const website = require("../config.json").info?.website;
-    res.send(`<h1>
+    res.status(200).send(`<h1>
         This is RandomBot express server
     </h1>
     status : ONLINE <br/>
@@ -30,14 +29,14 @@ app.get("/", (req, res) => {
     version : ${version} <br/>
     website : <a href="${website}" target="_blank">${website}<a/>`);
   } catch (err: any) {
-    res.json({ message: "500 : server error" }).status(500);
+    res.status(500).json({ message: "500 : server error" });
   }
 });
 
 app.get("/:id", async (req, res) => {
   try {
     if (!req.headers.authorization) {
-      res.json({ message: "401 : Unauthorized" }).status(401);
+      res.status(401).json({ message: "401 : Unauthorized" });
       return;
     }
     const authorization = req.headers.authorization;
@@ -45,41 +44,42 @@ app.get("/:id", async (req, res) => {
       authorization.split(" ")[0] !== "Bearer" ||
       authorization.split(" ").length !== 2
     ) {
-      res.json({ message: "401 : Unauthorized" }).status(401);
+      res.status(401).json({ message: "401 : Unauthorized" });
       return;
     }
-    const guilds: any[] = (
-      await axios.get(`https://discord.com/api/v9/users/@me/guilds`, {
+    const guild = (
+      await axios.get(`https://discord.com/api/guilds/${req.params.id}`, {
+        headers: {
+          Authorization: `Bot ${process.env.TOKEN}`,
+        },
+      })
+    ).data;
+    const user = (
+      await axios.get(`https://discord.com/api/users/@me`, {
         headers: {
           Authorization: authorization,
         },
       })
     ).data;
-    for (let i = 0; i < guilds.length; i++) {
-      if (guilds[i].id === req.params.id) {
-        if (!guilds[i].owner) continue;
-        res
-          .json(
-            games.select({ guildId: req.params.id }).map((game) => {
-              return { ...game, quiz: undefined };
-            })
-          )
-          .status(200);
-        return;
-      }
+    if (guild.owner_id === user.id) {
+      res.status(200).json(
+        games.select({ guildId: req.params.id }).map((e) => {
+          return { ...e, quiz: undefined };
+        })
+      );
+
+      return;
     }
-    res.json({ message: `404 : Guild not found` }).status(404);
+    res.status(401).json({ message: `401 : Unauthorized` });
     return;
   } catch (err: any) {
     if (isAxiosError(err)) {
-      res
-        .json({
-          message: `${err.response?.status} : ${err.response?.statusText}`,
-        })
-        .status(err.response?.status || 500);
+      res.status(err.response?.status || 500).json({
+        message: `${err.response?.status} : ${err.response?.statusText}`,
+      });
       return;
     }
-    res.json({ message: "server : error" }).status(500);
+    res.status(500).json({ message: "server : error" });
   }
 });
 
