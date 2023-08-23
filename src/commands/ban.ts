@@ -30,6 +30,7 @@ module.exports = new Command({
     }
     if (interaction.client.user.id === user.id) {
       await replyError(interaction, `i won't let you ban me -_^`);
+      return;
     }
     const id = interaction.options.getString("game_id");
     let game: QzGame;
