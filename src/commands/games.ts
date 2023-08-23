@@ -13,14 +13,20 @@ module.exports = new Command({
   async execute(interaction: ChatInputCommandInteraction<CacheType>) {
     const games = QzGame.getServerGames(interaction.guildId);
     let v = "";
-    games.map((e) => {
-      v +=
-        e.hostName +
-        " | id : " +
-        e.hostId +
-        ` https://discord.com/channels/${interaction.guildId}/${e.channelId}/${e.announcementId}` +
-        "\n";
-    });
+    if (games.length > 8) {
+      games.map((e) => {
+        v += e.hostName + " | id : " + e.hostId + ` <#${e.channelId}>` + "\n";
+      });
+    } else {
+      games.map((e) => {
+        v +=
+          e.hostName +
+          " | id : " +
+          e.hostId +
+          ` https://discord.com/channels/${interaction.guildId}/${e.channelId}/${e.announcementId}` +
+          "\n";
+      });
+    }
     if (!v) {
       v = "There is no game right now";
     }
