@@ -11,6 +11,7 @@ import {
   GuildTextBasedChannel,
   Interaction,
   Message,
+  MessageCreateOptions,
   PermissionOverwrites,
   User,
 } from "discord.js";
@@ -182,10 +183,30 @@ export abstract class Game implements GameT {
   abstract delete(reason?: string): void;
 }
 
+interface QzGameData {
+  players: QuizGamePlayer[];
+  index: number;
+  maxPlayers: number;
+  announcementId: string;
+  started?: boolean;
+  end?: boolean;
+  quiz: Qs[];
+  category: QuizCategory;
+  amount: number;
+  time?: number;
+  hostUserId: string;
+  mainChannel?: boolean;
+  gameStart?: TGameStart;
+  guildId: string;
+  difficulty?: difficulty;
+  bannedPlayers: string[];
+  invitedPlayers: Set<string>;
+}
+
 /**
  * The New Constructor for Quiz Game
  */
-export class QzGame extends Game implements QuizGameType {
+export class QzGame extends Game implements QzGameData {
   /**
    * New Get game Function
    * @param guildId Server id
@@ -311,7 +332,7 @@ export class QzGame extends Game implements QuizGameType {
       .get(game.channelId)
       ?.fetch();
     const announcement: Message<true> = channel?.messages?.cache?.get(
-      (game as QuizGameType).announcementId
+      (game as QzGameData).announcementId
     );
     return announcement;
   }
@@ -382,6 +403,8 @@ export class QzGame extends Game implements QuizGameType {
    * Banned users ids
    */
   public bannedPlayers: string[];
+  /** */
+  public invitedPlayers: Set<string>;
   /**
    * Get all game data without the methods
    */
@@ -391,7 +414,7 @@ export class QzGame extends Game implements QuizGameType {
     delete cache.applyData;
     delete cache.fetch;
     delete cache.update;
-    return cache as QuizGameType;
+    return cache as QzGameData;
   }
   /**
    * Game start code
@@ -430,13 +453,16 @@ export class QzGame extends Game implements QuizGameType {
     this.gameStart = game.gameStart || 0;
     this.difficulty = game.difficulty;
     this.bannedPlayers = game.bannedPlayers || this.bannedPlayers;
+    this.invitedPlayers =
+      new Set<string>(game.invitedPlayers) || this.invitedPlayers;
     return this;
   }
   /**
    * Fetch the game data from the storage and update the local props
    */
   async fetch(): Promise<void> {
-    const game = await QzGame.getGame(this.hostId);
+    const game = games.select({ hostId: this.hostId })[0];
+    if (!game) throw new QzGameError("404", "quiz game not found");
     this.applyData(game);
   }
   /**
@@ -444,7 +470,11 @@ export class QzGame extends Game implements QuizGameType {
    */
   async update(): Promise<void> {
     await QzGame.getGame(this.hostId);
-    games.set(this.hostId, this);
+    const gameData: QuizGameType = {
+      ...this,
+      invitedPlayers: Array.from(this.invitedPlayers),
+    };
+    games.set(this.hostId, gameData);
   }
   /**
    * Delete the game from the storage
@@ -457,17 +487,19 @@ export class QzGame extends Game implements QuizGameType {
    * set the property started to true and save it in the storage
    */
   async start(): Promise<void> {
-    await QzGame.getGame(this.hostId);
-    this.started = true;
-    games.set(this.hostId, this);
+    const game = await getGame(this.hostId);
+    game.started = true;
+    games.set(this.hostId, game);
+    await this.fetch();
   }
   /**
    * set the property end to true and save it in the storage
    */
   async endGame(): Promise<void> {
-    await QzGame.getGame(this.hostId);
-    this.end = true;
-    games.set(this.hostId, this);
+    const game = await getGame(this.hostId);
+    game.end = true;
+    games.set(this.hostId, game);
+    await this.fetch();
   }
   /**
    * @returns Game Generator
@@ -639,6 +671,30 @@ export class QzGame extends Game implements QuizGameType {
     );
     return row;
   }
+  createInvite(): MessageCreateOptions {
+    const gameLink = `https://discord.com/channels/${this.guildId}/${this.channelId}/${this.announcementId}`;
+    const embed = new EmbedBuilder()
+      .setTitle(`You are invited to join a quiz game in ${gameLink}`)
+      .setDescription(
+        `
+**Category ** : ${this.category}
+**Amount ** : ${this.amount}
+**Time ** : ${this.time / 1000} seconds
+**Max players** : ${this.maxPlayers}
+**Difficulty ** : ${this.difficulty || "random"}
+    `
+      )
+      .setTimestamp()
+      .setFooter({ text: `id : ${this.hostId}` })
+      .setThumbnail(QuizCategoryImg[this.category]);
+    const row: any = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setStyle(5).setLabel("go to game").setURL(gameLink)
+    );
+    return {
+      embeds: [embed],
+      components: [row],
+    };
+  }
   isReady(id: string) {
     for (let i = 0; i < this.players.length; i++) {
       if (this.players[i].ready && id === this.players[i].id) {
@@ -786,6 +842,12 @@ export class QzGame extends Game implements QuizGameType {
   }
 }
 
+export async function getGame(hostId: string): Promise<QuizGameType> {
+  const game = games.select({ hostId })[0];
+  if (!game) throw new QzGameError("404", "game not found");
+  return game;
+}
+
 export function generateId() {
   return Math.random().toString(16).slice(2);
 }
@@ -827,6 +889,7 @@ export async function createQzGame(
     guildId: qz.guildId,
     hostId: id,
     bannedPlayers: [],
+    invitedPlayers: [],
   };
   games.set(id, qzGame);
   return new QzGame(id, qz.hostUserId).applyData(qzGame);
