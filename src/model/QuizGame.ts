@@ -41,6 +41,7 @@ export interface QuizGame extends Game {
   guildId: string;
   difficulty?: difficulty;
   bannedPlayers: string[];
+  invitedPlayers: string[];
 }
 export const QuizSchema = new Schema<QuizGame>({
   hostId: String,

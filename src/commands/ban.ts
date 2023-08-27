@@ -55,7 +55,7 @@ module.exports = new Command({
       game.removePlayer(user.id);
       if (game.started) {
       }
-      games.set(game.hostId, game);
+      await game.update();
     } else {
       game = await QzGame.getGame(id);
       game.removePlayer(user.id);
