@@ -30,7 +30,7 @@ Random Bot offers remarkable configurability! You can enable/disable commands, s
 
 # Setup
 
-Random is easy to setup , invite the bot from [here](https://random-bot-seven.vercel.app/invite) then go to RandomBot [Dashboard](https://random-bot-seven.vercel.app/dashboard) and choose a server to configure.
+RandomBot is easy to setup , invite the bot from [here](https://random-bot-seven.vercel.app/invite) then go to RandomBot [Dashboard](https://random-bot-seven.vercel.app/dashboard) and choose a server to configure.
 
 ## Commands Configurations
 
