@@ -1,6 +1,6 @@
 {
   "productionMode": true,
-  "scanSlashCommands": false,
+  "scanSlashCommands": true,
   "prefix": "/",
   "bot": {
     "loginAutomatically": true
@@ -23,7 +23,8 @@
     "start": true,
     "kick": true,
     "ban": true,
-    "unban": true
+    "unban": true,
+    "invite": true
   },
   "quizGame": {
     "emptyWhenCreateNewGame": true

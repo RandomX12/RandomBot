@@ -35,14 +35,7 @@ module.exports = new Command({
         mainChannel: false,
       });
     }
-    let isBanned = false;
-    for (let i = 0; i < game.bannedPlayers.length; i++) {
-      if (game.bannedPlayers[i] === user.id) {
-        isBanned = true;
-        break;
-      }
-    }
-    if (!isBanned) {
+    if (!game.bannedPlayers.has(user.id)) {
       await replyError(
         interaction,
         `<@${user.id}> is not banned in this game https://discord.com/channels/${interaction.guildId}/${game.channelId}/${game.announcementId}`
@@ -73,7 +66,7 @@ module.exports = new Command({
         permissionOverwrites: per,
       });
     }
-    game.bannedPlayers = game.bannedPlayers.filter((id) => id !== user.id);
+    game.bannedPlayers.delete(user.id);
     await game.update();
     await reply(interaction, {
       content: `<@${user.id}> is unbanned from the game https://discord.com/channels/${interaction.guildId}/${game.channelId}/${game.announcementId}`,

@@ -58,14 +58,12 @@ module.exports = new Command({
         return;
       }
     }
-    for (let i = 0; i < game.bannedPlayers.length; i++) {
-      if (game.bannedPlayers[i] === user.id) {
-        await replyError(
-          interaction,
-          `<@${user.id}> is banned from joining this game`
-        );
-        return;
-      }
+    if (game.bannedPlayers.has(user.id)) {
+      await replyError(
+        interaction,
+        `<@${user.id}> is banned from joining this game`
+      );
+      return;
     }
     if (game.invitedPlayers.has(user.id)) {
       await replyError(
