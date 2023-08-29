@@ -420,7 +420,6 @@ addRuntimeCMD({
     rl.once("line", async (input) => {
       if (input !== "y") return;
       let wt = animateRotatingSlash("shutting down the bot...");
-      await DiscordServers.cleanGuilds();
       await Bot.clearCommands();
       clearInterval(wt);
       log({ textColor: "Cyan", text: "\nserver offline" });

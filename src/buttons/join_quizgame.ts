@@ -52,14 +52,9 @@ module.exports = new ButtonCommand({
       return;
     }
     if (interaction.guild.ownerId !== interaction.user.id) {
-      for (let i = 0; i < game.bannedPlayers.length; i++) {
-        if (game.bannedPlayers[i] === interaction.user.id) {
-          await replyError(
-            interaction,
-            "you are banned from joining this game"
-          );
-          return;
-        }
+      if (game.bannedPlayers.has(interaction.user.id)) {
+        await replyError(interaction, "you are banned from joining this game");
+        return;
       }
     }
     game.players.push({

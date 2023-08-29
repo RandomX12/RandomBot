@@ -199,7 +199,7 @@ interface QzGameData {
   gameStart?: TGameStart;
   guildId: string;
   difficulty?: difficulty;
-  bannedPlayers: string[];
+  bannedPlayers: Set<string>;
   invitedPlayers: Set<string>;
 }
 
@@ -402,7 +402,7 @@ export class QzGame extends Game implements QzGameData {
   /**
    * Banned users ids
    */
-  public bannedPlayers: string[];
+  public bannedPlayers: Set<string>;
   /** */
   public invitedPlayers: Set<string>;
   /**
@@ -452,7 +452,7 @@ export class QzGame extends Game implements QzGameData {
     this.mainChannel = game.mainChannel || this.mainChannel;
     this.gameStart = game.gameStart || 0;
     this.difficulty = game.difficulty;
-    this.bannedPlayers = game.bannedPlayers || this.bannedPlayers;
+    this.bannedPlayers = new Set(game.bannedPlayers) || this.bannedPlayers;
     this.invitedPlayers =
       new Set<string>(game.invitedPlayers) || this.invitedPlayers;
     return this;
@@ -473,6 +473,7 @@ export class QzGame extends Game implements QzGameData {
     const gameData: QuizGameType = {
       ...this,
       invitedPlayers: Array.from(this.invitedPlayers),
+      bannedPlayers: Array.from(this.bannedPlayers),
     };
     games.set(this.hostId, gameData);
   }

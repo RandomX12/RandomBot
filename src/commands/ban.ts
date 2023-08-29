@@ -45,13 +45,11 @@ module.exports = new Command({
         return;
       }
       game = new QzGame(data.hostId, data.hostUserId).applyData(data);
-      for (let i = 0; i < game.bannedPlayers.length; i++) {
-        if (game.bannedPlayers[i] === user.id) {
-          await replyError(interaction, `<@${user.id}> is already banned`);
-          return;
-        }
+      if (game.bannedPlayers.has(user.id)) {
+        await replyError(interaction, `<@${user.id}> is already banned`);
+        return;
       }
-      game.bannedPlayers.push(user.id);
+      game.bannedPlayers.add(user.id);
       game.removePlayer(user.id);
       if (game.started) {
       }
@@ -59,7 +57,7 @@ module.exports = new Command({
     } else {
       game = await QzGame.getGame(id);
       game.removePlayer(user.id);
-      game.bannedPlayers.push(user.id);
+      game.bannedPlayers.add(user.id);
       await (game as QzGame).update();
     }
     if (game) {
