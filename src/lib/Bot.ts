@@ -167,6 +167,16 @@ export abstract class Bot {
   static setActivity({ type, name }: ActivityOptions) {
     this.client.user.setActivity({ type: type, name: name });
   }
+  /**
+   * set if the bot is busy or not.
+   *
+   * 0 : the bot is not busy
+   *
+   * 1 : the bot is busy and it will not respond to any request
+   *
+   * default value from .env file variable BUSY
+   */
+  static maintenance = +process.env.BUSY;
 }
 
 function toInt(num: number) {

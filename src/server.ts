@@ -4,10 +4,19 @@ import express from "express";
 import { log } from "./lib/cmd";
 import fs from "fs";
 import path from "path";
+import { Bot } from "./lib/Bot";
 
 const productionMode = require("../config.json").productionMode;
 const app = express();
 const PORT = 8080;
+
+app.use((req, res, next) => {
+  if (Bot.maintenance) {
+    res.status(503).json({ message: "503 : the server is busy" });
+    return;
+  }
+  next();
+});
 
 const routesPath = path.join(__dirname, "routes");
 const routesNames = fs

@@ -347,6 +347,7 @@ client.on("messageDelete", async (msg) => {
 });
 client.on("channelCreate", async (c) => {
   try {
+    if (Bot.maintenance) return;
     if (!c.guild) return;
     if (c.type !== ChannelType.GuildText) return;
     const AuditLogFetch = await c.guild.fetchAuditLogs({

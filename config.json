@@ -1,6 +1,6 @@
 {
   "productionMode": true,
-  "scanSlashCommands": true,
+  "scanSlashCommands": false,
   "prefix": "/",
   "bot": {
     "loginAutomatically": true
