@@ -10,6 +10,8 @@ const productionMode = require("../config.json").productionMode;
 const app = express();
 const PORT = 8080;
 
+app.use(express.json());
+
 app.use((req, res, next) => {
   if (Bot.maintenance) {
     res.status(503).json({ message: "503 : the server is busy" });

@@ -28,7 +28,9 @@ router.delete("/:id/:gameId", async (req, res) => {
       })
     ).data;
     const guildId = req.params.id;
-    if (userGuilds.filter((g) => g.id === guildId).length === 0) {
+    if (
+      userGuilds.filter((g) => g.id === req.params.id && g.owner).length === 0
+    ) {
       res.status(400).json({ message: "400 : Bad Request" });
       return;
     }
@@ -71,7 +73,6 @@ router.delete("/:id/:gameId", async (req, res) => {
       });
       return;
     }
-    console.log(err);
     res.status(500).json({ message: "500 : server error" });
   }
 });
