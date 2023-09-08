@@ -478,6 +478,17 @@ addRuntimeCMD({
         };
       });
       console.table(table);
+    } else {
+      for (let i = 0; i < commands.length; i++) {
+        if (commands[i].input === args[0].value) {
+          console.table({
+            name: commands[i].input.split(" ")[0],
+            description: commands[i].description,
+          });
+          return;
+        }
+      }
+      error(`RCL not found`);
     }
   },
   description: "get commands definition",
@@ -554,4 +565,45 @@ addRuntimeCMD({
   type: "ASYNC",
   loadingTxt: "connecting to the DB...",
   finishTxt: "connected to the DB",
+});
+
+addRuntimeCMD({
+  input: "busy [:bool]:int",
+  description: `set if the bot is busy or not.
+0 : the bot is not busy
+1 : the bot is busy and it will not respond to any request`,
+  type: "SYNC",
+  fn(args) {
+    if (args[0].value !== 0 && args[0].value !== 1) {
+      error(`Invalid arg : value must be 1 or 0`);
+      return;
+    }
+    if (Bot.maintenance === args[0].value) {
+      error(
+        `The server is already in maintenance mode ${
+          Bot.maintenance ? "ON" : "OFF"
+        }`
+      );
+      return;
+    }
+    if (args[0].value) {
+      console.log("Do you really want to turn ON maintenance");
+      process.stdout.write(
+        "The bot will not respond to any request and you need to restart the server to turn maintenance mode off (y / n ) : "
+      );
+      rl.once("line", async (input) => {
+        if (input !== "y") {
+          log({ text: `action canceled`, textColor: "Red" });
+          return;
+        }
+        Bot.maintenance = 1;
+        Bot.client.removeAllListeners();
+        log({ textColor: "Cyan", text: "\nmaintenance mode ON" });
+      });
+    } else {
+      Bot.maintenance = 0;
+      warning(`The server need a restart to revive the discord.js events`);
+      log({ textColor: "Cyan", text: "\nmaintenance mode OFF" });
+    }
+  },
 });

@@ -4,8 +4,9 @@ import {
   ButtonInteraction,
   CacheType,
   EmbedBuilder,
+  GuildMember,
 } from "discord.js";
-import DiscordServers from "../lib/DiscordServers";
+import DiscordServers, { fetchServer } from "../lib/DiscordServers";
 import { QzGame } from "../lib/QuizGame";
 import { error, warning } from "../lib/cmd";
 import { gameStartType } from "../lib/DiscordServersConfig";
@@ -54,6 +55,30 @@ module.exports = new ButtonCommand({
     if (interaction.guild.ownerId !== interaction.user.id) {
       if (game.bannedPlayers.has(interaction.user.id)) {
         await replyError(interaction, "you are banned from joining this game");
+        return;
+      }
+    }
+    if (interaction.guild.ownerId !== interaction.user.id) {
+      const server = await fetchServer(interaction.guildId);
+      const userRoles = server.config.quiz?.roles
+        .map((role) => {
+          if ((interaction.member as GuildMember).roles.cache.has(role.id)) {
+            return role;
+          }
+        })
+        .filter((r) => r);
+      let canJoin = false;
+      for (let i = 0; i < userRoles.length; i++) {
+        if (userRoles[i].playQzgame) {
+          canJoin = true;
+          break;
+        }
+      }
+      if (!canJoin) {
+        await replyError(
+          interaction,
+          `You don't have permission to join quiz games in this server.`
+        );
         return;
       }
     }
