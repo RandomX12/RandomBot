@@ -12,4 +12,8 @@ export default class Ping {
     if (!this.startMs) throw new Error(`didn't start counting`);
     this.endMs = Date.now();
   }
+  reset() {
+    this.endMs = 0;
+    this.startMs = 0;
+  }
 }
