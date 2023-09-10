@@ -13,7 +13,6 @@ export default function handleError<T extends unknown>(error: T): string {
     return ServersErrors[error.code]?.message || "An unexpected error occurred";
   }
   if (error instanceof DiscordAPIError) {
-    console.log(error.code);
     if (error.code === 50001) {
       return `Missing Access`;
     } else if (error.code === 50013) {
