@@ -4,8 +4,6 @@
 import readline from "readline";
 import { Bot } from "./Bot";
 import { animateRotatingSlash, error, log, warning } from "./cmd";
-import discordServers from "../model/discordServers";
-import DiscordServers from "./DiscordServers";
 import { QzGame } from "./QuizGame";
 import Ping from "./Ping";
 import { games } from "..";
@@ -390,22 +388,31 @@ addRuntimeCMD({
 });
 
 addRuntimeCMD({
-  input: "table",
-  type: "ASYNC",
-  loadingTxt: "Fetching Info...",
-  finishTxt: "table fetched",
-  async fn() {
-    const server = await discordServers.find();
-    const tableInfo = server.map((e) => {
-      return {
-        name: e.name,
-        membersLenght: e.members.length,
-        guildId: e.serverId,
-        id: e.id,
-        __v: e.__v,
-      };
-    });
-    console.table(tableInfo);
+  input: "guilds [:id]?:str",
+  async fn(args) {
+    if (!args[0]?.value) {
+      const guilds = Bot.client.guilds.cache.map((g) => {
+        return {
+          id: g.id,
+          name: g.name.slice(0, 12),
+          members: g.memberCount,
+          games: games.select({ guildId: g.id }).length,
+        };
+      });
+      console.table(guilds);
+    } else {
+      const guild = Bot.client.guilds.cache.get(args[0].value as string);
+      if (!guild) {
+        error(`Guild with id="${args[0].value}" is not found`);
+        return;
+      }
+      console.table({
+        id: guild.id,
+        name: guild.name.slice(0, 12),
+        members: guild.memberCount,
+        games: games.select({ guildId: guild.id }).length,
+      });
+    }
   },
 });
 
