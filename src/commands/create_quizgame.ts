@@ -338,9 +338,7 @@ module.exports = new Command({
       });
     }
     const embed = game.generateEmbed();
-    const content = `@everyone new Quiz Game created by <@${
-      interaction.user.id
-    }> ${TimeTampNow(Date.now())}`;
+    const content = game.generateContent();
     const row: any = game.generateRow(server.config.quiz.gameStart);
     try {
       if (!msg) throw new Error(`Cannot create the game`);

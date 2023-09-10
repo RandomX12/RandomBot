@@ -482,9 +482,7 @@ client.on("channelCreate", async (c) => {
         embeds: [embed],
         components:
           game.gameStart && game.gameStart !== gameStartType.ADMIN ? [row] : [],
-        content: `@everyone new Quiz Game created by <@${
-          creator.id
-        }> ${TimeTampNow(Date.now())}`,
+        content: game.generateContent(),
       });
     } catch (err: any) {
       DiscordServers.deleteGame(hostId);
