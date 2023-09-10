@@ -522,27 +522,6 @@ client.on("channelCreate", async (c) => {
     if (game) {
       games.delete(game.hostId);
     }
-    try {
-      if (c.type === ChannelType.GuildText) {
-        c.messages.cache.map(async (e) => {
-          if (e.author.id === client.user.id) {
-            try {
-              await e.delete();
-            } catch (err) {
-              warning(`unable to delete message`);
-            }
-          }
-        });
-        const errorEmbed = new EmbedBuilder()
-          .setColor("Red")
-          .setTitle(`unable to create custom quiz game`);
-        await c.send({
-          embeds: [errorEmbed],
-        });
-      }
-    } catch (error) {
-      warning(error.message);
-    }
     warning(err.message);
   }
 });
