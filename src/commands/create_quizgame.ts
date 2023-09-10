@@ -134,6 +134,15 @@ module.exports = new Command({
       "difficulty"
     ) as difficulty;
     const server = await fetchServer(interaction.guildId);
+    if (server.config.quiz.multiple_channels.enable) {
+      if (!interaction.guild.members.me.permissions.has("ManageChannels")) {
+        await replyError(
+          interaction,
+          `I need **Manage Channels** permission to create a new channel for the game`
+        );
+        return;
+      }
+    }
     const guidGames = games.select({ guildId: interaction.guildId });
     if (guidGames.length >= maxGames) {
       await replyError(
@@ -392,5 +401,4 @@ module.exports = new Command({
     }, 1000 * 60 * 5);
   },
   ephemeral: true,
-  access: ["Administrator"],
 });
