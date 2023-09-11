@@ -5,24 +5,14 @@ import {
   ButtonBuilder,
   ChannelType,
   type Collection,
-  DiscordAPIError,
   EmbedBuilder,
   type GuildMember,
   OverwriteResolvable,
   Message,
 } from "discord.js";
-import {
-  TimeTampNow,
-  animateRotatingSlash,
-  error,
-  log,
-  warning,
-} from "./lib/cmd";
+import { animateRotatingSlash, error, log, warning } from "./lib/cmd";
 import { connectDB } from "./lib/connectDB";
-import DiscordServers, {
-  fetchServer,
-  getServerByGuildId,
-} from "./lib/DiscordServers";
+import DiscordServers, { fetchServer } from "./lib/DiscordServers";
 import { Member } from "./model/discordServers";
 import Command, {
   ButtonCommand,
@@ -444,6 +434,7 @@ client.on("channelCreate", async (c) => {
       ],
       deny: [],
     });
+
     await c.edit({
       name: "waiting 🟡",
       permissionOverwrites: permissions,

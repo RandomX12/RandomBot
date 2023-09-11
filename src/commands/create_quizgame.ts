@@ -275,6 +275,13 @@ module.exports = new Command({
             msg = err.message;
           }
           if (err instanceof DiscordAPIError) {
+            if (err.code === 50013) {
+              await replyError(
+                interaction,
+                `An error occurred while creating the channel\nDiscord Error : ${err.message}\nIt is recommended that RandomBot get the **"Administrator"** permission to work properly`
+              );
+              return;
+            }
             errorCode = `DiscordAPIError_${err.code}`;
             msg = err.message;
           }

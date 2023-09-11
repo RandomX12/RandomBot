@@ -85,7 +85,7 @@ const discordServer = new Schema<DiscordServer>({
           gameStart: {
             required: true,
             type: Number,
-            default: 0,
+            default: 1,
           },
         },
         required: true,
