@@ -1,6 +1,6 @@
 # Commands Configuration
 
-After choosing a server from the [dashboard]() ,go to the command section in the dashboard and you will find a set of commands of RandomBot.
+After choosing a server from the [dashboard](https://random-bot-seven.vercel.app/dashboard) ,go to the command section in the dashboard and you will find a set of commands of RandomBot.
 
 ![Commands section](https://lh3.googleusercontent.com/u/0/drive-viewer/AITFw-yBLx5-1atayvprnAHNfxeTozPORybOSAzwee8gKJY1jNa5gQwrIVWEdlvOPDDN4_Mes3ypWKZG7mb5wD0gIsxo1Ta5=w1920-h942)
 
