@@ -613,9 +613,9 @@ export class QzGame extends Game implements QzGameData {
     return row;
   }
   generateContent() {
-    return `@everyone new Quiz Game created by <@${
-      this.hostUserId
-    }> ${TimeTampNow(Date.now())}`;
+    return `new Quiz Game created by <@${this.hostUserId}> ${TimeTampNow(
+      Date.now()
+    )}`;
   }
   generateRoundEmbed() {
     if (!this.round) return;

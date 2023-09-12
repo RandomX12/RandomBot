@@ -66,7 +66,7 @@ export const gameStartType = {
 export type TGameStart = (typeof gameStartType)[keyof typeof gameStartType];
 
 export default class Config {
-  constructor(public config?: ConfigT) {
+  constructor(serverId: string, public config?: ConfigT) {
     // written by KHLALA
     if (!this.config) {
       this.config = {
@@ -79,8 +79,14 @@ export default class Config {
               viewChannel: [],
             },
           },
-          gameStart: 0,
-          roles: [],
+          gameStart: 1,
+          roles: [
+            {
+              id: serverId,
+              playQzgame: true,
+              gamesPerUser: 15,
+            },
+          ],
         },
       };
     }

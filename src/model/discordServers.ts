@@ -12,24 +12,13 @@ export interface Game {
 }
 export interface DiscordServer {
   serverId: string;
-  name: string;
-  members: Member[];
-  games: Game[];
   config?: ConfigT;
 }
 
 const discordServer = new Schema<DiscordServer>({
-  name: {
-    required: true,
-    type: String,
-  },
   serverId: {
     required: true,
     type: String,
-  },
-  members: {
-    required: true,
-    type: [Object],
   },
   config: {
     required: true,
@@ -96,7 +85,7 @@ const discordServer = new Schema<DiscordServer>({
           gameStart: {
             required: true,
             type: Number,
-            default: 0,
+            default: 1,
           },
         },
         required: true,
