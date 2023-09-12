@@ -231,18 +231,9 @@ client.on("interactionCreate", async (interaction) => {
 client.on("guildCreate", async (guild) => {
   if (!guild) return;
   try {
-    const members: Member[] = [];
-    let res = await guild.members.fetch();
-    res.map((e) => {
-      members.push({
-        username: e.user.tag,
-        id: e.user.id,
-      });
-    });
     await new DiscordServers({
       serverId: guild.id,
     }).save();
-
     log({
       text: `Bot joined new server ${guild.name} ; ${guild.members.cache.size} members`,
       textColor: "Cyan",
@@ -426,12 +417,7 @@ client.on("channelCreate", async (c) => {
     }
     permissions.push({
       id: client.user.id,
-      allow: [
-        "ManageMessages",
-        "SendMessages",
-        "ManageChannels",
-        "ViewChannel",
-      ],
+      allow: ["SendMessages", "ManageChannels", "ViewChannel"],
       deny: [],
     });
 

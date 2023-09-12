@@ -22,7 +22,7 @@ export default async function troubleshoot(
       await server.save();
       return;
     } else if (error.code === "402") {
-      const config = new Config();
+      const config = new Config(interaction.guildId);
       await config.save(interaction.guildId);
       return;
     } else if (error.code === "401") {

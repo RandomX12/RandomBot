@@ -209,12 +209,7 @@ module.exports = new Command({
           },
           {
             id: interaction.client.user.id,
-            allow: [
-              "ManageMessages",
-              "SendMessages",
-              "ManageChannels",
-              "ViewChannel",
-            ],
+            allow: ["SendMessages", "ManageChannels", "ViewChannel"],
             deny: [],
           },
         ];

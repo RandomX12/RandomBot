@@ -111,7 +111,7 @@ export default class DiscordServers {
       serverId: this.server.serverId,
     });
     if (check) throw new Error(`This server is allready exist`);
-    const config = new Config();
+    const config = new Config(this.server.serverId);
     this.server.config = config.config;
     const server = new ServersModel(this.server);
     await server.save();
@@ -175,7 +175,7 @@ export class Server implements DiscordServer {
    */
   async setConfig(config: ConfigT): Promise<void> {
     const server = await getServerByGuildId(this.serverId);
-    const c = new Config(config);
+    const c = new Config(this.serverId, config);
     server.config = c.config;
     await server.save();
     this.config = c.config;
