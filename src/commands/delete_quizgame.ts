@@ -42,6 +42,15 @@ module.exports = new Command({
       hostId = game.hostId;
     }
     const game = await QzGame.getGame(hostId);
+    if (!game.mainChannel) {
+      if (interaction.guild.members.me.permissions.has("ManageChannels")) {
+        await replyError(
+          interaction,
+          `I need "Manage Channels" permission to delete the game channel`
+        );
+        return;
+      }
+    }
     const announcement = await QzGame.getAnnouncement(interaction, game.hostId);
     DiscordServers.deleteGame(game.hostId);
     if (announcement) {
@@ -72,5 +81,4 @@ module.exports = new Command({
   },
   permissions: permissions,
   ephemeral: true,
-  access: ["ManageChannels"],
 });

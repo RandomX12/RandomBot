@@ -5,24 +5,14 @@ import {
   ButtonBuilder,
   ChannelType,
   type Collection,
-  DiscordAPIError,
   EmbedBuilder,
   type GuildMember,
   OverwriteResolvable,
   Message,
 } from "discord.js";
-import {
-  TimeTampNow,
-  animateRotatingSlash,
-  error,
-  log,
-  warning,
-} from "./lib/cmd";
+import { animateRotatingSlash, error, log, warning } from "./lib/cmd";
 import { connectDB } from "./lib/connectDB";
-import DiscordServers, {
-  fetchServer,
-  getServerByGuildId,
-} from "./lib/DiscordServers";
+import DiscordServers, { fetchServer } from "./lib/DiscordServers";
 import { Member } from "./model/discordServers";
 import Command, {
   ButtonCommand,
@@ -54,6 +44,7 @@ import { QuizGame as QzGameT } from "./model/QuizGame";
 import { gameStartType } from "./lib/DiscordServersConfig";
 import QzGameError from "./lib/errors/QuizGame";
 import lunchServer from "./server";
+import Ping from "./lib/Ping";
 listenToCmdRunTime();
 require("dotenv").config();
 declare module "discord.js" {
@@ -240,21 +231,9 @@ client.on("interactionCreate", async (interaction) => {
 client.on("guildCreate", async (guild) => {
   if (!guild) return;
   try {
-    const members: Member[] = [];
-    let res = await guild.members.fetch();
-    res.map((e) => {
-      members.push({
-        username: e.user.tag,
-        id: e.user.id,
-      });
-    });
     await new DiscordServers({
-      name: guild.name,
       serverId: guild.id,
-      members: members,
-      games: [],
     }).save();
-
     log({
       text: `Bot joined new server ${guild.name} ; ${guild.members.cache.size} members`,
       textColor: "Cyan",
@@ -277,41 +256,6 @@ client.on("guildDelete", async (guild) => {
   }
 });
 
-client.on("guildMemberAdd", async (m) => {
-  try {
-    const dcServer = await getServerByGuildId(m.guild.id);
-    let isIn = false;
-    dcServer.members.map((e) => {
-      if (e.id === m.id) {
-        isIn = true;
-      }
-    });
-    if (isIn) return;
-    dcServer.members.push({
-      username: m.user.tag,
-      id: m.id,
-    });
-    await dcServer.save();
-  } catch (err: any) {
-    error(err.message);
-  }
-});
-client.on("guildMemberRemove", async (m) => {
-  try {
-    const dcServer = await getServerByGuildId(m.guild.id);
-    let isIn = false;
-    dcServer.members.map((e, i) => {
-      if (e.id === m.id) {
-        isIn = true;
-        dcServer.members.splice(i, 1);
-      }
-    });
-    if (!isIn) return;
-    await dcServer.save();
-  } catch (err: any) {
-    error(err.message);
-  }
-});
 client.on("messageDelete", async (msg) => {
   try {
     if (msg.author.id !== client.user.id) return;
@@ -473,14 +417,10 @@ client.on("channelCreate", async (c) => {
     }
     permissions.push({
       id: client.user.id,
-      allow: [
-        "ManageMessages",
-        "SendMessages",
-        "ManageChannels",
-        "ViewChannel",
-      ],
+      allow: ["SendMessages", "ManageChannels", "ViewChannel"],
       deny: [],
     });
+
     await c.edit({
       name: "waiting 🟡",
       permissionOverwrites: permissions,
@@ -519,9 +459,7 @@ client.on("channelCreate", async (c) => {
         embeds: [embed],
         components:
           game.gameStart && game.gameStart !== gameStartType.ADMIN ? [row] : [],
-        content: `@everyone new Quiz Game created by <@${
-          creator.id
-        }> ${TimeTampNow(Date.now())}`,
+        content: game.generateContent(),
       });
     } catch (err: any) {
       DiscordServers.deleteGame(hostId);
@@ -561,27 +499,6 @@ client.on("channelCreate", async (c) => {
     if (game) {
       games.delete(game.hostId);
     }
-    try {
-      if (c.type === ChannelType.GuildText) {
-        c.messages.cache.map(async (e) => {
-          if (e.author.id === client.user.id) {
-            try {
-              await e.delete();
-            } catch (err) {
-              warning(`unable to delete message`);
-            }
-          }
-        });
-        const errorEmbed = new EmbedBuilder()
-          .setColor("Red")
-          .setTitle(`unable to create custom quiz game`);
-        await c.send({
-          embeds: [errorEmbed],
-        });
-      }
-    } catch (error) {
-      warning(error.message);
-    }
     warning(err.message);
   }
 });
@@ -606,6 +523,11 @@ client.on("channelDelete", async (channel) => {
 client.on("ready", async (c) => {
   try {
     console.clear();
+    log({
+      text: `Discord bot connected as : ${c.user.username}`,
+      textColor: "Blue",
+      timeColor: "Blue",
+    });
     const bDate = Date.now();
     let scan = require("../config.json").scanSlashCommands;
     if (scan) {
@@ -618,24 +540,34 @@ client.on("ready", async (c) => {
     }
     Bot.scanButtons();
     scan = null;
-    console.log(
-      `[${new Date().toLocaleTimeString()}] Discord bot connected as : ${
-        c.user.username
-      }`
-    );
     log({
-      text: `connecting to the database`,
+      text: `connecting to the database...`,
       textColor: "Magenta",
       timeColor: "Magenta",
     });
+    const couter = new Ping();
+    couter.start();
     await connectDB();
+    couter.end();
     log({
-      text: `successfully connected to the database`,
+      text: `successfully connected to the database ${couter.ping}ms`,
       textColor: "Green",
       timeColor: "Green",
     });
-    let guilds = await c.guilds.fetch();
-    await DiscordServers.scanGuilds(guilds);
+    couter.reset();
+    log({
+      text: "scanning guilds...",
+      textColor: "Yellow",
+      timeColor: "Yellow",
+    });
+    couter.start();
+    await DiscordServers.scanGuilds(c.guilds.cache);
+    couter.end();
+    log({
+      text: `Guilds scanned : ${c.guilds.cache.size} guilds.  ${couter.ping}ms`,
+      textColor: "Green",
+      timeColor: "Green",
+    });
     const aDate = Date.now();
     const ping = aDate - bDate;
     log({ text: "Bot started " + ping + "ms", textColor: "Cyan" });
@@ -651,7 +583,7 @@ client.on("ready", async (c) => {
     );
   } catch (err: any) {
     log({
-      text: `There was an error while connecting to the database. \n ${err.message}`,
+      text: `an error occurred while starting the bot \n ${err.message}`,
       textColor: "Red",
       timeColor: "Red",
     });
@@ -663,12 +595,4 @@ if (bot?.loginAutomatically) {
   Bot.lunch();
 }
 
-// for express server :)
-try {
-  lunchServer();
-} catch (err: any) {
-  warning(err.message);
-  warning(
-    "Express Server is offline !.\nif you are in production mode please set 'productionMode' in ./config.json to true."
-  );
-}
+lunchServer();

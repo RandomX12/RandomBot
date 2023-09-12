@@ -14,6 +14,8 @@ import { Bot } from "./Bot";
 import QzGameError from "./errors/QuizGame";
 import DiscordServersError from "./errors/DiscordServers";
 import { games } from "..";
+import Ping from "./Ping";
+import mongoose, { ObjectId } from "mongoose";
 /**
  * Get the server document from the data base
  * @param id server id
@@ -65,17 +67,6 @@ export default class DiscordServers {
   static async getGameByHostId(id: string) {
     return await QzGame.getGame(id);
   }
-  static async getUser(guildId: string, userId: string) {
-    const server = await getServerByGuildId(guildId);
-    let user: Member;
-    server.members.map((e) => {
-      if (e.id === userId) {
-        user = e;
-      }
-    });
-    if (!user) throw new DiscordServersError("403", `User not found`);
-    return user;
-  }
   /**
    * Delete an existing game
    * @param guildId server id
@@ -97,74 +88,20 @@ export default class DiscordServers {
     return false;
   }
   /**
-   * save unsaved servers in the database and delete servers from database the bot isn't in
+   * Deletes servers from database the bot isn't in
    */
-  static async scanGuilds(
-    guilds: Collection<string, OAuth2Guild>
-  ): Promise<void> {
-    const server = await discordServers.find();
-    guilds.map(async (e) => {
-      try {
-        let isIn = false;
-        server.map((ele) => {
-          if (ele.serverId === e.id) {
-            isIn = true;
-            return;
-          }
-        });
-        if (isIn) return;
-        let members: Member[] = (await (await e.fetch()).members.fetch()).map(
-          (e) => {
-            return {
-              username: e.user.tag,
-              id: e.user.id,
-            };
-          }
-        );
-        await new DiscordServers({
-          name: e.name,
-          members: members,
-          serverId: e.id,
-          games: [],
-        }).save();
-      } catch (err: any) {
-        error(err.message);
-      }
+  static async scanGuilds(guilds: Collection<string, Guild>): Promise<void> {
+    const guildsIds: string[] = [];
+    guilds.forEach((g) => {
+      guildsIds.push(g.id);
     });
-    server.map(async (e, i) => {
-      try {
-        let isIn = false;
-        guilds.map((ele) => {
-          if (e.serverId === ele.id) {
-            isIn = true;
-          }
-        });
-        if (!isIn) {
-          await server[i].deleteOne();
-        }
-      } catch (err: any) {
-        warning(err.message);
-      }
+    await discordServers.deleteMany({
+      serverId: {
+        $nin: guildsIds,
+      },
     });
   }
-  /**
-   * Delete all the games from all the servers
-   * @note this function is used to run when the bot do a restart or when doing an update
-   */
-  static async cleanGuilds(): Promise<void> {
-    warning(`this function will be deleted in the 1.0.0 stable version`);
-    const server = await DiscordSv.find();
-    server.map(async (e, i) => {
-      try {
-        if (e.games.length > 0) {
-          server[i].games = [];
-          await server[i].save();
-        }
-      } catch (err: any) {
-        warning(err.message);
-      }
-    });
-  }
+
   constructor(public server: DiscordServer) {}
   /**
    * save in the database
@@ -174,7 +111,7 @@ export default class DiscordServers {
       serverId: this.server.serverId,
     });
     if (check) throw new Error(`This server is allready exist`);
-    const config = new Config();
+    const config = new Config(this.server.serverId);
     this.server.config = config.config;
     const server = new ServersModel(this.server);
     await server.save();
@@ -209,10 +146,7 @@ export class Server implements DiscordServer {
    * Set the server data.
    */
   applyData(data: Partial<DiscordServer>): void {
-    this.name = data.name || this.name;
     this.config = data.config || this.config;
-    this.members = data.members;
-    this.games = data.games || this.games;
   }
   /**
    * fetch the server data from the database
@@ -232,10 +166,7 @@ export class Server implements DiscordServer {
    */
   async update(): Promise<void> {
     const server = await getServerByGuildId(this.serverId);
-    server.name = this.name;
     server.config = this.config;
-    server.members = this.members;
-    server.games = this.games;
     await server.save();
   }
   /**
@@ -244,20 +175,11 @@ export class Server implements DiscordServer {
    */
   async setConfig(config: ConfigT): Promise<void> {
     const server = await getServerByGuildId(this.serverId);
-    const c = new Config(config);
+    const c = new Config(this.serverId, config);
     server.config = c.config;
     await server.save();
     this.config = c.config;
     return;
-  }
-  /**
-   * delete all games in this server
-   */
-  async cleanGames(): Promise<void> {
-    warning(`this function will be deleted in the 1.0.0 stable version`);
-    const server = await getServerByGuildId(this.serverId);
-    server.games = [];
-    await server.save();
   }
   /**
    * Get the number of online member in this server

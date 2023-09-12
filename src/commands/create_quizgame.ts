@@ -134,6 +134,15 @@ module.exports = new Command({
       "difficulty"
     ) as difficulty;
     const server = await fetchServer(interaction.guildId);
+    if (server.config.quiz.multiple_channels.enable) {
+      if (!interaction.guild.members.me.permissions.has("ManageChannels")) {
+        await replyError(
+          interaction,
+          `I need **Manage Channels** permission to create a new channel for the game`
+        );
+        return;
+      }
+    }
     const guidGames = games.select({ guildId: interaction.guildId });
     if (guidGames.length >= maxGames) {
       await replyError(
@@ -200,12 +209,7 @@ module.exports = new Command({
           },
           {
             id: interaction.client.user.id,
-            allow: [
-              "ManageMessages",
-              "SendMessages",
-              "ManageChannels",
-              "ViewChannel",
-            ],
+            allow: ["SendMessages", "ManageChannels", "ViewChannel"],
             deny: [],
           },
         ];
@@ -266,6 +270,13 @@ module.exports = new Command({
             msg = err.message;
           }
           if (err instanceof DiscordAPIError) {
+            if (err.code === 50013) {
+              await replyError(
+                interaction,
+                `An error occurred while creating the channel\nDiscord Error : ${err.message}\nIt is recommended that RandomBot get the **"Administrator"** permission to work properly`
+              );
+              return;
+            }
             errorCode = `DiscordAPIError_${err.code}`;
             msg = err.message;
           }
@@ -338,9 +349,7 @@ module.exports = new Command({
       });
     }
     const embed = game.generateEmbed();
-    const content = `@everyone new Quiz Game created by <@${
-      interaction.user.id
-    }> ${TimeTampNow(Date.now())}`;
+    const content = game.generateContent();
     const row: any = game.generateRow(server.config.quiz.gameStart);
     try {
       if (!msg) throw new Error(`Cannot create the game`);
@@ -394,5 +403,4 @@ module.exports = new Command({
     }, 1000 * 60 * 5);
   },
   ephemeral: true,
-  access: ["Administrator"],
 });
