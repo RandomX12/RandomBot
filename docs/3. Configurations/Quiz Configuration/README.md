@@ -19,7 +19,7 @@ This option is disabled by default. To enable it, click on the switch at the top
 ## Custom Games
 
 Custom games function similarly to normal games, but they aren't affected by the Multiple Channels configuration. This option is disabled by default. To enable it, click on the switch at the top of the screen, and then save the changes.</br>
-If you don't know how to create one you can see [custom games](/wiki/How-to-create-a-quiz-game#how-to-create-a-custom-games).
+If you don't know how to create one you can see [custom games](../../../../../wiki/2.%20How-to-create-a-quiz-game#how-to-create-a-custom-games).
 
 ## Game Start
 
