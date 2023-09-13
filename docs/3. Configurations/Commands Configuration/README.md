@@ -26,4 +26,4 @@ choose the elements you want then click Ok.
 
 Then save the changes.
 
-[See Quiz Configuration](../Quiz%Configuration)
+[See Quiz Configuration](../Quiz%20Configuration)
