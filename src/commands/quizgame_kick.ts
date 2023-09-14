@@ -7,7 +7,7 @@ import { games } from "..";
 module.exports = new Command({
   data: {
     name: "kick",
-    description: "kicks a player",
+    description: "kicks a player from a game",
     options: [
       {
         name: "player",

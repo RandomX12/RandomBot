@@ -6,6 +6,7 @@ import {
 } from "discord.js";
 import Command, { reply } from "../lib/Commands";
 import { Bot } from "../lib/Bot";
+import { games } from "..";
 
 module.exports = new Command({
   data: new SlashCommandBuilder()
@@ -21,10 +22,16 @@ module.exports = new Command({
     const embed = new EmbedBuilder().setColor(0x6dfd7d);
     const after = Date.now();
     embed.setTitle("pong :white_check_mark:");
-    embed.setDescription(
-      `**Response Time** : ${after - date}ms \n**Uptime** : ${Bot.uptime}`
-    );
-    embed.setFooter({ text: `v${version}` });
+    embed
+      .setDescription(
+        `**Response Time** : ${after - date}ms \n**Uptime** : ${
+          Bot.uptime
+        }\n**Games** : ${games.size}`
+      )
+      .setFooter({
+        iconURL: interaction.client.user.avatarURL(),
+        text: `${interaction.client.user.username} v${version}`,
+      });
     await reply(interaction, {
       embeds: [embed],
       content: "",
