@@ -60,7 +60,7 @@ const discordServer = new Schema<DiscordServer>({
           customGames: {
             required: false,
             type: Boolean,
-            default: false,
+            default: true,
           },
           roles: {
             required: false,
