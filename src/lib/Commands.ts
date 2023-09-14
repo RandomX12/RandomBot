@@ -126,11 +126,16 @@ export async function verify(
       if (server.config.commands[i].permissions) {
         for (let j = 0; j < server.config.commands[i].permissions.length; j++) {
           if (
-            member.permissions.has(server.config.commands[i].permissions[j])
+            !member.permissions.has(server.config.commands[i].permissions[j])
           ) {
-            return true;
+            await replyError(
+              interaction,
+              "You don't have the permission to this command "
+            );
+            return false;
           }
         }
+        return true;
       }
       if (server.config.commands[i].rolesId) {
         for (let j = 0; j < server.config.commands[i].rolesId.length; j++) {
