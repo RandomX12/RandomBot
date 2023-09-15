@@ -32,6 +32,8 @@
   "info": {
     "website": "https://random-bot-seven.vercel.app/",
     "commands": "https://random-bot-seven.vercel.app/dashboard/server/commands",
-    "server": "discord.gg/dza564d5a"
+    "server": "",
+    "docs": "https://random-bot-seven.vercel.app/docs",
+    "dashboard": "https://random-bot-seven.vercel.app/dashboard/server?id="
   }
 }
