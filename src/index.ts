@@ -13,7 +13,6 @@ import {
 import { animateRotatingSlash, error, log, warning } from "./lib/cmd";
 import { connectDB } from "./lib/connectDB";
 import DiscordServers, { fetchServer } from "./lib/DiscordServers";
-import { Member } from "./model/discordServers";
 import Command, {
   ButtonCommand,
   reply,
