@@ -55,7 +55,7 @@ export function getCategoryNumByName<
   });
   return catName;
 }
-interface APIresponse {
+interface APIresponseOpentdb {
   results: {
     category: string;
     type: answerType;
@@ -65,6 +65,23 @@ interface APIresponse {
     incorrect_answers: string[];
   }[];
 }
+
+interface TriviaQuiz {
+  category: string;
+  type: string;
+  id: string;
+  difficulty: "easy";
+  question: {
+    text: string;
+  };
+  correctAnswer: string;
+  incorrectAnswers: string[];
+  tags: string[];
+  regions: string[];
+  isNiche: boolean;
+}
+
+type APIresponseTriviaApi = TriviaQuiz[];
 
 export const rank = [
   "🥇",
@@ -93,16 +110,20 @@ export type answerType = "multiple" | "boolean";
 // export const regex = /&quot;|&amp;|&#039;|&eacute;|&#039;|&amp;|&quot;|&shy;|&ldquo;|&rdquo;|&#039;|;|&/g
 export const categories = {
   Random: "any",
-  GeneralKnowledge: 9,
+  GeneralKnowledge: "general_knowledge",
   VideoGames: 15,
-  Sports: 21,
-  History: 23,
-  Geography: 22,
+  Sports: "sport_and_leisure",
+  History: "history",
+  Geography: "geography",
   Mathematics: 19,
   Computers: 18,
   Animals: 27,
   Vehicles: 28,
-  Films: 11,
+  Films: "film_and_tv",
+  Music: "music",
+  Science: "science",
+  Food: "food_and_drink",
+  Culture: "society_and_culture",
 } as const;
 export type QuizCategory = keyof typeof categories;
 export const QuizCategoryImg: Record<QuizCategory, string> = {
@@ -121,6 +142,13 @@ export const QuizCategoryImg: Record<QuizCategory, string> = {
     "https://cdni.iconscout.com/illustration/premium/thumb/car-2953450-2451640.png",
   Films:
     "https://banner2.cleanpng.com/20190730/shy/kisspng-photographic-film-movie-camera-cinema-website-and-mobile-application-development-service-5d3fc924ce3b33.8538265315644613488447.jpg",
+  Music:
+    "https://images.macrumors.com/t/vMbr05RQ60tz7V_zS5UEO9SbGR0=/1600x900/smart/article-new/2018/05/apple-music-note.jpg",
+  Science:
+    "https://img.freepik.com/free-vector/colorful-science-objects-icons-vector-set_1308-131708.jpg?w=2000",
+  Food: "https://lh3.googleusercontent.com/u/0/drive-viewer/AITFw-wwBQ63sKoB3fQnNIaswFx6q1Tv_3lZ0bcu3eHiRdCUE6Ng1soUl8MIVLDFHypdtTECzWgqQvnKlPFSXmb9dyTPkv2Ejw=w1920-h942",
+  Culture:
+    "https://hips.hearstapps.com/hmg-prod/images/quiz-questions-answers-1669651278.jpg",
 };
 export interface QuizGameInfo {
   hostId: string;
@@ -943,44 +971,80 @@ export class Quiz<CategoryT extends QuizCategory> implements QuizT {
    */
   async fetch(): Promise<this> {
     try {
-      let catUrl = `&category=${this.categoryNum}`;
-      if (this.categoryNum === "any") {
-        catUrl = "";
-      }
-      let difficulty: string = "";
-      if (this.difficulty) {
-        difficulty = `&difficulty=${this.difficulty}`;
-      }
-      const req = await axios.get(
-        `https://opentdb.com/api.php?amount=${this.amount}${difficulty}${catUrl}`
-      );
-      const res: APIresponse = req.data;
-      this.quiz = res.results.map((e) => {
-        // let q = e.question.replace(regex,' ')
-        let q = decode(e.question);
-        // let c = e.correct_answer.replace(regex,' ')
-        let c = decode(e.correct_answer);
-        let ans = e.incorrect_answers.map((ele) => {
-          return decode(ele);
-        });
-        let num = Math.floor(Math.random() * ans.length + 1);
-        if (num === ans.length) {
-          ans.push(c);
-        } else {
-          let an = ans[num];
-          ans[num] = c;
-          ans.push(an);
+      if (typeof this.categoryNum === "string") {
+        let catUrl = `&categories=${this.categoryNum}`;
+        if (this.categoryNum === "any") {
+          catUrl = "";
         }
-        let t = e.type;
-        return {
-          question: q,
-          answers: ans,
-          correctIndex: num,
-          type: t,
-          category: e.category as QuizCategory,
-        };
-      });
-      return this;
+        let difficulty: string = "";
+        if (this.difficulty) {
+          difficulty = `&difficulties=${this.difficulty}`;
+        }
+        const req = await axios.get(
+          `https://the-trivia-api.com/v2/questions?limit=${this.amount}&${catUrl}${difficulty}`
+        );
+        const res: APIresponseTriviaApi = req.data;
+        this.quiz = res.map((e) => {
+          let answers = e.incorrectAnswers;
+          let correct_answer = e.correctAnswer;
+          let randomNum = Math.floor(Math.random() * answers.length + 1);
+          if (randomNum === answers.length) {
+            answers.push(correct_answer);
+          } else {
+            let ans = answers[randomNum];
+            answers[randomNum] = correct_answer;
+            answers.push(ans);
+          }
+          return {
+            //@ts-ignore
+            category: e.category.replaceAll("_", " ") as QuizCategory,
+            question: e.question.text,
+            correctIndex: randomNum,
+            answers,
+            type: "multiple",
+          };
+        });
+        return this;
+      } else {
+        let catUrl = `&category=${this.categoryNum}`;
+        if (this.categoryNum === "any") {
+          catUrl = "";
+        }
+        let difficulty: string = "";
+        if (this.difficulty) {
+          difficulty = `&difficulty=${this.difficulty}`;
+        }
+        const req = await axios.get(
+          `https://opentdb.com/api.php?amount=${this.amount}${difficulty}${catUrl}`
+        );
+        const res: APIresponseOpentdb = req.data;
+        this.quiz = res.results.map((e) => {
+          // let q = e.question.replace(regex,' ')
+          let q = decode(e.question);
+          // let c = e.correct_answer.replace(regex,' ')
+          let c = decode(e.correct_answer);
+          let ans = e.incorrect_answers.map((ele) => {
+            return decode(ele);
+          });
+          let num = Math.floor(Math.random() * ans.length + 1);
+          if (num === ans.length) {
+            ans.push(c);
+          } else {
+            let an = ans[num];
+            ans[num] = c;
+            ans.push(an);
+          }
+          let t = e.type;
+          return {
+            question: q,
+            answers: ans,
+            correctIndex: num,
+            type: t,
+            category: e.category as QuizCategory,
+          };
+        });
+        return this;
+      }
     } catch (err) {
       throw new QzGameError("505", err.message);
     }
