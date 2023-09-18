@@ -191,8 +191,10 @@ export default class Command implements CommandOptions {
       command.deferReply === undefined ? true : command.deferReply;
     this.access = command.access ? command.access : [];
   }
-  async save() {
-    await Bot.client.application.commands.create(this.data);
+  async save(save?: boolean) {
+    if (save) {
+      await Bot.client.application.commands.create(this.data);
+    }
     //@ts-ignore
     Bot.client.commands.set(this.data.name, this);
     //@ts-ignore

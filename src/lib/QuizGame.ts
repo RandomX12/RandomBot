@@ -203,7 +203,6 @@ export const maxGames = 15;
 
 export abstract class Game implements GameT {
   abstract hostName: string;
-  abstract players?: Map<string, Member>;
   abstract channelId: string;
   abstract hostId: string;
   abstract guildId: string;

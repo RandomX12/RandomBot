@@ -9,6 +9,7 @@ import Ping from "./Ping";
 import { games } from "..";
 import mongoose from "mongoose";
 import { connectDB } from "./connectDB";
+import { ActivityType } from "discord.js";
 type CommandType = "SYNC" | "ASYNC";
 
 type ArgType = "str" | "int" | "float" | "bol" | "txt" | "arr";
@@ -605,6 +606,7 @@ addRuntimeCMD({
         }
         Bot.maintenance = 1;
         Bot.client.removeAllListeners();
+        Bot.setActivity({ type: ActivityType.Custom, name: "I am busy now" });
         log({ textColor: "Cyan", text: "\nmaintenance mode ON" });
       });
     } else {

@@ -528,14 +528,10 @@ client.on("ready", async (c) => {
     });
     const bDate = Date.now();
     let scan = require("../config.json").scanSlashCommands;
-    if (scan) {
-      let ws = animateRotatingSlash("Scanning commands...");
-      await Bot.scanCommands();
-      clearInterval(ws);
-      console.log("\ncommands scanned successfully");
-    } else {
-      Bot.scanCommands();
-    }
+    let ws = animateRotatingSlash("Scanning commands...");
+    await Bot.scanCommands(scan);
+    clearInterval(ws);
+    console.log("\ncommands scanned successfully");
     Bot.scanButtons();
     scan = null;
     log({
