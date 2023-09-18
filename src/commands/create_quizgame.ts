@@ -29,6 +29,7 @@ import Command, { reply, replyError } from "../lib/Commands";
 import { gameStartType } from "../lib/DiscordServersConfig";
 import { games } from "..";
 import QzGameError from "../lib/errors/QuizGame";
+import { Bot } from "../lib/Bot";
 
 let choices = Object.keys(categories).map((e) => {
   return {
@@ -117,6 +118,15 @@ let cmdBody: ApplicationCommandDataResolvable = {
 module.exports = new Command({
   data: cmdBody,
   async execute(interaction: ChatInputCommandInteraction<CacheType>) {
+    if (!Bot.createQzgame.enable) {
+      await replyError(
+        interaction,
+        `cannot create a game, creating a quiz game is disabled now.
+${Bot.createQzgame.reason ? `**reason**  ${Bot.createQzgame.reason}` : ""}`
+      );
+      return;
+    }
+
     const isIn = DiscordServers.isInGame(
       interaction.guildId,
       interaction.user.id

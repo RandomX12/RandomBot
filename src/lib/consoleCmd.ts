@@ -616,3 +616,16 @@ addRuntimeCMD({
     }
   },
 });
+addRuntimeCMD({
+  input: "create-qzgame [:c]:bol [:r]?:txt",
+  fn(args) {
+    Bot.createQzgame.enable = args[0].value;
+    if (args[1]) {
+      Bot.createQzgame.reason = args[1].value;
+    }
+    log({
+      textColor: "Green",
+      text: `create quiz games is ${args[0].value ? "enabled" : "disabled"}.`,
+    });
+  },
+});

@@ -177,6 +177,10 @@ export abstract class Bot {
    * default value from .env file variable BUSY
    */
   static maintenance = +process.env.BUSY;
+  static createQzgame = {
+    enable: require("../../config.json").quizGame?.createQzgame?.enable,
+    reason: require("../../config.json").quizGame?.createQzgame?.reason,
+  };
 }
 
 function toInt(num: number) {

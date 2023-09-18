@@ -352,6 +352,13 @@ client.on("channelCreate", async (c) => {
     }
     time = time * 1000;
     const channel = c;
+    if (!Bot.createQzgame.enable) {
+      await channel.send(
+        `:x: cannot create a game, creating a quiz game is disabled now.
+${Bot.createQzgame.reason ? `**reason**  ${Bot.createQzgame.reason}` : ""}`
+      );
+      return;
+    }
     const hostId = generateId();
     const guildGames = games.select({ guildId: channel.guildId });
     if (guildGames.length >= maxGames) {
