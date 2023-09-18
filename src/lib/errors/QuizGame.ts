@@ -40,12 +40,16 @@ export const QzErrors = {
     message: `user not found`,
   },
   "406": {
-    name: "ANNOUNCEMENT_NOTFOUNT",
+    name: "ANNOUNCEMENT_NOTFOUND",
     message: `game announcement not found`,
   },
   "408": {
     name: "CHANNEL_NOTFOUND",
     message: "game channel not found",
+  },
+  "409": {
+    name: "GUILD_NOTFOUND",
+    message: "guild not found",
   },
   "500": {
     name: "UNKNOWN_ERROR",

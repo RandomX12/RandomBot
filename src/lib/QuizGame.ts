@@ -12,8 +12,9 @@ import {
   Interaction,
   Message,
   MessageCreateOptions,
+  MessageEditOptions,
+  MessagePayload,
   PermissionOverwrites,
-  User,
 } from "discord.js";
 import { Game as GameT, Member } from "../model/discordServers";
 import {
@@ -24,7 +25,7 @@ import {
 } from "../model/QuizGame";
 import { TimeTampNow, error, log, warning } from "./cmd";
 import { TGameStart, gameStartType } from "./DiscordServersConfig";
-import QzGameError from "./errors/QuizGame";
+import QzGameError, { QzErrors } from "./errors/QuizGame";
 import { games } from "..";
 import { decode } from "html-entities";
 import axios from "axios";
@@ -202,7 +203,7 @@ export const maxGames = 15;
 
 export abstract class Game implements GameT {
   abstract hostName: string;
-  abstract players?: Member[];
+  abstract players?: Map<string, Member>;
   abstract channelId: string;
   abstract hostId: string;
   abstract guildId: string;
@@ -212,7 +213,7 @@ export abstract class Game implements GameT {
 }
 
 interface QzGameData {
-  players: QuizGamePlayer[];
+  players: Map<string, QuizGamePlayer>;
   index: number;
   maxPlayers: number;
   announcementId: string;
@@ -305,48 +306,35 @@ export class QzGame extends Game implements QzGameData {
     index: number
   ) {
     const game = await QzGame.getGame(hostId);
-    let isUser: boolean = false;
-    for (let i = 0; i < game.players.length; i++) {
-      if (game.players[i].id === userId) {
-        isUser = true;
-        if (!game.players[i].answers) {
-          game.players[i].answers = [
-            {
-              index: index,
-              answer: ans,
-            },
-          ];
-        } else {
-          for (let j = 0; j < game.players[i].answers.length; j++) {
-            if (game.players[i].answers[j].index === index) {
-              game.players[i].answers[j].answer = ans;
-              await game.update();
-              return;
-            }
-          }
-          game.players[i].answers.push({
-            index: index,
-            answer: ans,
-          });
+    const player = game.players.get(userId);
+
+    if (!player.answers) {
+      player.answers = [
+        {
+          index: index,
+          answer: ans,
+        },
+      ];
+    } else {
+      for (let j = 0; j < player.answers.length; j++) {
+        if (player.answers[j].index === index) {
+          player.answers[j].answer = ans;
+          await game.update();
+          return;
         }
-        break;
       }
+      player.answers.push({
+        index: index,
+        answer: ans,
+      });
     }
-    if (!isUser)
-      throw new QzGameError("201", `User with id=${userId} is not in the game`);
+    game.players.set(userId, player);
     await game.update();
   }
 
   static async isIn(hostId: string, userId: string): Promise<boolean> {
     const game = await QzGame.getGame(hostId);
-
-    for (let i = 0; i < game.players.length; i++) {
-      if (game.players[i].id === userId) {
-        return true;
-      }
-    }
-
-    return false;
+    return !!game.players.get(userId);
   }
 
   static async getAnnouncement(
@@ -356,12 +344,14 @@ export class QzGame extends Game implements QzGameData {
     hostId: string
   ) {
     const game = await QzGame.getGame(hostId);
-    const channel: any = await interaction.guild.channels.cache
-      .get(game.channelId)
-      ?.fetch();
+    const channel = interaction.guild.channels.cache.get(game.channelId);
+    if (channel.type !== ChannelType.GuildText)
+      throw new QzGameError("304", "Invalid channel type");
     const announcement: Message<true> = channel?.messages?.cache?.get(
-      (game as QzGameData).announcementId
+      game.announcementId
     );
+    if (!announcement)
+      throw new QzGameError("406", "game announcement not found");
     return announcement;
   }
 
@@ -378,15 +368,14 @@ export class QzGame extends Game implements QzGameData {
 
   static async removeAns(hostId: string, userId: string, index: number) {
     const game = await QzGame.getGame(hostId);
-    game.players?.map((ele, j) => {
-      if (ele.id === userId) {
-        game.players[j].answers?.map((e, i) => {
-          if (e.index === index) {
-            game.players[j].answers?.splice(i, 1);
-          }
-        });
+    const player = game.players.get(userId);
+    if (!player) throw new QzGameError("201", "user not found");
+    player.answers?.map((e, i) => {
+      if (e.index === index) {
+        player.answers?.splice(i, 1);
       }
     });
+    game.players.set(userId, player);
     await game.update();
   }
   /**
@@ -394,7 +383,7 @@ export class QzGame extends Game implements QzGameData {
    */
   public guildId: string;
   public hostName: string;
-  public players: QuizGamePlayer[];
+  public players: Map<string, QuizGamePlayer>;
   public channelId: string;
   /**
    * Round number of the game.
@@ -434,17 +423,6 @@ export class QzGame extends Game implements QzGameData {
   /** */
   public invitedPlayers: Set<string>;
   /**
-   * Get all game data without the methods
-   */
-  get cache() {
-    const cache = this;
-    delete cache.delete;
-    delete cache.applyData;
-    delete cache.fetch;
-    delete cache.update;
-    return cache as QzGameData;
-  }
-  /**
    * Game start code
    */
   public gameStart?: TGameStart;
@@ -466,7 +444,12 @@ export class QzGame extends Game implements QzGameData {
   applyData(game: Partial<QuizGameType>) {
     this.guildId = game.guildId || this.guildId;
     this.hostName = game.hostName || this.hostName;
-    this.players = game.players || this.players;
+    this.players = new Map<string, QuizGamePlayer>() || this.players;
+    if (game.players) {
+      for (let i = 0; i < game.players.length; i++) {
+        this.players.set(game.players[i].id, game.players[i]);
+      }
+    }
     this.channelId = game.channelId || this.channelId;
     this.index = game.index || this.index;
     this.maxPlayers = game.maxPlayers || this.maxPlayers;
@@ -502,6 +485,7 @@ export class QzGame extends Game implements QzGameData {
       ...this,
       invitedPlayers: Array.from(this.invitedPlayers),
       bannedPlayers: Array.from(this.bannedPlayers),
+      players: Array.from(this.players.values()),
     };
     games.set(this.hostId, gameData);
   }
@@ -541,11 +525,10 @@ export class QzGame extends Game implements QzGameData {
     }
   }
   setPlayerReady(id: string, ready?: boolean) {
-    for (let i = 0; i < this.players.length; i++) {
-      if (this.players[i].id === id) {
-        this.players[i].ready = ready === undefined ? true : ready;
-        break;
-      }
+    const player = this.players.get(id);
+    if (player) {
+      player.ready = ready;
+      this.players.set(id, player);
     }
   }
   /**
@@ -582,13 +565,13 @@ export class QzGame extends Game implements QzGameData {
         }`,
       })
       .setAuthor({
-        name: `Waiting for players... ${this.players.length} / ${this.maxPlayers}`,
+        name: `Waiting for players... ${this.players.size} / ${this.maxPlayers}`,
       })
       .setTimestamp(Date.now())
       .setFooter({ text: `id : ${this.hostId}` });
-    if (this.players.length !== 0) {
+    if (this.players.size !== 0) {
       let players = ``;
-      this.players.map((e) => {
+      Array.from(this.players.values()).map((e) => {
         players +=
           "```\n" +
           `${e.username} ${
@@ -724,36 +707,35 @@ export class QzGame extends Game implements QzGameData {
       components: [row],
     };
   }
-  isReady(id: string) {
-    for (let i = 0; i < this.players.length; i++) {
-      if (this.players[i].ready && id === this.players[i].id) {
-        return true;
-      }
-    }
-    return false;
+  isReady(id: string): boolean {
+    const player = this.players.get(id);
+    return player?.ready;
   }
   removePlayer(id: string) {
-    this.players = this.players.filter((e) => e.id !== id);
+    this.players.delete(id);
   }
   setPlayersScore(): void {
     let ansIndex: answer[] = ["A", "B", "C", "D"];
     if (!this.round || !this.started) return;
-    for (let i = 0; i < this.players.length; i++) {
-      if (!this.players[i].answers) this.players[i].answers = [];
-      this.players[i].score = 0;
-      for (let j = 0; j < this.players[i].answers.length; j++) {
-        let correctIndex =
-          this.quiz[this.players[i].answers[j].index].correctIndex;
-        if (ansIndex[correctIndex] === this.players[i].answers[j].answer) {
-          this.players[i].score++;
+    const players = Array.from(this.players.values());
+    for (let i = 0; i < players.length; i++) {
+      if (!players[i].answers) players[i].answers = [];
+      players[i].score = 0;
+      for (let j = 0; j < players[i].answers.length; j++) {
+        let correctIndex = this.quiz[players[i].answers[j].index].correctIndex;
+        if (ansIndex[correctIndex] === players[i].answers[j].answer) {
+          players[i].score++;
         }
       }
+    }
+    for (let i = 0; i < players.length; i++) {
+      this.players.set(players[i].id, players[i]);
     }
   }
   get rankedPlayers(): QuizGamePlayer[] {
     let rankedPlayers: QuizGamePlayer[] = [];
-    let players = this.players;
-    let playersLen = this.players.length;
+    let players = Array.from(this.players.values());
+    let playersLen = players.length;
     for (let i = 0; i < playersLen; i++) {
       let player = players.reduce((pe, ce, i) => {
         return pe.score <= ce.score ? ce : pe;
@@ -768,10 +750,62 @@ export class QzGame extends Game implements QzGameData {
     }
     return rankedPlayers;
   }
-  async executeGame(
-    interaction: Interaction<CacheType>,
-    announcement: Message<true>
-  ) {
+  async editAnnouncement(
+    content: string | MessageEditOptions | MessagePayload
+  ): Promise<Message> {
+    const guild = Bot.client.guilds.cache.get(this.guildId);
+    if (!guild) throw new QzGameError("409", "guild not found");
+    const channel = Bot.client.channels.cache.get(this.channelId);
+    if (!channel) throw new QzGameError("408", "game channel not found");
+    if (channel.type !== ChannelType.GuildText)
+      throw new QzGameError("304", "invalid channel type");
+    const announcement = channel.messages.cache.get(this.announcementId);
+    if (!announcement)
+      throw new QzGameError("406", "game announcement not found");
+    await announcement.edit(content);
+    return announcement;
+  }
+  async updateAnnouncement() {
+    if (this.started) throw new Error("the game is started");
+    if (
+      this.gameStart === gameStartType.ADMIN ||
+      this.gameStart === gameStartType.AUTO
+    ) {
+      const joinLeaveBtns: any = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`join_quizgame_${this.hostId}`)
+          .setLabel("join")
+          .setStyle(3),
+        new ButtonBuilder()
+          .setCustomId(`leave_quizgame_${this.hostId}`)
+          .setLabel("leave")
+          .setStyle(4)
+      );
+      const embed = this.generateEmbed();
+      await this.editAnnouncement({
+        embeds: [embed],
+        components: [this.mainChannel && joinLeaveBtns].filter((r) => r),
+      });
+    } else {
+      const joinLeaveBtns: any = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`join_quizgame_${this.hostId}`)
+          .setLabel("join")
+          .setStyle(3),
+        new ButtonBuilder()
+          .setCustomId(`leave_quizgame_${this.hostId}`)
+          .setLabel("leave")
+          .setStyle(4)
+      );
+      const embed = this.generateEmbed();
+      const row = this.generateRow(this.gameStart);
+      await this.editAnnouncement({
+        embeds: [embed],
+        components: [row, this.mainChannel && joinLeaveBtns].filter((r) => r),
+      });
+    }
+  }
+  async executeGame(announcement: Message<true>) {
     try {
       const embed = this.generateEmbed();
       embed.setAuthor({ name: "Starting the game... 🟢" });

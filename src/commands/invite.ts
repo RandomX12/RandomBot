@@ -52,11 +52,10 @@ module.exports = new Command({
       );
       return;
     }
-    for (let i = 0; i < game.players.length; i++) {
-      if (game.players[i].id === user.id) {
-        await replyError(interaction, `<@${user.id}> is already in the game`);
-        return;
-      }
+    const player = game.players.get(user.id);
+    if (player) {
+      await replyError(interaction, `<@${user.id}> is already in the game`);
+      return;
     }
     if (game.bannedPlayers.has(user.id)) {
       await replyError(

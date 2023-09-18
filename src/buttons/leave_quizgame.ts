@@ -29,7 +29,7 @@ module.exports = new ButtonCommand({
     await reply(interaction);
     const announcement = await QzGame.getAnnouncement(interaction, hostId);
     if (game.started) {
-      if (game.players.length === 0) {
+      if (game.players.size === 0) {
         DiscordServers.deleteGame(game.hostId);
         if (announcement) {
           const deleteEmbed = new EmbedBuilder()

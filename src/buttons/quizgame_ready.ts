@@ -32,7 +32,7 @@ module.exports = new ButtonCommand({
       await interaction.deleteReply();
       return;
     }
-    game.setPlayerReady(interaction.user.id);
+    game.setPlayerReady(interaction.user.id, true);
     await game.update();
     const embed = game.generateEmbed();
     const announcement = await QzGame.getAnnouncement(interaction, hostId);
@@ -41,7 +41,8 @@ module.exports = new ButtonCommand({
     });
     await interaction.deleteReply();
     let allReady = true;
-    game.players.map((e) => {
+    const players = Array.from(game.players.values());
+    players.map((e) => {
       if (!e.ready) {
         allReady = false;
       }
@@ -50,9 +51,9 @@ module.exports = new ButtonCommand({
       (game.gameStart === gameStartType.READY && allReady) ||
       (game.gameStart === gameStartType.FULL_READY &&
         allReady &&
-        game.maxPlayers === game.players.length)
+        game.maxPlayers === game.players.size)
     ) {
-      await game.executeGame(interaction, announcement);
+      await game.executeGame(announcement);
     }
   },
   ephemeral: true,

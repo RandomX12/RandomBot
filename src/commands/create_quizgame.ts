@@ -343,7 +343,7 @@ module.exports = new Command({
     };
     const game = await createQzGame(hostId, gameBody);
     if (!empty) {
-      game.players.push({
+      game.players.set(hostId, {
         id: hostId,
         username: interaction.user.username,
       });

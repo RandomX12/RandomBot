@@ -446,7 +446,7 @@ addRuntimeCMD({
       console.table({
         hostId: game.hostId,
         hostName: game.hostName,
-        players: game.players.length,
+        players: game.players.size,
       });
     } catch (err) {
       error(err.message);

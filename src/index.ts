@@ -449,7 +449,6 @@ client.on("channelCreate", async (c) => {
     }
     const game = await QzGame.getGame(hostId);
     game.applyData(gameBody);
-    game.players = [];
     const embed = game.generateEmbed();
     const row: any = game.generateRow(game.gameStart || 0);
     try {

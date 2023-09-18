@@ -84,7 +84,7 @@ export default class DiscordServers {
    */
   static async isGameFull(hostId: string) {
     const game = await QzGame.getGame(hostId);
-    if (game.players.length === game.maxPlayers) return true;
+    if (game.players.size === game.maxPlayers) return true;
     return false;
   }
   /**

@@ -35,7 +35,7 @@ module.exports = new Command({
     });
     const announcement = await QzGame.getAnnouncement(interaction, game.hostId);
     if (game.started) {
-      if (game.players.length === 0) {
+      if (game.players.size === 0) {
         if (announcement) {
           const deleteEmbed = new EmbedBuilder()
             .setTitle("No one else in the game ❌")
