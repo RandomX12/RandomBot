@@ -29,7 +29,7 @@
   "quizGame": {
     "emptyWhenCreateNewGame": true,
     "createQzgame": {
-      "enable": false,
+      "enable": true,
       "reason": ""
     }
   },
