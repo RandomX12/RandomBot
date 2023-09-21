@@ -8,6 +8,7 @@ import {
   ChatInputCommandInteraction,
   EmbedBuilder,
   GuildChannel,
+  GuildChannelEditOptions,
   GuildTextBasedChannel,
   Interaction,
   Message,
@@ -749,6 +750,11 @@ export class QzGame extends Game implements QzGameData {
     }
     return rankedPlayers;
   }
+  /**
+   * edit the game announcement
+   * @param content announcement content
+   * @returns
+   */
   async editAnnouncement(
     content: string | MessageEditOptions | MessagePayload
   ): Promise<Message> {
@@ -803,6 +809,70 @@ export class QzGame extends Game implements QzGameData {
         components: [row, this.mainChannel && joinLeaveBtns].filter((r) => r),
       });
     }
+  }
+  /**
+   * edit the game channel
+   *
+   * mainChannel should be **false** to edit the channel
+   * @param options discord.js GuildChannelEditOptions
+   */
+  async editGameChannel(options: GuildChannelEditOptions) {
+    if (this.mainChannel)
+      throw new Error(
+        "cannot edit the game channel : the game is in the main channel"
+      );
+    const channel = Bot.client.channels.cache.get(this.channelId);
+    if (!channel) throw new QzGameError("408", "game channel is not found");
+    if (channel.type !== ChannelType.GuildText)
+      throw new QzGameError("304", "invalid game channel");
+    await channel.edit(options);
+  }
+  /**
+   * Deletes the game channel
+   *
+   * mainChannel should be **false** to delete the channel
+   */
+  async deleteGameChannel() {
+    if (this.mainChannel)
+      throw new Error(
+        "cannot edit the game channel : the game is in the main channel"
+      );
+    const channel = Bot.client.channels.cache.get(this.channelId);
+    if (!channel) throw new QzGameError("408", "game channel is not found");
+    if (channel.type !== ChannelType.GuildText)
+      throw new QzGameError("304", "invalid game channel");
+    await channel.delete();
+  }
+  /**
+   * Deletes a game from the memory and update the game announcement.
+   *
+   * If mainChannel is **true** the game channel name will be edited automatically and deleted after 10 seconds
+   * @param reason reason for the game deletion
+   */
+  async deleteGame(reason?: string) {
+    // this.delete();
+    const r = reason || "Game Deleted";
+    const embed = new EmbedBuilder()
+      .setTitle(r)
+      .setFooter({ text: "Game deleted" })
+      .setTimestamp()
+      .setColor("Red");
+    await this.editAnnouncement({
+      components: [],
+      content: "",
+      embeds: [embed],
+    });
+    if (this.mainChannel) return;
+    await this.editGameChannel({
+      name: "game deleted 🔴",
+    });
+    setTimeout(async () => {
+      try {
+        await this.deleteGameChannel();
+      } catch (err: any) {
+        warning("an error occurred while deleting the game channel");
+      }
+    }, 10 * 1000);
   }
   async executeGame(announcement: Message<true>) {
     try {
