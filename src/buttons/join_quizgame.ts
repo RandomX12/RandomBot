@@ -82,7 +82,7 @@ module.exports = new ButtonCommand({
         return;
       }
     }
-    game.players.push({
+    game.players.set(interaction.user.id, {
       id: interaction.user.id,
       username: interaction.user.username,
     });
@@ -123,23 +123,24 @@ module.exports = new ButtonCommand({
       game.gameStart === gameStartType.READY ||
       game.gameStart === gameStartType.FULL_READY
     ) {
-      for (let i = 0; i < game.players.length; i++) {
-        if (!game.players[i].ready) {
+      const players = Array.from(game.players.values());
+      for (let i = 0; i < players.length; i++) {
+        if (!players[i].ready) {
           allReady = false;
           break;
         }
       }
     }
     if (
-      (game.players.length === game.maxPlayers &&
+      (game.players.size === game.maxPlayers &&
         game.gameStart === gameStartType.AUTO) ||
       (game.gameStart === gameStartType.READY && allReady) ||
       (game.gameStart === gameStartType.FULL_READY &&
-        game.players.length === game.maxPlayers &&
+        game.players.size === game.maxPlayers &&
         allReady)
     ) {
       try {
-        await game.executeGame(interaction, announcement);
+        await game.executeGame(announcement);
       } catch (err: any) {
         try {
           const announcement = await QzGame.getAnnouncement(

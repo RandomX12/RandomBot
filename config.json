@@ -27,7 +27,11 @@
     "invite": true
   },
   "quizGame": {
-    "emptyWhenCreateNewGame": true
+    "emptyWhenCreateNewGame": true,
+    "createQzgame": {
+      "enable": true,
+      "reason": ""
+    }
   },
   "info": {
     "website": "https://random-bot-seven.vercel.app/",

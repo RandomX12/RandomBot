@@ -73,10 +73,7 @@ router.get("/:id/:gameId/players/:playerId/ban", async (req, res) => {
       return;
     }
     if (!game.started) {
-      const embed = game.generateEmbed();
-      await msg.edit({
-        embeds: [embed],
-      });
+      await game.updateAnnouncement();
     }
     if (game.mainChannel) {
       await game.update();

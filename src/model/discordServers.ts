@@ -7,7 +7,6 @@ export interface Member {
 export interface Game {
   hostId: string;
   hostName: string;
-  players?: Member[];
   channelId: string;
 }
 export interface DiscordServer {

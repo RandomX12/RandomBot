@@ -9,6 +9,7 @@ import Ping from "./Ping";
 import { games } from "..";
 import mongoose from "mongoose";
 import { connectDB } from "./connectDB";
+import { ActivityType } from "discord.js";
 type CommandType = "SYNC" | "ASYNC";
 
 type ArgType = "str" | "int" | "float" | "bol" | "txt" | "arr";
@@ -446,7 +447,7 @@ addRuntimeCMD({
       console.table({
         hostId: game.hostId,
         hostName: game.hostName,
-        players: game.players.length,
+        players: game.players.size,
       });
     } catch (err) {
       error(err.message);
@@ -605,6 +606,7 @@ addRuntimeCMD({
         }
         Bot.maintenance = 1;
         Bot.client.removeAllListeners();
+        Bot.setActivity({ type: ActivityType.Custom, name: "I am busy now" });
         log({ textColor: "Cyan", text: "\nmaintenance mode ON" });
       });
     } else {
@@ -612,5 +614,18 @@ addRuntimeCMD({
       warning(`The server need a restart to revive the discord.js events`);
       log({ textColor: "Cyan", text: "\nmaintenance mode OFF" });
     }
+  },
+});
+addRuntimeCMD({
+  input: "create-qzgame [:c]:bol [:r]?:txt",
+  fn(args) {
+    Bot.createQzgame.enable = args[0].value;
+    if (args[1]) {
+      Bot.createQzgame.reason = args[1].value;
+    }
+    log({
+      textColor: "Green",
+      text: `create quiz games is ${args[0].value ? "enabled" : "disabled"}.`,
+    });
   },
 });

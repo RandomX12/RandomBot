@@ -64,7 +64,7 @@ module.exports = new Command({
         return;
       }
     } else {
-      if (game.players.length === 0) {
+      if (game.players.size === 0) {
         const announcement = await QzGame.getAnnouncement(
           interaction,
           game.hostId

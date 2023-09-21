@@ -31,7 +31,7 @@ module.exports = new Command({
       hostId = game.hostId;
     }
     const game = await QzGame.getGame(hostId);
-    if (game.players.length === 0) {
+    if (game.players.size === 0) {
       await replyError(
         interaction,
         "cannot start the game : the game is empty"
@@ -57,7 +57,7 @@ module.exports = new Command({
       });
     }
     try {
-      await game.executeGame(interaction, announcement);
+      await game.executeGame(announcement);
     } catch (err) {
       game.delete();
     }

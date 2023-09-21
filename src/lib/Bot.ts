@@ -33,13 +33,7 @@ export abstract class Bot {
    * The bot :)
    */
   static client = new Discord.Client({
-    intents: [
-      GatewayIntentBits.Guilds,
-      GatewayIntentBits.GuildMessages,
-      GatewayIntentBits.MessageContent,
-      GatewayIntentBits.GuildMembers,
-      GatewayIntentBits.GuildMessageReactions,
-    ],
+    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages],
   });
   /**
    * Lunch the bot.
@@ -53,7 +47,7 @@ export abstract class Bot {
    * Scan command folder and save the commands
    * @note also create / command for the new commands
    */
-  static async scanCommands() {
+  static async scanCommands(save?: boolean) {
     this.client.commands = new Collection();
     const commandPath = path.join(__dirname + "/..", "commands");
     const commandFiles = fs
@@ -63,7 +57,7 @@ export abstract class Bot {
       const filePath = path.join(commandPath, file);
       const command = require(filePath);
       if ("data" in command && "execute" in command) {
-        await (command as Command).save();
+        await (command as Command).save(save);
       } else {
         console.log(
           "\x1b[33m",
@@ -177,6 +171,10 @@ export abstract class Bot {
    * default value from .env file variable BUSY
    */
   static maintenance = +process.env.BUSY;
+  static createQzgame = {
+    enable: require("../../config.json").quizGame?.createQzgame?.enable,
+    reason: require("../../config.json").quizGame?.createQzgame?.reason,
+  };
 }
 
 function toInt(num: number) {

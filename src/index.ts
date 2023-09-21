@@ -352,6 +352,13 @@ client.on("channelCreate", async (c) => {
     }
     time = time * 1000;
     const channel = c;
+    if (!Bot.createQzgame.enable) {
+      await channel.send(
+        `:x: cannot create a game, creating a quiz game is disabled now.
+${Bot.createQzgame.reason ? `**reason**  ${Bot.createQzgame.reason}` : ""}`
+      );
+      return;
+    }
     const hostId = generateId();
     const guildGames = games.select({ guildId: channel.guildId });
     if (guildGames.length >= maxGames) {
@@ -449,7 +456,6 @@ client.on("channelCreate", async (c) => {
     }
     const game = await QzGame.getGame(hostId);
     game.applyData(gameBody);
-    game.players = [];
     const embed = game.generateEmbed();
     const row: any = game.generateRow(game.gameStart || 0);
     try {
@@ -529,14 +535,10 @@ client.on("ready", async (c) => {
     });
     const bDate = Date.now();
     let scan = require("../config.json").scanSlashCommands;
-    if (scan) {
-      let ws = animateRotatingSlash("Scanning commands...");
-      await Bot.scanCommands();
-      clearInterval(ws);
-      console.log("\ncommands scanned successfully");
-    } else {
-      Bot.scanCommands();
-    }
+    let ws = animateRotatingSlash("Scanning commands...");
+    await Bot.scanCommands(scan);
+    clearInterval(ws);
+    console.log("\ncommands scanned successfully");
     Bot.scanButtons();
     scan = null;
     log({
