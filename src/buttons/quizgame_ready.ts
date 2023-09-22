@@ -53,7 +53,7 @@ module.exports = new ButtonCommand({
         allReady &&
         game.maxPlayers === game.players.size)
     ) {
-      await game.executeGame(announcement);
+      await game.executeGame();
     }
   },
   ephemeral: true,

@@ -15,6 +15,10 @@ export const QzErrors = {
     name: "GAME_EXIST",
     message: "this game already exist",
   },
+  "205": {
+    name: "CANNOT_ANSWER",
+    message: "you can't answer now",
+  },
   "301": {
     name: "INVALID_AMOUNT",
     message: `invalid question amount`,

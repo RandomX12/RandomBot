@@ -57,7 +57,7 @@ module.exports = new Command({
       });
     }
     try {
-      await game.executeGame(announcement);
+      await game.executeGame();
     } catch (err) {
       game.delete();
     }
