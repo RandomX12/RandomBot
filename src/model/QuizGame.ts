@@ -42,4 +42,5 @@ export interface QuizGame extends Game {
   difficulty?: difficulty;
   bannedPlayers: string[];
   invitedPlayers: string[];
+  canAnswer: boolean;
 }

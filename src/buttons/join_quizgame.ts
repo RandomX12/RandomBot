@@ -140,7 +140,7 @@ module.exports = new ButtonCommand({
         allReady)
     ) {
       try {
-        await game.executeGame(announcement);
+        await game.executeGame();
       } catch (err: any) {
         try {
           const announcement = await QzGame.getAnnouncement(

@@ -306,6 +306,7 @@ export class QzGame extends Game implements QzGameData {
     index: number
   ) {
     const game = await QzGame.getGame(hostId);
+    if (!game.canAnswer) throw new QzGameError("205", "cannot answer");
     const player = game.players.get(userId);
 
     if (!player.answers) {
@@ -426,6 +427,7 @@ export class QzGame extends Game implements QzGameData {
    * Game start code
    */
   public gameStart?: TGameStart;
+  public canAnswer: boolean;
   constructor(
     /**
      * Game id
@@ -466,6 +468,7 @@ export class QzGame extends Game implements QzGameData {
     this.bannedPlayers = new Set(game.bannedPlayers) || this.bannedPlayers;
     this.invitedPlayers =
       new Set<string>(game.invitedPlayers) || this.invitedPlayers;
+    this.canAnswer = game.canAnswer || this.canAnswer;
     return this;
   }
   /**
@@ -850,7 +853,7 @@ export class QzGame extends Game implements QzGameData {
    * @param reason reason for the game deletion
    */
   async deleteGame(reason?: string) {
-    // this.delete();
+    this.delete();
     const r = reason || "Game Deleted";
     const embed = new EmbedBuilder()
       .setTitle(r)
@@ -874,10 +877,21 @@ export class QzGame extends Game implements QzGameData {
       }
     }, 10 * 1000);
   }
-  async executeGame(announcement: Message<true>) {
+  async getAnnouncement() {
+    const channel = Bot.client.channels.cache.get(this.channelId);
+    if (!channel) throw new QzGameError("408", "game channel is not found");
+    if (channel.type !== ChannelType.GuildText)
+      throw new QzGameError("304", "invalid game channel");
+    const announcement = channel.messages.cache.get(this.announcementId);
+    if (!announcement)
+      throw new QzGameError("406", "game announcement not found");
+    return announcement;
+  }
+  async executeGame() {
     try {
       const embed = this.generateEmbed();
       embed.setAuthor({ name: "Starting the game... 🟢" });
+      let announcement = await this.getAnnouncement();
       await announcement.edit({
         content: "",
         embeds: [embed],
@@ -893,14 +907,18 @@ export class QzGame extends Game implements QzGameData {
         try {
           const embed = this.generateRoundEmbed();
           const row = this.generateRoundRow();
-          await announcement.edit({
+          announcement = await channel.send({
             embeds: [embed],
             components: [row],
             content: `The round will end ${TimeTampNow(
               Date.now() + (this.time || 30)
             )}`,
           });
+          this.announcementId = announcement.id;
+          await this.update();
           await stop(this.time || 30 * 1000);
+          this.canAnswer = false;
+          await this.update();
           let endAns = "";
           let al: answer[] = ["A", "B", "C", "D"];
           if (this.round.type === "multiple") {
@@ -915,13 +933,35 @@ export class QzGame extends Game implements QzGameData {
             endAns = `**${this.round.answers[this.round.correctIndex]} ✅**`;
           }
           embed.setFields({ name: "answers :", value: endAns });
+          let playersAns = "";
+          this.players.forEach((p) => {
+            if (!p.answers) {
+              playersAns += `${p.username} : no answer ❌\n`;
+              return;
+            }
+            for (let i = 0; i < p.answers.length; i++) {
+              if (p.answers[i].index === this.index) {
+                if (p.answers[i].answer === al[this.round.correctIndex]) {
+                  playersAns += `${p.username} : ${p.answers[i].answer} ✅\n`;
+                } else {
+                  playersAns += `${p.username} : ${p.answers[i].answer} ❌\n`;
+                }
+                return;
+              }
+            }
+            playersAns += `${p.username} : no answer ❌\n`;
+          });
+          embed.addFields([{ name: "players answers", value: playersAns }]);
           await announcement.edit({
             embeds: [embed],
             components: [],
             content: "",
           });
           await stop(5 * 1000);
+          this.canAnswer = true;
+          await this.update();
         } catch (err: any) {
+          console.log(err);
           gameGenerator.return();
         }
       }
@@ -939,7 +979,7 @@ export class QzGame extends Game implements QzGameData {
       });
       endEmbed.addFields({ name: "players score ", value: playersScore });
       endEmbed.setTimestamp(Date.now());
-      await announcement.edit({
+      announcement = await channel.send({
         content: "",
         components: [],
         embeds: [endEmbed],
@@ -1022,6 +1062,7 @@ export async function createQzGame(
     hostId: id,
     bannedPlayers: [],
     invitedPlayers: [],
+    canAnswer: true,
   };
   games.set(id, qzGame);
   return new QzGame(id, qz.hostUserId).applyData(qzGame);
