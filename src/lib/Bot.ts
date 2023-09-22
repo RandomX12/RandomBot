@@ -33,7 +33,11 @@ export abstract class Bot {
    * The bot :)
    */
   static client = new Discord.Client({
-    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages],
+    intents: [
+      GatewayIntentBits.Guilds,
+      GatewayIntentBits.GuildMessages,
+      GatewayIntentBits.GuildMembers,
+    ],
   });
   /**
    * Lunch the bot.

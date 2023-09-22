@@ -47,3 +47,19 @@ export default function lunchServer() {
     });
   }
 }
+
+export function verifyAccessToken(authorization: string) {
+  if (!authorization) {
+    return false;
+  }
+  const authorizationBody = authorization.split(" ");
+  if (authorizationBody.length !== 2) {
+    return false;
+  }
+
+  if (authorizationBody[0] !== "Bearer" || !authorizationBody[1]) {
+    return false;
+  }
+  const accessToken = authorizationBody[1];
+  return accessToken;
+}
