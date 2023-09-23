@@ -369,6 +369,7 @@ export class QzGame extends Game implements QzGameData {
 
   static async removeAns(hostId: string, userId: string, index: number) {
     const game = await QzGame.getGame(hostId);
+    if (!game.canAnswer) throw new QzGameError("205", "cannot answer");
     const player = game.players.get(userId);
     if (!player) throw new QzGameError("201", "user not found");
     player.answers?.map((e, i) => {
