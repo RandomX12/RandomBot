@@ -24,7 +24,7 @@
 
 # Overview
 
-Engage your Discord server with quizzes from [Trivia api](https://opentdb.com) by typing /create_quizgame. Test your knowledge, learn, have fun and make communication enjoyable.
+Engage your Discord server with quizzes from [Open Trivia DB](https://opentdb.com) and [The Trivia Api](https://the-trivia-api.com/) by typing /create_quizgame. Test your knowledge, learn, have fun and make communication enjoyable.
 <br/>
 Random Bot offers remarkable configurability! You can enable/disable commands, set roles, and easily customize the quiz game. Take full control and adapt the bot's behavior to your preferences effortlessly.
 
