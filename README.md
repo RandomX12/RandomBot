@@ -1,8 +1,8 @@
 <p align="center">
   <a href="https://random-bot-seven.vercel.app/">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="https://lh3.googleusercontent.com/u/0/drive-viewer/AITFw-yIXmJvofjXac1FxQFdPfQxhT98LBIsW8AjAzLnS-oBDl8MXZ1UBQO1nVbAhOPDFKbw655nj9HiPl2PVFfn6CnDzJQU=w1920-h942">
-      <img src="https://lh3.googleusercontent.com/u/0/drive-viewer/AITFw-yIXmJvofjXac1FxQFdPfQxhT98LBIsW8AjAzLnS-oBDl8MXZ1UBQO1nVbAhOPDFKbw655nj9HiPl2PVFfn6CnDzJQU=w1920-h942" height="128">
+      <source media="(prefers-color-scheme: dark)" srcset="https://lh3.googleusercontent.com/u/0/drive-viewer/AITFw-y-TVSl8pCTeBPMTuGyfUmrqr4pf7Xm5Gy99JKDAua7cK2dyuqsn8Z_LRqg4db_I--fgyo10CZ1s6TltRbV_-Ns596l=w1920-h942">
+      <img src="https://lh3.googleusercontent.com/u/0/drive-viewer/AITFw-y-TVSl8pCTeBPMTuGyfUmrqr4pf7Xm5Gy99JKDAua7cK2dyuqsn8Z_LRqg4db_I--fgyo10CZ1s6TltRbV_-Ns596l=w1920-h942" height="128">
     </picture>
     <h1 align="center">RandomBot</h1>
   </a>
